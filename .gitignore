@@ -1,0 +1,281 @@
+# ==========================================
+# CineHub Project - Complete .gitignore
+# Full-stack: Next.js Frontend + Node.js Backend
+# ==========================================
+
+# ==========================================
+# ENVIRONMENT VARIABLES (CRITICAL!)
+# ==========================================
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env*.local
+**/.env
+**/.env.local
+
+# ==========================================
+# NODE.JS / NPM
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Package manager lock files (optional - uncomment if needed)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ==========================================
+# NEXT.JS (Frontend)
+# ==========================================
+.next/
+out/
+build/
+dist/
+.vercel
+.turbo
+
+# Next.js cache
+.next/cache/
+.swc/
+
+# ==========================================
+# REACT / FRONTEND
+# ==========================================
+# Production build
+/my-app-frontend/build
+/my-app-frontend/.next
+/my-app-frontend/out
+
+# Testing
+coverage/
+.nyc_output/
+
+# ==========================================
+# BACKEND / EXPRESS
+# ==========================================
+/my-app-backend/dist
+/my-app-backend/build
+/my-app-backend/uploads/*
+!/my-app-backend/uploads/.gitkeep
+
+# Logs
+logs/
+*.log
+
+# ==========================================
+# MONGODB
+# ==========================================
+# MongoDB data directory (if running locally)
+data/
+mongodb/
+
+# ==========================================
+# UPLOADS & MEDIA
+# ==========================================
+uploads/
+temp/
+tmp/
+*.tmp
+
+# User uploaded files
+public/uploads/
+static/uploads/
+
+# ==========================================
+# OPERATING SYSTEM
+# ==========================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ==========================================
+# IDEs & EDITORS
+# ==========================================
+
+# VSCode
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+.history/
+*.code-workspace
+
+# JetBrains (WebStorm, IntelliJ, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.*.sw?
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# ==========================================
+# TESTING
+# ==========================================
+coverage/
+.nyc_output/
+*.lcov
+.jest/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# ==========================================
+# TYPESCRIPT
+# ==========================================
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# ==========================================
+# MISC
+# ==========================================
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env*.local
+
+# Vercel
+.vercel
+
+# Sentry
+.sentryclirc
+
+# PWA files
+**/public/sw.js
+**/public/workbox-*.js
+**/public/worker-*.js
+**/public/sw.js.map
+**/public/workbox-*.js.map
+**/public/worker-*.js.map
+
+# Storybook
+storybook-static/
+
+# ==========================================
+# SECURITY & CREDENTIALS
+# ==========================================
+
+# API Keys & Secrets
+*.pem
+*.key
+*.cert
+*.crt
+secrets/
+credentials/
+
+# SSH Keys
+id_rsa
+id_rsa.pub
+*.ppk
+
+# ==========================================
+# CLOUDINARY & EXTERNAL SERVICES
+# ==========================================
+# Cloudinary cache (if any)
+.cloudinary/
+
+# ==========================================
+# DOCUMENTATION (Optional)
+# ==========================================
+# Uncomment if you don't want to commit docs
+# docs/
+# *.md
+# !README.md
+
+# ==========================================
+# TEMPORARY FILES
+# ==========================================
+*.cache
+.cache/
+.temp/
+.tmp/
+
+# ==========================================
+# PRODUCTION BUILDS
+# ==========================================
+# Uncomment if you don't want to commit builds
+# build/
+# dist/
+# out/
+
+# ==========================================
+# DOCKER (if using)
+# ==========================================
+# docker-compose.override.yml
+# .dockerignore
+
+# ==========================================
+# CUSTOM PROJECT-SPECIFIC
+# ==========================================
+
+# Backend specific
+/my-app-backend/node_modules
+/my-app-backend/.env
+/my-app-backend/dist
+/my-app-backend/logs
+
+# Frontend specific
+/my-app-frontend/node_modules
+/my-app-frontend/.env.local
+/my-app-frontend/.next
+/my-app-frontend/out
+
+# Database backups
+*.sql
+*.dump
+*.backup
+
+# ==========================================
+# KEEP THESE FILES (Important!)
+# ==========================================
+# These files SHOULD be committed:
+# - README.md
+# - package.json
+# - package-lock.json (or yarn.lock)
+# - .gitignore (this file)
+# - Source code files (.js, .jsx, .ts, .tsx)
+# - Configuration files (next.config.js, etc.)
+# ==========================================
