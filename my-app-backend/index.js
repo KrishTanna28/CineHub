@@ -1,10 +1,13 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import session from 'express-session';
 import connectDB from './config/database.js';
 import './config/cloudinary.js'; // Initialize Cloudinary
+import passport from './config/passport.js';
 import userRoutes from './routes/userRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 // Load environment variables
@@ -23,6 +26,21 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Session middleware (for OAuth)
+app.use(session({
+  secret: process.env.JWT_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Request logging middleware (development)
 if (process.env.NODE_ENV === 'development') {
@@ -44,6 +62,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/users', userRoutes);
 app.use('/upload', uploadRoutes);
+app.use('/auth', authRoutes);
 
 // 404 handler
 app.use(notFound);

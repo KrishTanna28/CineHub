@@ -1,7 +1,7 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import { uploadAvatarToCloudinary } from '../utils/cloudinaryHelper.js';
-import { sendVerificationOTP } from '../utils/smsService.js';
+import { sendOTPEmail, sendWelcomeEmail } from '../utils/emailService.js';
 
 // Temporary storage for pending registrations (in production, use Redis)
 const pendingRegistrations = new Map();
@@ -20,18 +20,17 @@ const generateToken = (userId) => {
 // @access  Public
 export const register = async (req, res, next) => {
   try {
-    const { username, email, password, fullName, mobile, referralCode } = req.body;
+    const { username, email, password, fullName, referralCode } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({
-      $or: [{ email }, { username }, { mobile }]
+      $or: [{ email }, { username }]
     });
 
     if (existingUser) {
       let message = 'User already exists';
       if (existingUser.email === email) message = 'Email already registered';
       else if (existingUser.username === username) message = 'Username already taken';
-      else if (existingUser.mobile === mobile) message = 'Mobile number already registered';
       
       return res.status(400).json({
         success: false,
@@ -44,13 +43,12 @@ export const register = async (req, res, next) => {
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Store registration data temporarily (will be deleted after verification or expiry)
-    const registrationId = `${mobile}_${Date.now()}`;
+    const registrationId = `${email}_${Date.now()}`;
     pendingRegistrations.set(registrationId, {
       username,
       email,
       password,
       fullName,
-      mobile,
       referralCode,
       avatar: req.file ? req.file.buffer : null,
       avatarName: req.file ? req.file.originalname : null,
@@ -65,10 +63,17 @@ export const register = async (req, res, next) => {
       pendingRegistrations.delete(registrationId);
     }, 15 * 60 * 1000);
 
-    // Send OTP via SMS
+    // Send OTP via Email (FREE & Unlimited)
     try {
-      await sendVerificationOTP(mobile, otp);
-    } catch (smsError) {
+      const emailSent = await sendOTPEmail(email, otp, fullName);
+      if (!emailSent) {
+        pendingRegistrations.delete(registrationId);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send OTP email. Please check your email address.'
+        });
+      }
+    } catch (emailError) {
       pendingRegistrations.delete(registrationId);
       return res.status(500).json({
         success: false,
@@ -78,10 +83,10 @@ export const register = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'OTP sent to your mobile number. Please verify to complete registration.',
+      message: 'OTP sent to your email. Please check your inbox and verify to complete registration.',
       data: {
         registrationId,
-        mobile: mobile.replace(/(\d{2})(\d{4})(\d{4})/, '$1****$3'),
+        email: email.replace(/(.{2})(.*)(@.*)/, '$1***$3'), // Mask email
         otpExpiresIn: '10 minutes'
       }
     });
@@ -89,6 +94,7 @@ export const register = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // @desc    Complete registration (Step 2: Verify OTP and create user)
 // @route   POST /api/users/complete-registration
@@ -149,8 +155,7 @@ export const completeRegistration = async (req, res, next) => {
       email: pendingData.email,
       password: pendingData.password,
       fullName: pendingData.fullName,
-      mobile: pendingData.mobile,
-      mobileVerified: true  // Mark as verified since OTP is confirmed
+      emailVerified: true  // Mark as verified since OTP is confirmed
     };
 
     // Create user
@@ -178,6 +183,14 @@ export const completeRegistration = async (req, res, next) => {
       referralResult = await user.processReferral(pendingData.referralCode);
     }
 
+    // Send welcome email
+    try {
+      await sendWelcomeEmail(user.email, user.fullName);
+    } catch (emailError) {
+      console.error('Welcome email failed:', emailError);
+      // Continue even if welcome email fails
+    }
+
     // Delete pending registration
     pendingRegistrations.delete(registrationId);
 
@@ -186,23 +199,26 @@ export const completeRegistration = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'Registration completed successfully!',
+      message: 'Registration completed successfully! You received 50 welcome points! 🎉',
       data: {
         user: {
           id: user._id,
           username: user.username,
           email: user.email,
           fullName: user.fullName,
-          mobile: user.mobile,
           avatar: user.avatar,
           points: user.points,
           level: user.level,
           referralCode: user.referralCode,
-          mobileVerified: user.mobileVerified,
+          emailVerified: user.emailVerified,
           createdAt: user.createdAt
         },
         token,
-        referralReward: referralResult
+        referralReward: referralResult,
+        welcomeBonus: {
+          points: 50,
+          message: '🎁 Welcome bonus credited!'
+        }
       }
     });
   } catch (error) {

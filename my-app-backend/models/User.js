@@ -21,7 +21,9 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    required: function() {
+      return !this.googleId; // Password not required for OAuth users
+    },
     minlength: [6, 'Password must be at least 6 characters'],
     select: false // Don't include password in queries by default
   },
@@ -38,43 +40,33 @@ const userSchema = new mongoose.Schema({
     type: String,
     maxlength: [500, 'Bio cannot exceed 500 characters']
   },
-  mobile: {
-    type: String,
-    required: [true, 'Mobile number is required'],
-    unique: true,
-    trim: true,
-    match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit mobile number']
-  },
-  mobileVerified: {
+  emailVerified: {
     type: Boolean,
     default: false
   },
-  otp: {
-    code: {
-      type: String,
-      select: false
-    },
-    expiresAt: {
-      type: Date,
-      select: false
-    },
-    attempts: {
-      type: Number,
-      default: 0,
-      select: false
-    }
+
+  // OAuth Fields
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true // Allows null values while maintaining uniqueness
+  },
+  authProvider: {
+    type: String,
+    enum: ['local', 'google'],
+    default: 'local'
   },
 
   // Gamification System
   points: {
     total: {
       type: Number,
-      default: 0,
+      default: 50, // 50 welcome points for new users
       min: 0
     },
     available: {
       type: Number,
-      default: 0,
+      default: 50, // 50 welcome points for new users
       min: 0
     },
     redeemed: {
