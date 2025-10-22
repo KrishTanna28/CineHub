@@ -5,9 +5,11 @@ import session from 'express-session';
 import connectDB from './config/database.js';
 import './config/cloudinary.js'; // Initialize Cloudinary
 import passport from './config/passport.js';
+import cache from './utils/cache.js';
 import userRoutes from './routes/userRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import movieRoutes from './routes/movie.routes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 // Load environment variables
@@ -18,6 +20,12 @@ const app = express();
 
 // Connect to database
 connectDB();
+
+// Connect to Redis cache
+cache.connect().catch(err => {
+  console.error('Failed to connect to Redis:', err.message);
+  console.log('Continuing without cache...');
+});
 
 // Middleware
 app.use(cors({
@@ -63,6 +71,7 @@ app.get('/health', (req, res) => {
 app.use('/users', userRoutes);
 app.use('/upload', uploadRoutes);
 app.use('/auth', authRoutes);
+app.use('/movies', movieRoutes);
 
 // 404 handler
 app.use(notFound);
