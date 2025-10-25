@@ -332,9 +332,7 @@ const userSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
-userSchema.index({ referralCode: 1 });
+// Note: email, username, and referralCode already have unique indexes from schema definition
 userSchema.index({ 'points.total': -1 });
 userSchema.index({ level: -1 });
 

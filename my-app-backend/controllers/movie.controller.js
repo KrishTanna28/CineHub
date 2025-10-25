@@ -384,3 +384,24 @@ export const discoverTV = async (req, res) => {
     });
   }
 };
+
+// ===== PERSON/ACTOR CONTROLLERS =====
+
+// Get person/actor details
+export const getPersonDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const person = await tmdbService.getPersonDetails(id);
+
+    res.json({
+      success: true,
+      data: person,
+    });
+  } catch (error) {
+    console.error('getPersonDetails error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch person details',
+    });
+  }
+};

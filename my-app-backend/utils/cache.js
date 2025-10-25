@@ -8,44 +8,76 @@ class CacheService {
   }
 
   async connect() {
+    // Skip Redis if not explicitly enabled
+    if (!process.env.REDIS_URL || process.env.REDIS_ENABLED === 'false') {
+      console.log('ℹ️  Redis disabled - running without cache');
+      this.isConnected = false;
+      return;
+    }
+
     try {
       this.client = createClient({
-        url: process.env.REDIS_URL || 'redis://localhost:6379',
+        url: process.env.REDIS_URL,
         socket: {
+          connectTimeout: 2000, // Reduced from 5000ms to 2000ms for faster failure
           reconnectStrategy: (retries) => {
-            if (retries > 10) {
-              console.log('Redis: Too many reconnection attempts, giving up');
-              return new Error('Too many retries');
+            if (retries > 2) { // Reduced from 3 to 2 retries
+              console.log('⚠️  Redis: Max retries reached, disabling cache');
+              this.isConnected = false;
+              return false; // Stop retrying
             }
-            return retries * 100; // Exponential backoff
+            return Math.min(retries * 300, 1000); // Faster retry with max 1s delay
           },
         },
       });
 
       this.client.on('error', (err) => {
-        console.error('Redis Client Error:', err);
+        // Suppress connection refused errors to reduce noise
+        if (err.code === 'ECONNREFUSED') {
+          // Silent fail for connection refused
+        } else {
+          console.error('Redis Error:', err.message);
+        }
         this.isConnected = false;
       });
 
       this.client.on('connect', () => {
-        console.log('Redis: Connecting...');
+        console.log('🔄 Redis: Connecting...');
       });
 
       this.client.on('ready', () => {
-        console.log('Redis: Connected and ready');
+        console.log('✅ Redis: Connected and ready');
         this.isConnected = true;
       });
 
       this.client.on('end', () => {
-        console.log('Redis: Connection closed');
+        console.log('⚠️  Redis: Connection closed');
         this.isConnected = false;
       });
 
-      await this.client.connect();
+      // Add timeout to prevent hanging
+      const connectPromise = this.client.connect();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout')), 3000)
+      );
+
+      await Promise.race([connectPromise, timeoutPromise]);
     } catch (error) {
-      console.error('Redis connection failed:', error.message);
-      console.log('Running without Redis cache');
+      if (error.message === 'Connection timeout') {
+        console.log('⚠️  Redis: Connection timeout - running without cache');
+      } else {
+        console.log('ℹ️  Redis unavailable - running without cache');
+      }
       this.isConnected = false;
+      // Clean up client if connection failed
+      if (this.client) {
+        try {
+          await this.client.disconnect();
+        } catch (e) {
+          // Ignore disconnect errors
+        }
+        this.client = null;
+      }
     }
   }
 

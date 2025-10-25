@@ -73,4 +73,9 @@ router.get('/tv/:id/season/:seasonNumber', cache.cacheMiddleware(CACHE_TTL.DETAI
 // Search multi (movies + TV shows) (cached for 30 minutes)
 router.get('/search/multi', cache.cacheMiddleware(CACHE_TTL.SEARCH), movieController.searchMulti);
 
+// ===== PERSON/ACTOR ROUTES =====
+
+// Get person/actor details by ID (cached for 2 hours)
+router.get('/person/:id', cache.cacheMiddleware(CACHE_TTL.DETAILS), movieController.getPersonDetails);
+
 export default router;

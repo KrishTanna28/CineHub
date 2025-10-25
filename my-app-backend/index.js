@@ -21,10 +21,13 @@ const app = express();
 // Connect to database
 connectDB();
 
-// Connect to Redis cache
-cache.connect().catch(err => {
-  console.error('Failed to connect to Redis:', err.message);
-  console.log('Continuing without cache...');
+// Connect to Redis cache (non-blocking, runs in background)
+cache.connect().then(() => {
+  if (cache.isConnected) {
+    console.log('✅ Redis cache enabled');
+  }
+}).catch(err => {
+  // Error already logged in cache.connect()
 });
 
 // Middleware

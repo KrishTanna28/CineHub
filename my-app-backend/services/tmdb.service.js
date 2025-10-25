@@ -108,7 +108,7 @@ class TMDBService {
     try {
       const response = await this.api.get(`/movie/${movieId}`, {
         params: {
-          append_to_response: 'credits,videos,similar,recommendations,watch/providers',
+          append_to_response: 'credits,videos,similar,recommendations,watch/providers,release_dates',
         },
       });
       return this.formatMovieDetails(response.data);
@@ -252,7 +252,7 @@ class TMDBService {
     try {
       const response = await this.api.get(`/tv/${tvId}`, {
         params: {
-          append_to_response: 'credits,videos,similar,recommendations,watch/providers',
+          append_to_response: 'credits,videos,similar,recommendations,watch/providers,content_ratings',
         },
       });
       return this.formatTVDetails(response.data);
@@ -297,8 +297,41 @@ class TMDBService {
       const response = await this.api.get('/search/multi', {
         params: { query, page },
       });
+      
+      // Format results including people
+      const formattedResults = response.data.results.map(item => {
+        if (item.media_type === 'person') {
+          return {
+            id: item.id,
+            title: item.name,
+            mediaType: 'person',
+            poster: this.getImageUrl(item.profile_path, 'w500'),
+            knownFor: item.known_for?.map(kf => kf.title || kf.name).join(', ') || '',
+            popularity: item.popularity,
+          };
+        } else {
+          // Format movie/TV show item
+          return {
+            id: item.id,
+            mediaType: item.media_type || (item.title ? 'movie' : 'tv'),
+            title: item.title || item.name,
+            originalTitle: item.original_title || item.original_name,
+            overview: item.overview,
+            releaseDate: item.release_date || item.first_air_date,
+            rating: item.vote_average,
+            voteCount: item.vote_count,
+            popularity: item.popularity,
+            adult: item.adult,
+            genres: item.genre_ids,
+            poster: this.getImageUrl(item.poster_path, 'w500'),
+            backdrop: this.getImageUrl(item.backdrop_path, 'w1280'),
+            originalLanguage: item.original_language,
+          };
+        }
+      });
+
       return {
-        results: this.formatMediaList(response.data.results.filter(item => item.media_type !== 'person')),
+        results: formattedResults,
         page: response.data.page,
         totalPages: response.data.total_pages,
         totalResults: response.data.total_results,
@@ -360,6 +393,29 @@ class TMDBService {
     return this.formatMediaList(movies);
   }
 
+  // Get certification/content rating
+  getCertification(releaseDates) {
+    if (!releaseDates?.results) return null;
+    
+    // Priority order: IN (India), US, GB (UK)
+    const countries = ['IN', 'US', 'GB'];
+    
+    for (const country of countries) {
+      const countryData = releaseDates.results.find(r => r.iso_3166_1 === country);
+      if (countryData?.release_dates) {
+        // Find theatrical or primary release
+        const release = countryData.release_dates.find(r => 
+          r.type === 3 || r.type === 2 || r.certification
+        );
+        if (release?.certification) {
+          return release.certification;
+        }
+      }
+    }
+    
+    return null;
+  }
+
   // Format detailed movie info
   formatMovieDetails(movie) {
     return {
@@ -377,6 +433,7 @@ class TMDBService {
       revenue: movie.revenue,
       status: movie.status,
       adult: movie.adult,
+      certification: this.getCertification(movie.release_dates),
       homepage: movie.homepage,
       imdbId: movie.imdb_id,
       originalLanguage: movie.original_language,
@@ -451,6 +508,23 @@ class TMDBService {
     return Object.keys(formatted).length > 0 ? formatted : null;
   }
 
+  // Get TV content rating
+  getTVCertification(contentRatings) {
+    if (!contentRatings?.results) return null;
+    
+    // Priority order: IN (India), US, GB (UK)
+    const countries = ['IN', 'US', 'GB'];
+    
+    for (const country of countries) {
+      const rating = contentRatings.results.find(r => r.iso_3166_1 === country);
+      if (rating?.rating) {
+        return rating.rating;
+      }
+    }
+    
+    return null;
+  }
+
   // Format detailed TV show info
   formatTVDetails(tv) {
     return {
@@ -470,6 +544,7 @@ class TMDBService {
       popularity: tv.popularity,
       status: tv.status,
       type: tv.type,
+      certification: this.getTVCertification(tv.content_ratings),
       homepage: tv.homepage,
       inProduction: tv.in_production,
       originalLanguage: tv.original_language,
@@ -556,6 +631,109 @@ class TMDBService {
           profilePath: this.getImageUrl(person.profile_path, 'w185'),
         })),
       })),
+    };
+  }
+
+  // ===== PERSON/ACTOR METHODS =====
+
+  // Get person/actor details
+  async getPersonDetails(personId) {
+    try {
+      const response = await this.api.get(`/person/${personId}`, {
+        params: {
+          append_to_response: 'movie_credits,tv_credits,images,external_ids',
+        },
+      });
+      return this.formatPersonDetails(response.data);
+    } catch (error) {
+      console.error('TMDB getPersonDetails error:', error.message);
+      throw new Error('Failed to fetch person details');
+    }
+  }
+
+  // Format person details
+  formatPersonDetails(person) {
+    return {
+      id: person.id,
+      name: person.name,
+      biography: person.biography,
+      birthday: person.birthday,
+      deathday: person.deathday,
+      placeOfBirth: person.place_of_birth,
+      knownForDepartment: person.known_for_department,
+      gender: person.gender, // 0: Not specified, 1: Female, 2: Male, 3: Non-binary
+      popularity: person.popularity,
+      profilePath: this.getImageUrl(person.profile_path, 'h632'),
+      homepage: person.homepage,
+      alsoKnownAs: person.also_known_as,
+      // External IDs
+      externalIds: {
+        imdbId: person.external_ids?.imdb_id,
+        facebookId: person.external_ids?.facebook_id,
+        instagramId: person.external_ids?.instagram_id,
+        twitterId: person.external_ids?.twitter_id,
+      },
+      // Images
+      images: person.images?.profiles?.slice(0, 20).map((image) => ({
+        filePath: this.getImageUrl(image.file_path, 'w500'),
+        aspectRatio: image.aspect_ratio,
+        height: image.height,
+        width: image.width,
+      })),
+      // Movie credits
+      movieCredits: {
+        cast: person.movie_credits?.cast
+          ?.sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+          .map((movie) => ({
+            id: movie.id,
+            title: movie.title,
+            character: movie.character,
+            releaseDate: movie.release_date,
+            poster: this.getImageUrl(movie.poster_path, 'w500'),
+            rating: movie.vote_average,
+            mediaType: 'movie',
+          })),
+        crew: person.movie_credits?.crew
+          ?.sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+          .map((movie) => ({
+            id: movie.id,
+            title: movie.title,
+            job: movie.job,
+            department: movie.department,
+            releaseDate: movie.release_date,
+            poster: this.getImageUrl(movie.poster_path, 'w500'),
+            rating: movie.vote_average,
+            mediaType: 'movie',
+          })),
+      },
+      // TV credits
+      tvCredits: {
+        cast: person.tv_credits?.cast
+          ?.sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+          .map((tv) => ({
+            id: tv.id,
+            title: tv.name,
+            character: tv.character,
+            firstAirDate: tv.first_air_date,
+            poster: this.getImageUrl(tv.poster_path, 'w500'),
+            rating: tv.vote_average,
+            episodeCount: tv.episode_count,
+            mediaType: 'tv',
+          })),
+        crew: person.tv_credits?.crew
+          ?.sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+          .map((tv) => ({
+            id: tv.id,
+            title: tv.name,
+            job: tv.job,
+            department: tv.department,
+            firstAirDate: tv.first_air_date,
+            poster: this.getImageUrl(tv.poster_path, 'w500'),
+            rating: tv.vote_average,
+            episodeCount: tv.episode_count,
+            mediaType: 'tv',
+          })),
+      },
     };
   }
 }
