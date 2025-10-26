@@ -487,6 +487,25 @@ export const addToFavorites = async (req, res, next) => {
   }
 };
 
+// @desc    Remove movie from favorites
+// @route   DELETE /api/users/me/favorites/:movieId
+// @access  Private
+export const removeFromFavorites = async (req, res, next) => {
+  try {
+    const { movieId } = req.params;
+
+    await req.user.removeFromFavorites(movieId);
+
+    res.json({
+      success: true,
+      message: 'Movie removed from favorites',
+      data: { favorites: req.user.favorites }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Rate a movie
 // @route   POST /api/users/me/ratings
 // @access  Private
@@ -541,6 +560,48 @@ export const getUserStats = async (req, res, next) => {
     res.json({
       success: true,
       data: { stats }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get user watchlist
+// @route   GET /api/users/me/watchlist
+// @access  Private
+export const getUserWatchlist = async (req, res, next) => {
+  try {
+    res.json({
+      success: true,
+      data: { watchlist: req.user.watchlist }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get user favorites
+// @route   GET /api/users/me/favorites
+// @access  Private
+export const getUserFavorites = async (req, res, next) => {
+  try {
+    res.json({
+      success: true,
+      data: { favorites: req.user.favorites }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get user ratings
+// @route   GET /api/users/me/ratings
+// @access  Private
+export const getUserRatings = async (req, res, next) => {
+  try {
+    res.json({
+      success: true,
+      data: { ratings: req.user.ratings }
     });
   } catch (error) {
     next(error);

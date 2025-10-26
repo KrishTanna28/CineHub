@@ -10,6 +10,7 @@ import userRoutes from './routes/userRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import movieRoutes from './routes/movie.routes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 // Load environment variables
@@ -75,6 +76,7 @@ app.use('/users', userRoutes);
 app.use('/upload', uploadRoutes);
 app.use('/auth', authRoutes);
 app.use('/movies', movieRoutes);
+app.use('/reviews', reviewRoutes);
 
 // 404 handler
 app.use(notFound);

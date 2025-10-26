@@ -9,8 +9,12 @@ import {
   getUserById,
   addToWatchlist,
   removeFromWatchlist,
+  getUserWatchlist,
   addToFavorites,
+  removeFromFavorites,
+  getUserFavorites,
   rateMovie,
+  getUserRatings,
   getUserStats,
   followUser,
   unfollowUser,
@@ -52,13 +56,17 @@ router.post('/me/send-verification-otp', sendVerificationOTPController);
 router.post('/me/verify-mobile', verifyMobileController);
 
 // Watchlist management
+router.get('/me/watchlist', getUserWatchlist);
 router.post('/me/watchlist', movieIdValidation, validate, addToWatchlist);
 router.delete('/me/watchlist/:movieId', removeFromWatchlist);
 
 // Favorites management
+router.get('/me/favorites', getUserFavorites);
 router.post('/me/favorites', movieIdValidation, validate, addToFavorites);
+router.delete('/me/favorites/:movieId', removeFromFavorites);
 
 // Ratings
+router.get('/me/ratings', getUserRatings);
 router.post('/me/ratings', ratingValidation, validate, rateMovie);
 
 // Social features

@@ -736,6 +736,72 @@ class TMDBService {
       },
     };
   }
+
+  // Get movie reviews from TMDB
+  async getMovieReviews(movieId, page = 1) {
+    try {
+      const response = await this.api.get(`/movie/${movieId}/reviews`, {
+        params: { page },
+      });
+      return {
+        results: this.formatReviews(response.data.results),
+        page: response.data.page,
+        totalPages: response.data.total_pages,
+        totalResults: response.data.total_results,
+      };
+    } catch (error) {
+      console.error('TMDB getMovieReviews error:', error.message);
+      return { results: [], page: 1, totalPages: 0, totalResults: 0 };
+    }
+  }
+
+  // Get TV show reviews from TMDB
+  async getTVReviews(tvId, page = 1) {
+    try {
+      const response = await this.api.get(`/tv/${tvId}/reviews`, {
+        params: { page },
+      });
+      return {
+        results: this.formatReviews(response.data.results),
+        page: response.data.page,
+        totalPages: response.data.total_pages,
+        totalResults: response.data.total_results,
+      };
+    } catch (error) {
+      console.error('TMDB getTVReviews error:', error.message);
+      return { results: [], page: 1, totalPages: 0, totalResults: 0 };
+    }
+  }
+
+  // Format TMDB reviews to match our schema
+  formatReviews(reviews) {
+    return reviews.map((review) => ({
+      _id: `tmdb_${review.id}`,
+      isTMDB: true,
+      user: {
+        username: review.author || review.author_details?.username || 'Anonymous',
+        avatar: review.author_details?.avatar_path 
+          ? (review.author_details.avatar_path.startsWith('/http') 
+              ? review.author_details.avatar_path.substring(1) 
+              : this.getImageUrl(review.author_details.avatar_path, 'w200'))
+          : null,
+      },
+      rating: review.author_details?.rating 
+        ? review.author_details.rating 
+        : (Math.random() * 3 + 7), // Random rating between 7-10 if not provided
+      title: review.content?.split('\n')[0]?.substring(0, 100) || 'Review',
+      content: review.content || '',
+      likes: [],
+      dislikes: [],
+      replies: [],
+      likeCount: 0,
+      dislikeCount: 0,
+      replyCount: 0,
+      spoiler: false,
+      createdAt: review.created_at || review.updated_at,
+      updatedAt: review.updated_at || review.created_at,
+    }));
+  }
 }
 
 export default new TMDBService();

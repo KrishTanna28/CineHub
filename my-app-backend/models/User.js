@@ -128,7 +128,44 @@ const userSchema = new mongoose.Schema({
     friendsReferred: {
       type: Number,
       default: 0
+    },
+    totalLikes: {
+      type: Number,
+      default: 0
+    },
+    totalReplies: {
+      type: Number,
+      default: 0
     }
+  },
+
+  // Points System Tracking
+  reviewedGenres: [{
+    type: String
+  }],
+  reviewedFormats: [{
+    type: String,
+    enum: ['movie', 'tv']
+  }],
+  averageReviewLength: {
+    type: Number,
+    default: 0
+  },
+  helpfulnessRatio: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 1
+  },
+  hasDuplicateContent: {
+    type: Boolean,
+    default: false
+  },
+  spamScore: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
   },
 
   // Personalization & Preferences
@@ -477,6 +514,12 @@ userSchema.methods.addToFavorites = function(movieId) {
     return this.save();
   }
   return Promise.resolve(this);
+};
+
+// Method to remove from favorites
+userSchema.methods.removeFromFavorites = function(movieId) {
+  this.favorites = this.favorites.filter(item => item.movieId !== movieId);
+  return this.save();
 };
 
 // Method to increment login attempts

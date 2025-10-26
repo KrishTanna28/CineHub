@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "MovieHub Express Backend - Complex operations, AI recommendations, real-time features",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.12.2",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",
