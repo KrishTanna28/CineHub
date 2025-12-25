@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 import { useUser } from "@/contexts/UserContext"
-import reviewAPI from "@/lib/api/reviews"
+import {getReviews, updateReview, createReview, likeReview, dislikeReview, addReply, likeReply, dislikeReply, deleteReview, } from "@/lib/reviews"
 
 export default function ReviewsPage({ params }) {
   const unwrappedParams = use(params)
@@ -54,7 +54,7 @@ export default function ReviewsPage({ params }) {
     }
 
     try {
-      const data = await reviewAPI.getReviews(
+      const data = await getReviews(
         unwrappedParams.mediaType,
         unwrappedParams.mediaId,
         pageNum,
@@ -121,7 +121,7 @@ export default function ReviewsPage({ params }) {
         setReviewForm({ rating: 5, title: '', content: '', spoiler: false })
 
         // Update existing review
-        const data = await reviewAPI.updateReview(
+        const data = await updateReview(
           editingReview._id,
           reviewForm
         )
@@ -134,7 +134,7 @@ export default function ReviewsPage({ params }) {
         const tempReview = {
           _id: 'temp-' + Date.now(),
           user: {
-            _id: user._id,
+            _id: user.id,
             username: user.username,
             avatar: user.avatar,
             fullName: user.fullName
@@ -158,7 +158,7 @@ export default function ReviewsPage({ params }) {
         setReviewForm({ rating: 5, title: '', content: '', spoiler: false })
 
         // Create new review
-        const data = await reviewAPI.createReview(
+        const data = await createReview(
           {
             ...formData,
             mediaId: unwrappedParams.mediaId,
@@ -194,22 +194,22 @@ export default function ReviewsPage({ params }) {
     // Optimistic update
     setReviews(prev => prev.map(r => {
       if (r._id === reviewId) {
-        const userLiked = r.likes?.some(id => id.toString() === user._id)
-        const userDisliked = r.dislikes?.some(id => id.toString() === user._id)
+        const userLiked = r.likes?.some(id => id.toString() === user.id)
+        const userDisliked = r.dislikes?.some(id => id.toString() === user.id)
         
         return {
           ...r,
           likeCount: userLiked ? (r.likeCount || 1) - 1 : (r.likeCount || 0) + 1,
           dislikeCount: userDisliked ? (r.dislikeCount || 1) - 1 : r.dislikeCount || 0,
-          likes: userLiked ? (r.likes || []).filter(id => id.toString() !== user._id) : [...(r.likes || []), user._id],
-          dislikes: userDisliked ? (r.dislikes || []).filter(id => id.toString() !== user._id) : r.dislikes || []
+          likes: userLiked ? (r.likes || []).filter(id => id.toString() !== user.id) : [...(r.likes || []), user.id],
+          dislikes: userDisliked ? (r.dislikes || []).filter(id => id.toString() !== user.id) : r.dislikes || []
         }
       }
       return r
     }))
 
     try {
-      const data = await reviewAPI.likeReview(reviewId)
+      const data = await likeReview(reviewId)
 
       if (data.success) {
         // Update with actual data from server
@@ -219,8 +219,8 @@ export default function ReviewsPage({ params }) {
               ...r,
               likeCount: data.data.likes,
               dislikeCount: data.data.dislikes,
-              likes: data.data.userLiked ? [...(r.likes || []), user._id] : (r.likes || []).filter(id => id.toString() !== user._id),
-              dislikes: data.data.userDisliked ? [...(r.dislikes || []), user._id] : (r.dislikes || []).filter(id => id.toString() !== user._id)
+              likes: data.data.userLiked ? [...(r.likes || []), user.id] : (r.likes || []).filter(id => id.toString() !== user.id),
+              dislikes: data.data.userDisliked ? [...(r.dislikes || []), user.id] : (r.dislikes || []).filter(id => id.toString() !== user.id)
             }
           }
           return r
@@ -232,14 +232,14 @@ export default function ReviewsPage({ params }) {
       // Revert optimistic update on error
       setReviews(prev => prev.map(r => {
         if (r._id === reviewId) {
-          const userLiked = r.likes?.some(id => id.toString() === user._id)
-          const userDisliked = r.dislikes?.some(id => id.toString() === user._id)
+          const userLiked = r.likes?.some(id => id.toString() === user.id)
+          const userDisliked = r.dislikes?.some(id => id.toString() === user.id)
           return {
             ...r,
             likeCount: userLiked ? (r.likeCount || 0) - 1 : (r.likeCount || 1) + 1,
             dislikeCount: userDisliked ? (r.dislikeCount || 0) + 1 : r.dislikeCount || 0,
-            likes: userLiked ? (r.likes || []).filter(id => id.toString() !== user._id) : [...(r.likes || []), user._id],
-            dislikes: userDisliked ? [...(r.dislikes || []), user._id] : (r.dislikes || []).filter(id => id.toString() !== user._id)
+            likes: userLiked ? (r.likes || []).filter(id => id.toString() !== user.id) : [...(r.likes || []), user.id],
+            dislikes: userDisliked ? [...(r.dislikes || []), user.id] : (r.dislikes || []).filter(id => id.toString() !== user.id)
           }
         }
         return r
@@ -257,22 +257,22 @@ export default function ReviewsPage({ params }) {
     // Optimistic update
     setReviews(prev => prev.map(r => {
       if (r._id === reviewId) {
-        const userLiked = r.likes?.some(id => id.toString() === user._id)
-        const userDisliked = r.dislikes?.some(id => id.toString() === user._id)
+        const userLiked = r.likes?.some(id => id.toString() === user.id)
+        const userDisliked = r.dislikes?.some(id => id.toString() === user.id)
         
         return {
           ...r,
           likeCount: userLiked ? (r.likeCount || 1) - 1 : r.likeCount || 0,
           dislikeCount: userDisliked ? (r.dislikeCount || 1) - 1 : (r.dislikeCount || 0) + 1,
-          likes: userLiked ? (r.likes || []).filter(id => id.toString() !== user._id) : r.likes || [],
-          dislikes: userDisliked ? (r.dislikes || []).filter(id => id.toString() !== user._id) : [...(r.dislikes || []), user._id]
+          likes: userLiked ? (r.likes || []).filter(id => id.toString() !== user.id) : r.likes || [],
+          dislikes: userDisliked ? (r.dislikes || []).filter(id => id.toString() !== user.id) : [...(r.dislikes || []), user.id]
         }
       }
       return r
     }))
 
     try {
-      const data = await reviewAPI.dislikeReview(reviewId)
+      const data = await dislikeReview(reviewId)
 
       if (data.success) {
         // Update with actual data from server
@@ -282,8 +282,8 @@ export default function ReviewsPage({ params }) {
               ...r,
               likeCount: data.data.likes,
               dislikeCount: data.data.dislikes,
-              likes: data.data.userLiked ? [...(r.likes || []), user._id] : (r.likes || []).filter(id => id.toString() !== user._id),
-              dislikes: data.data.userDisliked ? [...(r.dislikes || []), user._id] : (r.dislikes || []).filter(id => id.toString() !== user._id)
+              likes: data.data.userLiked ? [...(r.likes || []), user.id] : (r.likes || []).filter(id => id.toString() !== user.id),
+              dislikes: data.data.userDisliked ? [...(r.dislikes || []), user.id] : (r.dislikes || []).filter(id => id.toString() !== user.id)
             }
           }
           return r
@@ -295,14 +295,14 @@ export default function ReviewsPage({ params }) {
       // Revert optimistic update on error
       setReviews(prev => prev.map(r => {
         if (r._id === reviewId) {
-          const userLiked = r.likes?.some(id => id.toString() === user._id)
-          const userDisliked = r.dislikes?.some(id => id.toString() === user._id)
+          const userLiked = r.likes?.some(id => id.toString() === user.id)
+          const userDisliked = r.dislikes?.some(id => id.toString() === user.id)
           return {
             ...r,
             likeCount: userLiked ? (r.likeCount || 0) + 1 : r.likeCount || 0,
             dislikeCount: userDisliked ? (r.dislikeCount || 0) - 1 : (r.dislikeCount || 1) + 1,
-            likes: userLiked ? [...(r.likes || []), user._id] : (r.likes || []).filter(id => id.toString() !== user._id),
-            dislikes: userDisliked ? (r.dislikes || []).filter(id => id.toString() !== user._id) : [...(r.dislikes || []), user._id]
+            likes: userLiked ? [...(r.likes || []), user.id] : (r.likes || []).filter(id => id.toString() !== user.id),
+            dislikes: userDisliked ? (r.dislikes || []).filter(id => id.toString() !== user.id) : [...(r.dislikes || []), user.id]
           }
         }
         return r
@@ -322,7 +322,7 @@ export default function ReviewsPage({ params }) {
     const tempReply = {
       _id: 'temp-' + Date.now(),
       user: {
-        _id: user._id,
+        _id: user.id,
         username: user.username,
         avatar: user.avatar,
         fullName: user.fullName
@@ -355,7 +355,7 @@ export default function ReviewsPage({ params }) {
     setShowReplies(newShowReplies)
 
     try {
-      const data = await reviewAPI.addReply(reviewId, contentToSend)
+      const data = await addReply(reviewId, contentToSend)
 
       if (data.success) {
         // Replace temp reply with actual data from server
@@ -382,12 +382,12 @@ export default function ReviewsPage({ params }) {
           ...r,
           replies: r.replies.map(reply => {
             if (reply._id === replyId) {
-              const userLiked = reply.likes?.some(id => id.toString() === user._id)
-              const userDisliked = reply.dislikes?.some(id => id.toString() === user._id)
+              const userLiked = reply.likes?.some(id => id.toString() === user.id)
+              const userDisliked = reply.dislikes?.some(id => id.toString() === user.id)
               return {
                 ...reply,
-                likes: userLiked ? (reply.likes || []).filter(id => id.toString() !== user._id) : [...(reply.likes || []), user._id],
-                dislikes: userDisliked ? (reply.dislikes || []).filter(id => id.toString() !== user._id) : reply.dislikes || []
+                likes: userLiked ? (reply.likes || []).filter(id => id.toString() !== user.id) : [...(reply.likes || []), user.id],
+                dislikes: userDisliked ? (reply.dislikes || []).filter(id => id.toString() !== user.id) : reply.dislikes || []
               }
             }
             return reply
@@ -398,7 +398,7 @@ export default function ReviewsPage({ params }) {
     }))
 
     try {
-      const data = await reviewAPI.likeReply(reviewId, replyId)
+      const data = await likeReply(reviewId, replyId)
 
       if (data.success) {
         setReviews(prev => prev.map(r => {
@@ -409,8 +409,8 @@ export default function ReviewsPage({ params }) {
                 if (reply._id === replyId) {
                   return {
                     ...reply,
-                    likes: data.data.userLiked ? [...(reply.likes || []), user._id] : (reply.likes || []).filter(id => id.toString() !== user._id),
-                    dislikes: data.data.userDisliked ? [...(reply.dislikes || []), user._id] : (reply.dislikes || []).filter(id => id.toString() !== user._id)
+                    likes: data.data.userLiked ? [...(reply.likes || []), user.id] : (reply.likes || []).filter(id => id.toString() !== user.id),
+                    dislikes: data.data.userDisliked ? [...(reply.dislikes || []), user.id] : (reply.dislikes || []).filter(id => id.toString() !== user.id)
                   }
                 }
                 return reply
@@ -430,12 +430,12 @@ export default function ReviewsPage({ params }) {
             ...r,
             replies: r.replies.map(reply => {
               if (reply._id === replyId) {
-                const userLiked = reply.likes?.some(id => id.toString() === user._id)
-                const userDisliked = reply.dislikes?.some(id => id.toString() === user._id)
+                const userLiked = reply.likes?.some(id => id.toString() === user.id)
+                const userDisliked = reply.dislikes?.some(id => id.toString() === user.id)
                 return {
                   ...reply,
-                  likes: userLiked ? (reply.likes || []).filter(id => id.toString() !== user._id) : [...(reply.likes || []), user._id],
-                  dislikes: userDisliked ? [...(reply.dislikes || []), user._id] : (reply.dislikes || []).filter(id => id.toString() !== user._id)
+                  likes: userLiked ? (reply.likes || []).filter(id => id.toString() !== user.id) : [...(reply.likes || []), user.id],
+                  dislikes: userDisliked ? [...(reply.dislikes || []), user.id] : (reply.dislikes || []).filter(id => id.toString() !== user.id)
                 }
               }
               return reply
@@ -461,12 +461,12 @@ export default function ReviewsPage({ params }) {
           ...r,
           replies: r.replies.map(reply => {
             if (reply._id === replyId) {
-              const userLiked = reply.likes?.some(id => id.toString() === user._id)
-              const userDisliked = reply.dislikes?.some(id => id.toString() === user._id)
+              const userLiked = reply.likes?.some(id => id.toString() === user.id)
+              const userDisliked = reply.dislikes?.some(id => id.toString() === user.id)
               return {
                 ...reply,
-                likes: userLiked ? (reply.likes || []).filter(id => id.toString() !== user._id) : reply.likes || [],
-                dislikes: userDisliked ? (reply.dislikes || []).filter(id => id.toString() !== user._id) : [...(reply.dislikes || []), user._id]
+                likes: userLiked ? (reply.likes || []).filter(id => id.toString() !== user.id) : reply.likes || [],
+                dislikes: userDisliked ? (reply.dislikes || []).filter(id => id.toString() !== user.id) : [...(reply.dislikes || []), user.id]
               }
             }
             return reply
@@ -477,7 +477,7 @@ export default function ReviewsPage({ params }) {
     }))
 
     try {
-      const data = await reviewAPI.dislikeReply(reviewId, replyId)
+      const data = await dislikeReply(reviewId, replyId)
 
       if (data.success) {
         setReviews(prev => prev.map(r => {
@@ -488,8 +488,8 @@ export default function ReviewsPage({ params }) {
                 if (reply._id === replyId) {
                   return {
                     ...reply,
-                    likes: data.data.userLiked ? [...(reply.likes || []), user._id] : (reply.likes || []).filter(id => id.toString() !== user._id),
-                    dislikes: data.data.userDisliked ? [...(reply.dislikes || []), user._id] : (reply.dislikes || []).filter(id => id.toString() !== user._id)
+                    likes: data.data.userLiked ? [...(reply.likes || []), user.id] : (reply.likes || []).filter(id => id.toString() !== user.id),
+                    dislikes: data.data.userDisliked ? [...(reply.dislikes || []), user.id] : (reply.dislikes || []).filter(id => id.toString() !== user.id)
                   }
                 }
                 return reply
@@ -509,12 +509,12 @@ export default function ReviewsPage({ params }) {
             ...r,
             replies: r.replies.map(reply => {
               if (reply._id === replyId) {
-                const userLiked = reply.likes?.some(id => id.toString() === user._id)
-                const userDisliked = reply.dislikes?.some(id => id.toString() === user._id)
+                const userLiked = reply.likes?.some(id => id.toString() === user.id)
+                const userDisliked = reply.dislikes?.some(id => id.toString() === user.id)
                 return {
                   ...reply,
-                  likes: userLiked ? [...(reply.likes || []), user._id] : (reply.likes || []).filter(id => id.toString() !== user._id),
-                  dislikes: userDisliked ? (reply.dislikes || []).filter(id => id.toString() !== user._id) : [...(reply.dislikes || []), user._id]
+                  likes: userLiked ? [...(reply.likes || []), user.id] : (reply.likes || []).filter(id => id.toString() !== user.id),
+                  dislikes: userDisliked ? (reply.dislikes || []).filter(id => id.toString() !== user.id) : [...(reply.dislikes || []), user.id]
                 }
               }
               return reply
@@ -564,7 +564,7 @@ export default function ReviewsPage({ params }) {
         setTimeout(() => setSuccess(null), 3000)
         setDeleteConfirmation(null)
 
-        const data = await reviewAPI.deleteReview(deletedItem.id)
+        const data = await deleteReview(deletedItem.id)
 
         if (!data.success) {
           throw new Error('Delete failed')
@@ -589,7 +589,7 @@ export default function ReviewsPage({ params }) {
           setDeleteConfirmation(null)
 
           // TODO: Call delete reply API when available
-          // const data = await reviewAPI.deleteReply(deletedItem.reviewId, deletedItem.id)
+          // const data = await deleteReply(deletedItem.reviewId, deletedItem.id)
           console.log('Delete reply:', deletedItem.id)
         }
       }
@@ -839,14 +839,14 @@ export default function ReviewsPage({ params }) {
                   {/* Review Content with Spoiler Blur */}
                   <div className="relative">
                     <h3 className={`text-lg font-bold text-foreground mb-2 transition-all ${
-                      review.spoiler && !isSpoilerRevealed && review.user._id !== user.id? 'blur-md select-none' : ''
+                      review.spoiler && !isSpoilerRevealed && review.user.id !== user.id? 'blur-md select-none' : ''
                     }`}>{review.title}</h3>
                     <p className={`text-foreground whitespace-pre-wrap transition-all ${
-                      review.spoiler && !isSpoilerRevealed && review.user._id !== user.id? 'blur-md select-none' : ''
+                      review.spoiler && !isSpoilerRevealed && review.user.id !== user.id? 'blur-md select-none' : ''
                     }`}>{review.content}</p>
                     
                     {/* Spoiler Reveal Button */}
-                    {review.spoiler && !isSpoilerRevealed && review.user._id !== user.id && (
+                    {review.spoiler && !isSpoilerRevealed && review.user.id !== user.id && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <button
                           onClick={() => {
@@ -1057,7 +1057,7 @@ export default function ReviewsPage({ params }) {
                       </div>
 
                       {/* Edit/Delete Buttons for replies (only for own replies) */}
-                      {user && reply.user?._id === user._id && (
+                      {user && reply.user?._id === user.id && (
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => {

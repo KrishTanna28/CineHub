@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import User from '@/server/models/User.js'
-import { sendOTPEmail } from '@/server/utils/emailService.js'
+import User from '@/lib/models/User.js'
+import { sendOTPEmail } from '@/lib/utils/emailService.js'
 
 // Temporary storage for pending registrations (in production, use Redis)
 const pendingRegistrations = new Map()

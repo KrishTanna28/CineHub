@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import tmdbService from "@/server/services/tmdb.service.js"
+import { getPopular, getPopularTV, getTopRated, getTopRatedTV } from "@/lib/services/tmdb.service.js"
 import HomeClient from "@/components/home-client"
 
 // Metadata for SEO
@@ -14,10 +14,10 @@ export const revalidate = 3600 // Revalidate every hour
 export default async function Home() {
   // Fetch all data in parallel on the server using tmdbService directly
   const [popularMoviesData, popularTVData, topRatedMoviesData, topRatedTVData] = await Promise.all([
-    tmdbService.getPopular(1).catch(() => ({ results: [], page: 1, totalPages: 1 })),
-    tmdbService.getPopularTV(1).catch(() => ({ results: [], page: 1, totalPages: 1 })),
-    tmdbService.getTopRated(1).catch(() => ({ results: [], page: 1, totalPages: 1 })),
-    tmdbService.getTopRatedTV(1).catch(() => ({ results: [], page: 1, totalPages: 1 })),
+    getPopular(1).catch(() => ({ results: [], page: 1, totalPages: 1 })),
+    getPopularTV(1).catch(() => ({ results: [], page: 1, totalPages: 1 })),
+    getTopRated(1).catch(() => ({ results: [], page: 1, totalPages: 1 })),
+    getTopRatedTV(1).catch(() => ({ results: [], page: 1, totalPages: 1 })),
   ])
 
   // Prepare initial data for client component

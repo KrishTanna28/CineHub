@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import tmdbService from '@/server/services/tmdb.service.js'
+import { searchTV } from '@/lib/services/tmdb.service.js'
 
 export async function GET(request) {
   try {
@@ -17,7 +17,7 @@ export async function GET(request) {
       )
     }
 
-    const data = await tmdbService.searchTV(query, page)
+    const data = await searchTV(query, page)
 
     return NextResponse.json({
       success: true,

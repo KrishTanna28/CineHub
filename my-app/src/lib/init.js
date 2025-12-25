@@ -1,5 +1,5 @@
 import connectDB from './config/database.js'
-import cache from './utils/cache.js'
+import { connect as connectCache, getIsConnected } from './utils/cache.js'
 
 // Use global singleton to prevent reinitialization on hot reload
 const globalForInit = globalThis;
@@ -22,8 +22,8 @@ export async function initializeServer() {
 
     // Connect to Redis cache (optional, non-blocking)
     try {
-      await cache.connect()
-      if (cache.isConnected) {
+      await connectCache()
+      if (getIsConnected()) {
         console.log('✅ Redis cache enabled')
       } else {
         console.log('⚠️  Running without Redis cache')

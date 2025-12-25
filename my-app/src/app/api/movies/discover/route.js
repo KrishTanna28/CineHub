@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import tmdbService from '@/server/services/tmdb.service.js'
+import { discoverMovies } from '@/lib/services/tmdb.service.js'
 
 export async function GET(request) {
   try {
@@ -15,7 +15,7 @@ export async function GET(request) {
       maxRating: searchParams.get('maxRating'),
     }
 
-    const data = await tmdbService.discoverMovies(filters)
+    const data = await discoverMovies(filters)
 
     return NextResponse.json({
       success: true,

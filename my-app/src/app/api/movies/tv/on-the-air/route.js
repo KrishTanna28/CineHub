@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
-import tmdbService from '@/server/services/tmdb.service.js'
+import { getOnTheAirTV } from '@/lib/services/tmdb.service.js'
 
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     
-    const data = await tmdbService.getOnTheAirTV(page)
+    const data = await getOnTheAirTV(page)
 
     return NextResponse.json({
       success: true,

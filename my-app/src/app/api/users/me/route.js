@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/server/middleware/withAuth.js'
+import { withAuth } from '@/lib/middleware/withAuth.js'
 
 // GET /api/users/me - Get current user profile
 export const GET = withAuth(async (request, { user }) => {
@@ -34,7 +34,7 @@ export const PUT = withAuth(async (request, { user }) => {
 
     // Handle avatar upload if provided
     if (avatarFile) {
-      const { uploadAvatarToCloudinary } = await import('@/server/utils/cloudinaryHelper.js')
+      const { uploadAvatarToCloudinary } = await import('@/lib/utils/cloudinaryHelper.js')
       const avatarBuffer = Buffer.from(await avatarFile.arrayBuffer())
       const avatarUrl = await uploadAvatarToCloudinary(avatarBuffer, avatarFile.name)
       user.avatar = avatarUrl

@@ -41,7 +41,7 @@ export default function Navigation() {
     const debounceTimer = setTimeout(() => {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
       setIsOpen(false)
-    }, 1000)
+    }, 750)
 
     return () => clearTimeout(debounceTimer)
   }, [searchQuery, router])

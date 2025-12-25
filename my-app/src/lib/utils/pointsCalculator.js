@@ -323,7 +323,6 @@ export function calculateBadges(user) {
 
     return badges;
   }
-}
 
 export default PointsCalculator;
 

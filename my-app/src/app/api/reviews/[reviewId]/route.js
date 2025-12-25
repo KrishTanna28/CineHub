@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import Review from '@/server/models/Review.js'
-import { withAuth } from '@/server/middleware/withAuth.js'
+import Review from '@/lib/models/Review.js'
+import { withAuth } from '@/lib/middleware/withAuth.js'
 
 // GET /api/reviews/[reviewId] - Get single review by ID
 export async function GET(request, { params }) {
@@ -50,7 +50,7 @@ export const PUT = withAuth(async (request, { user, params }) => {
     }
 
     // Check if user owns this review
-    if (review.user.toString() !== user._id.toString()) {
+    if (review.user.toString() !== user.id.toString()) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized to update this review' },
         { status: 403 }
@@ -98,7 +98,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     }
 
     // Check if user owns this review
-    if (review.user.toString() !== user._id.toString()) {
+    if (review.user.toString() !== user.id.toString()) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized to delete this review' },
         { status: 403 }

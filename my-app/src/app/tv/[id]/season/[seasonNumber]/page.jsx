@@ -3,7 +3,7 @@
 import { useState, useEffect, use, useRef, useCallback } from "react"
 import { Award, Calendar, Clock, ArrowLeft, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import movieAPI from "@/lib/api/movies"
+import {getTVSeasonDetails} from "@/lib/movies"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -22,7 +22,7 @@ export default function SeasonDetailsPage({ params }) {
       setLoading(true)
       setError(null)
       try {
-        const response = await movieAPI.getTVSeasonDetails(unwrappedParams.id, unwrappedParams.seasonNumber)
+        const response = await getTVSeasonDetails(unwrappedParams.id, unwrappedParams.seasonNumber)
         if (response.success) {
           setSeason(response.data)
         }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/server/middleware/withAuth.js'
+import { withAuth } from '@/lib/middleware/withAuth.js'
 
 // DELETE /api/users/me/favorites/[id] - Remove from favorites
 export const DELETE = withAuth(async (request, { user, params }) => {

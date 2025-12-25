@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import User from '@/server/models/User.js'
+import User from '@/lib/models/User.js'
 import jwt from 'jsonwebtoken'
 import { pendingRegistrations } from '../register/route.js'
 
@@ -67,7 +67,7 @@ export async function POST(request) {
 
     // Handle avatar upload if exists
     if (pendingReg.avatar) {
-      const { uploadAvatarToCloudinary } = await import('@/server/utils/cloudinaryHelper.js')
+      const { uploadAvatarToCloudinary } = await import('@/lib/utils/cloudinaryHelper.js')
       const avatarUrl = await uploadAvatarToCloudinary(pendingReg.avatar, pendingReg.avatarName)
       userData.avatar = avatarUrl
     }
@@ -86,7 +86,7 @@ export async function POST(request) {
 
     // Generate JWT token
     const token = jwt.sign(
-      { userId: newUser._id, email: newUser.email },
+      { userId: newuser.id, email: newUser.email },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     )

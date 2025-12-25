@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from "react"
 import { User, Calendar, MapPin, Award, Film, Tv, Instagram, Facebook, Twitter, ExternalLink, Newspaper, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import movieAPI from "@/lib/api/movies"
+import * as movieAPI from "@/lib/movies"
 import Link from "next/link"
 import ClipsSection from "@/components/clips-section"
 import VideoPlayerModal from "@/components/video-player-modal"

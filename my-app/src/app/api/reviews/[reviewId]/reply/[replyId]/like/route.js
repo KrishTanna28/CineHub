@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import Review from '@/server/models/Review.js'
-import { withAuth } from '@/server/middleware/withAuth.js'
+import Review from '@/lib/models/Review.js'
+import { withAuth } from '@/lib/middleware/withAuth.js'
 
 // POST /api/reviews/[reviewId]/reply/[replyId]/like - Like/unlike a reply
 export const POST = withAuth(async (request, { user, params }) => {
@@ -17,7 +17,7 @@ export const POST = withAuth(async (request, { user, params }) => {
     }
 
     // Use the model method to toggle like on reply
-    await review.likeReply(replyId, user._id)
+    await review.likeReply(replyId, user.id)
 
     const reply = review.replies.id(replyId)
 
@@ -27,8 +27,8 @@ export const POST = withAuth(async (request, { user, params }) => {
       data: {
         likes: reply.likes.length,
         dislikes: reply.dislikes.length,
-        userLiked: reply.likes.some(id => id.toString() === user._id.toString()),
-        userDisliked: reply.dislikes.some(id => id.toString() === user._id.toString())
+        userLiked: reply.likes.some(id => id.toString() === user.id.toString()),
+        userDisliked: reply.dislikes.some(id => id.toString() === user.id.toString())
       }
     })
   } catch (error) {

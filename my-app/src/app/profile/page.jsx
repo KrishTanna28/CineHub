@@ -7,7 +7,7 @@ import { Settings, LogOut, Trophy, Star, Users, Film, Heart, Award, Flame, Trash
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useUser } from "@/contexts/UserContext"
-import movieAPI from "@/lib/api/movies"
+import * as movieAPI from "@/lib/movies"
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -166,7 +166,7 @@ export default function ProfilePage() {
     setReviewsLoading(true)
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/reviews/user/${user._id}`, {
+      const response = await fetch(`/api/reviews/user/${user.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

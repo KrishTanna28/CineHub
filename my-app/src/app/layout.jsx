@@ -4,7 +4,7 @@ import "./globals.css"
 import Navigation from "@/components/navigation"
 import { Toaster } from "@/components/ui/toaster"
 import { Providers } from "@/components/providers"
-import { initializeServer } from "@/server/init.js"
+import { initializeServer } from "@/lib/init.js"
 
 // Initialize server services (database, cache, etc.)
 initializeServer().catch(console.error)

@@ -7,6 +7,7 @@ const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 // Create axios instance
 const api = axios.create({
   baseURL: TMDB_BASE_URL,
+  timeout: 8000,
   params: {
     api_key: TMDB_API_KEY,
   },
@@ -800,5 +801,3 @@ export function formatReviews(reviews) {
       updatedAt: review.updated_at || review.created_at,
     }));
   }
-// Export all functions as default object`nexport default {`n  getImageUrl, getTrending, getPopular, getTopRated, getNowPlaying, getUpcoming,`n  getMovieDetails, searchMovies, discoverMovies, getGenres, getPopularTV,`n  getTopRatedTV, getAiringTodayTV, getOnTheAirTV, getTVDetails, searchTV,`n  getTVSeasonDetails, searchMulti, discoverTV, formatMediaList, formatMovieList,`n  getCertification, formatMovieDetails, formatWatchProviders, getTVCertification,`n  formatTVDetails, formatSeasonDetails, getPersonDetails, formatPersonDetails,`n  getMovieReviews, getTVReviews, formatReviews`n};
-

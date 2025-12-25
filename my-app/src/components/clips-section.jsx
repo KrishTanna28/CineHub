@@ -1,4 +1,4 @@
-// import { Play } from "lucide-react"
+import { Clapperboard } from "lucide-react"
 import { useState } from "react"
 
 export default function ClipsSection({ isModalOpen, setIsModalOpen, videos, movieTitle, selectedVideo, setSelectedVideo, hideHeading = false }) {
@@ -39,7 +39,10 @@ export default function ClipsSection({ isModalOpen, setIsModalOpen, videos, movi
     <>
       <section>
         {!hideHeading && (
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-6">Trailers & Clips</h2>
+          <div className="flex items-center gap-3 mb-6">
+              <Clapperboard className="w-6 h-6 sm:w-7 sm:h-7 text-primary" />
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Trailers & Clips</h2>
+            </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {displayVideos.map((video) => (

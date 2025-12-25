@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import User from '@/server/models/User.js'
+import User from '@/lib/models/User.js'
 
 export async function GET(request) {
   try {

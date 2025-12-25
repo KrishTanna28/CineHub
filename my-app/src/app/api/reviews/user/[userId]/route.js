@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import Review from '@/server/models/Review.js'
+import Review from '@/lib/models/Review.js'
 
 // GET /api/reviews/user/[userId] - Get reviews by user ID
 export async function GET(request, { params }) {

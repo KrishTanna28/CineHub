@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import RecommendationCarousel from "@/components/recommendation-carousel"
 import { useUser } from "@/contexts/UserContext"
-import movieAPI from "@/lib/api/movies"
+import * as movieAPI from "@/lib/movies"
 
 export default function HomeClient({ initialData }) {
   const [popularMovies, setPopularMovies] = useState(initialData.popularMovies)

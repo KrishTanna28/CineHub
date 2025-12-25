@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import User from '@/server/models/User.js';
-import connectDB from '@/server/config/database.js';
+import User from '@/lib/models/User.js';
+import connectDB from '@/app/api/config/database.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -70,11 +70,11 @@ export async function GET(request) {
 
     if (user) {
       // User exists, generate token
-      const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
       
       // Redirect to auth callback page with token and user data
       const userStr = encodeURIComponent(JSON.stringify({
-        _id: user._id,
+        _id: user.id,
         email: user.email,
         username: user.username,
         fullName: user.fullName,
@@ -101,10 +101,10 @@ export async function GET(request) {
       
       await user.save();
       
-      const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
       
       const userStr = encodeURIComponent(JSON.stringify({
-        _id: user._id,
+        _id: user.id,
         email: user.email,
         username: user.username,
         fullName: user.fullName,
@@ -128,10 +128,10 @@ export async function GET(request) {
       emailVerified: true,
     });
 
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
     
     const userStr = encodeURIComponent(JSON.stringify({
-      _id: user._id,
+      _id: user.id,
       email: user.email,
       username: user.username,
       fullName: user.fullName,

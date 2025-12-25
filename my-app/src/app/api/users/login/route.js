@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import User from '@/server/models/User.js'
+import User from '@/lib/models/User.js'
 import bcrypt from 'bcryptjs'
-import { generateToken } from '@/server/utils/jwt.js'
+import { generateToken } from '@/lib/utils/jwt.js'
 
 export async function POST(request) {
   try {
@@ -44,7 +44,7 @@ export async function POST(request) {
     }
 
     // Generate token
-    const token = generateToken(user._id)
+    const token = generateToken(user.id)
 
     // Update last login
     user.lastLogin = new Date()

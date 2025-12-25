@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import tmdbService from '@/server/services/tmdb.service.js'
+import { getMovieDetails } from '@/lib/services/tmdb.service.js'
 
 export async function GET(request, { params }) {
   try {
     const { id } = await params
-    const movie = await tmdbService.getMovieDetails(id)
+    const movie = await getMovieDetails(id)
 
     return NextResponse.json({
       success: true,

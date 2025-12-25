@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Plus, Users, Lock, Globe, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { mockMovies } from "@/lib/mock-data"
+// import { mockMovies } from "@/lib/mock-data"
 
 export default function WatchRoomsPage() {
   const [rooms, setRooms] = useState([

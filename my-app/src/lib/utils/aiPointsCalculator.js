@@ -493,7 +493,5 @@ export async function reevaluateReview(review, user, context) {
       decayApplied: decayFactor
     };
   }
-}
-
 export default AIPointsCalculator;
 

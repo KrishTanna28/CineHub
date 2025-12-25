@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from "react"
 import { Play, Share2, Heart, Clock, Award, Calendar, Tv as TvIcon, Film, Newspaper, Star, Bookmark, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import movieAPI from "@/lib/api/movies"
+import { getTVDetails } from "@/lib/movies"
 import ReviewSection from "@/components/review-section"
 import CastSection from "@/components/cast-section"
 import ClipsSection from "@/components/clips-section"
@@ -204,7 +204,7 @@ export default function TVDetailsPage({ params }) {
       setLoading(true)
       setError(null)
       try {
-        const response = await movieAPI.getTVDetails(unwrappedParams.id)
+        const response = await getTVDetails(unwrappedParams.id)
         if (response.success) {
           setTvShow(response.data)
           setLikeCount(response.data.voteCount || 0)

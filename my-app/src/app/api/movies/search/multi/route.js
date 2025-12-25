@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import tmdbService from '@/server/services/tmdb.service.js'
+import { searchMulti } from '@/lib/services/tmdb.service.js'
 
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
-    const query = searchParams.get('query')
+    const query = searchParams.get('query') || searchParams.get('q')
     const page = parseInt(searchParams.get('page') || '1')
 
     if (!query) {
@@ -17,7 +17,7 @@ export async function GET(request) {
       )
     }
 
-    const data = await tmdbService.searchMulti(query, page)
+    const data = await searchMulti(query, page)
 
     return NextResponse.json({
       success: true,

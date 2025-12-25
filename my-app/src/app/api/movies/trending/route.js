@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import tmdbService from '@/server/services/tmdb.service.js'
+import { getTrending } from '@/lib/services/tmdb.service.js'
 
 export async function GET(request) {
   try {
@@ -7,7 +7,7 @@ export async function GET(request) {
     const mediaType = searchParams.get('mediaType') || 'all'
     const timeWindow = searchParams.get('timeWindow') || 'week'
     
-    const content = await tmdbService.getTrending(mediaType, timeWindow)
+    const content = await getTrending(mediaType, timeWindow)
 
     return NextResponse.json({
       success: true,

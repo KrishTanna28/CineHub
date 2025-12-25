@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import Review from '@/server/models/Review.js'
-import User from '@/server/models/User.js'
-import { withAuth } from '@/server/middleware/withAuth.js'
+import Review from '@/lib/models/Review.js'
+import User from '@/lib/models/User.js'
+import { withAuth } from '@/lib/middleware/withAuth.js'
 
 // POST /api/reviews/[reviewId]/reply - Add a reply to a review
 export const POST = withAuth(async (request, { user, params }) => {
@@ -27,7 +27,7 @@ export const POST = withAuth(async (request, { user, params }) => {
     }
 
     // Add reply using model method
-    await review.addReply(user._id, content)
+    await review.addReply(user.id, content)
 
     // Update user achievements
     user.achievements.commentsPosted += 1

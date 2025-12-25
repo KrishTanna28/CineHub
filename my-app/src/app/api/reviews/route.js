@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import Review from '@/server/models/Review.js'
-import { withAuth } from '@/server/middleware/withAuth.js'
+import Review from '@/lib/models/Review.js'
+import { withAuth } from '@/lib/middleware/withAuth.js'
 
 // GET /api/reviews - Get reviews with optional filters
 export async function GET(request) {
@@ -63,7 +63,7 @@ export const POST = withAuth(async (request, { user }) => {
 
     // Check if user already reviewed this media
     const existingReview = await Review.findOne({
-      user: user._id,
+      user: user.id,
       mediaId,
       mediaType
     })
@@ -79,7 +79,7 @@ export const POST = withAuth(async (request, { user }) => {
       mediaId,
       mediaType,
       mediaTitle,
-      user: user._id,
+      user: user.id,
       rating,
       title,
       content,

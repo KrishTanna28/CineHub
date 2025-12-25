@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from "react"
 import { Play, Share2, Heart, Clock, Award, Calendar, DollarSign, Film, Newspaper, Star, Bookmark, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import movieAPI from "@/lib/api/movies"
+import * as movieAPI from "@/lib/movies"
 import ReviewSection from "@/components/review-section"
 import CastSection from "@/components/cast-section"
 import ClipsSection from "@/components/clips-section"
@@ -38,6 +38,9 @@ export default function DetailsPage({ params }) {
   const [hasMoreVideos, setHasMoreVideos] = useState(true)
   const [isLoadingMoreVideos, setIsLoadingMoreVideos] = useState(false)
   const [nextPageToken, setNextPageToken] = useState(null)
+  const [isUpdatingWatchlist, setIsUpdatingWatchlist] = useState(false)
+  const [isUpdatingFavorites, setIsUpdatingFavorites] = useState(false)
+
 
   // Fetch YouTube videos about the movie
   const fetchMovieYouTubeVideos = async (movieTitle, pageNum = 1, pageToken = null) => {
@@ -239,54 +242,41 @@ export default function DetailsPage({ params }) {
   }, [unwrappedParams.id, user])
 
   const handleLike = async () => {
-    if (!user) {
-      router.push('/login')
-      return
-    }
+  if (!user || isUpdatingFavorites) return
 
-    try {
-      const token = localStorage.getItem('token')
-      
-      if (liked) {
-        // Remove from favorites
-        const response = await fetch(`api/users/me/favorites/${movie.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
+  setIsUpdatingFavorites(true)
 
-        const data = await response.json()
-        if (data.success) {
-          setLiked(false)
-          setLikeCount(Math.max(0, likeCount - 1))
-        } else {
-          alert(data.message || 'Failed to remove from favorites')
-        }
-      } else {
-        // Add to favorites
-        const response = await fetch('/api/users/me/favorites', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ movieId: movie.id.toString() })
-        })
+  try {
+    const token = localStorage.getItem('token')
 
-        const data = await response.json()
-        if (data.success) {
-          setLiked(true)
-          setLikeCount(likeCount + 1)
-        } else {
-          alert(data.message || 'Failed to add to favorites')
-        }
+    const response = await fetch(
+      liked
+        ? `/api/users/me/favorites/${movie.id}`
+        : `/api/users/me/favorites`,
+      {
+        method: liked ? 'DELETE' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: liked ? undefined : JSON.stringify({ movieId: movie.id.toString() }),
       }
-    } catch (error) {
-      console.error('Error updating favorites:', error)
-      alert('Failed to update favorites. Please try again.')
+    )
+
+    const data = await response.json()
+    if (data.success) {
+      setLiked(!liked)
+      setLikeCount(prev => Math.max(0, prev + (liked ? -1 : 1)))
+    } else {
+      alert(data.message || 'Favorites update failed')
     }
+  } catch (err) {
+    console.error('Favorites error:', err)
+  } finally {
+    setIsUpdatingFavorites(false)
   }
+}
+
 
   const checkIfInWatchlist = async () => {
     try {
@@ -327,52 +317,39 @@ export default function DetailsPage({ params }) {
   }
 
   const handleAddToWatchlist = async () => {
-    if (!user) {
-      router.push('/login')
-      return
-    }
+  if (!user || isUpdatingWatchlist) return
 
-    try {
-      const token = localStorage.getItem('token')
-      
-      if (inWatchlist) {
-        // Remove from watchlist
-        const response = await fetch(`/api/users/me/watchlist/${movie.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
+  setIsUpdatingWatchlist(true)
 
-        const data = await response.json()
-        if (data.success) {
-          setInWatchlist(false)
-        } else {
-          alert(data.message || 'Failed to remove from watchlist')
-        }
-      } else {
-        // Add to watchlist
-        const response = await fetch('/api/users/me/watchlist', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ movieId: movie.id.toString() })
-        })
+  try {
+    const token = localStorage.getItem('token')
 
-        const data = await response.json()
-        if (data.success) {
-          setInWatchlist(true)
-        } else {
-          alert(data.message || 'Failed to add to watchlist')
-        }
+    const response = await fetch(
+      inWatchlist
+        ? `/api/users/me/watchlist/${movie.id}`
+        : `/api/users/me/watchlist`,
+      {
+        method: inWatchlist ? 'DELETE' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: inWatchlist ? undefined : JSON.stringify({ movieId: movie.id.toString() }),
       }
-    } catch (error) {
-      console.error('Error updating watchlist:', error)
-      alert('Failed to update watchlist. Please try again.')
+    )
+
+    const data = await response.json()
+    if (data.success) {
+      setInWatchlist(!inWatchlist)
+    } else {
+      alert(data.message || 'Watchlist update failed')
     }
+  } catch (err) {
+    console.error('Watchlist error:', err)
+  } finally {
+    setIsUpdatingWatchlist(false)
   }
+}
 
   const handleWatchNow = () => {
     if (!movie?.watchProviders) {
@@ -554,6 +531,7 @@ export default function DetailsPage({ params }) {
                 variant={inWatchlist ? "default" : "outline"}
                 className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3" 
                 onClick={handleAddToWatchlist}
+                disabled={isUpdatingWatchlist}
               >
                 {inWatchlist ? (
                   <>
@@ -572,6 +550,7 @@ export default function DetailsPage({ params }) {
                 variant={liked ? "default" : "outline"}
                 className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3" 
                 onClick={handleLike}
+                disabled={isUpdatingFavorites}
               >
                 <Heart className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${liked ? "fill-current" : ""}`} />
                 {liked ? "Remove from Favorites" : "Like"}

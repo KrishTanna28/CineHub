@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/server/middleware/withAuth.js'
+import { withAuth } from '@/lib/middleware/withAuth.js'
 
 // GET /api/users/profile - Get current user profile (alias for /api/users/me)
 export const GET = withAuth(async (request, { user }) => {

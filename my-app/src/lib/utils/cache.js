@@ -266,19 +266,5 @@ if (!globalForCache._cacheInitialized) {
   globalForCache._cacheInitialized = true
 }
 
-// Export as default object for backward compatibility
-export default {
-  connect,
-  disconnect,
-  get,
-  set,
-  del,
-  delPattern,
-  exists,
-  ttl,
-  flushAll,
-  cacheMiddleware,
-  get isConnected() {
-    return isConnected
-  }
-}
+// Named exports are provided above (connect, disconnect, get, set, del, delPattern,
+// exists, ttl, flushAll, cacheMiddleware, getIsConnected)
