@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
+import connectDB from '../config/database.js'
 
 /**
  * Higher-order function to protect API routes with authentication
@@ -9,6 +10,9 @@ import User from '../models/User.js'
 export function withAuth(handler) {
   return async (request, context) => {
     try {
+      // Ensure database connection
+      await connectDB()
+
       const authHeader = request.headers.get('authorization')
       
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -27,6 +31,7 @@ export function withAuth(handler) {
         const user = await User.findById(decoded.userId).select('-password')
         
         if (!user) {
+          console.error('User not found in database:', decoded.userId)
           return NextResponse.json(
             { success: false, message: 'User not found' },
             { status: 401 }
@@ -38,6 +43,7 @@ export function withAuth(handler) {
         
         return handler(request, enhancedContext)
       } catch (jwtError) {
+        console.error('JWT verification error:', jwtError.message)
         return NextResponse.json(
           { success: false, message: 'Invalid or expired token' },
           { status: 401 }
@@ -60,6 +66,9 @@ export function withAuth(handler) {
 export function withOptionalAuth(handler) {
   return async (request, context) => {
     try {
+      // Ensure database connection
+      await connectDB()
+
       const authHeader = request.headers.get('authorization')
       
       if (!authHeader || !authHeader.startsWith('Bearer ')) {

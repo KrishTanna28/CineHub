@@ -1,5 +1,3 @@
-import cache from '../utils/cache.js'
-
 const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY
 const BASE_URL = 'https://www.googleapis.com/youtube/v3'
 
@@ -13,16 +11,6 @@ export async function searchVideos(query, pageToken = null) {
   if (!API_KEY || API_KEY === 'demo') {
     console.log('⚠️ YouTube API key not configured')
     return { items: [], nextPageToken: null }
-  }
-
-  // Create cache key
-  const cacheKey = `youtube:search:${query}:${pageToken || 'first'}`
-  
-  // Try to get from cache first
-  const cached = await cache.get(cacheKey)
-  if (cached) {
-    console.log('✅ YouTube cache hit:', cacheKey)
-    return cached
   }
 
   try {
@@ -54,10 +42,6 @@ export async function searchVideos(query, pageToken = null) {
       })),
       nextPageToken: data.nextPageToken || null
     }
-
-    // Cache for 1 hour
-    await cache.set(cacheKey, result, 3600)
-    console.log('✅ YouTube data cached:', cacheKey)
 
     return result
   } catch (error) {

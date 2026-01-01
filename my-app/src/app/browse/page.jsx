@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { X } from "lucide-react"
+import { X, Filter, ChevronDown, ChevronUp} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as movieAPI from "@/lib/movies"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
@@ -49,6 +49,7 @@ export default function BrowsePage() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalResults, setTotalResults] = useState(0)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
 
   // Infinite scroll
   const loadMoreRef = useInfiniteScroll(
@@ -176,20 +177,27 @@ export default function BrowsePage() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Header */}
-      {/* <div className="bg-secondary/30 border-b border-border py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl font-bold text-foreground mb-2">Browse</h1>
-          <p className="text-muted-foreground">Explore our collection with advanced filters</p>
-        </div>
-      </div> */}
-
-      {/* Filters */}
-      <div className="bg-background border-b border-border top-16 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 position-">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Filters</h2>
+      <div className="bg-background border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          {/* Mobile Filter Toggle */}
+          <div className="flex items-center justify-between mb-4">
+            <span className="flex items-center gap-2 text-foreground font-semibold">
+            <Filter className="w-4 h-4" />
+            <h2 className="text-lg font-semibold text-foreground">Filters</h2>
+            </span>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="lg:hidden flex items-center gap-2 px-3 py-2 bg-secondary/50 border border-border rounded-lg text-foreground hover:bg-secondary/70 transition-all"
+            >
+              <Filter className="w-4 h-4" />
+              <span className="text-sm">
+                {showFilters ? 'Hide' : 'Show'}
+              </span>
+              {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 transition-all duration-300 ${showFilters ? 'block' : 'hidden lg:grid'}`}>
             {/* Type Dropdown */}
             <div>
               <label className="text-sm font-medium text-muted-foreground mb-2 block">Type</label>
@@ -344,7 +352,7 @@ export default function BrowsePage() {
                       {item.rating > 0 && (
                         <div className="absolute top-2 right-2">
                           <span className="px-2 py-1 bg-black/70 text-white rounded text-xs font-medium">
-                            ⭐ {item.rating.toFixed(1)}
+                           {item.rating.toFixed(1)}
                           </span>
                         </div>
                       )}

@@ -45,6 +45,88 @@ export const uploadAvatarToCloudinary = async (fileBuffer, fileName, userId) => 
 };
 
 /**
+ * Upload community banner to Cloudinary
+ * @param {String} base64Data - Base64 encoded image data
+ * @param {String} communityId - Community ID for unique naming
+ * @returns {Promise<String>} Cloudinary secure URL
+ */
+export const uploadCommunityBannerToCloudinary = async (base64Data, communityId) => {
+  try {
+    const result = await cloudinary.uploader.upload(base64Data, {
+      folder: 'moviehub/communities/banners',
+      public_id: `community_${communityId}_banner_${Date.now()}`,
+      transformation: [
+        { width: 1200, height: 300, crop: 'fill' },
+        { quality: 'auto', fetch_format: 'auto' }
+      ],
+      overwrite: true,
+      resource_type: 'image'
+    });
+
+    return result.secure_url;
+  } catch (error) {
+    console.error('Cloudinary banner upload error:', error);
+    throw new Error('Failed to upload banner to Cloudinary');
+  }
+};
+
+/**
+ * Upload community icon to Cloudinary
+ * @param {String} base64Data - Base64 encoded image data
+ * @param {String} communityId - Community ID for unique naming
+ * @returns {Promise<String>} Cloudinary secure URL
+ */
+export const uploadCommunityIconToCloudinary = async (base64Data, communityId) => {
+  try {
+    const result = await cloudinary.uploader.upload(base64Data, {
+      folder: 'moviehub/communities/icons',
+      public_id: `community_${communityId}_icon_${Date.now()}`,
+      transformation: [
+        { width: 256, height: 256, crop: 'fill' },
+        { quality: 'auto', fetch_format: 'auto' }
+      ],
+      overwrite: true,
+      resource_type: 'image'
+    });
+
+    return result.secure_url;
+  } catch (error) {
+    console.error('Cloudinary icon upload error:', error);
+    throw new Error('Failed to upload icon to Cloudinary');
+  }
+};
+
+/**
+ * Upload post images to Cloudinary
+ * @param {Array<String>} base64Images - Array of base64 encoded images
+ * @param {String} postId - Post ID for unique naming
+ * @returns {Promise<Array<String>>} Array of Cloudinary secure URLs
+ */
+export const uploadPostImagesToCloudinary = async (base64Images, postId) => {
+  try {
+    const uploadPromises = base64Images.map(async (base64Data, index) => {
+      const result = await cloudinary.uploader.upload(base64Data, {
+        folder: 'moviehub/posts',
+        public_id: `post_${postId}_${index}_${Date.now()}`,
+        transformation: [
+          { width: 1200, height: 1200, crop: 'limit' },
+          { quality: 'auto', fetch_format: 'auto' }
+        ],
+        overwrite: true,
+        resource_type: 'image'
+      });
+
+      return result.secure_url;
+    });
+
+    return await Promise.all(uploadPromises);
+  } catch (error) {
+    console.error('Cloudinary post images upload error:', error);
+    throw new Error('Failed to upload post images to Cloudinary');
+  }
+};
+
+/**
  * Delete image from Cloudinary
  * @param {String} imageUrl - Cloudinary image URL
  * @returns {Promise<void>}
@@ -60,5 +142,20 @@ export const deleteImageFromCloudinary = async (imageUrl) => {
   } catch (error) {
     console.error('Cloudinary delete error:', error);
     throw new Error('Failed to delete image from Cloudinary');
+  }
+};
+
+/**
+ * Delete multiple images from Cloudinary
+ * @param {Array<String>} imageUrls - Array of Cloudinary image URLs
+ * @returns {Promise<void>}
+ */
+export const deleteMultipleImagesFromCloudinary = async (imageUrls) => {
+  try {
+    const deletePromises = imageUrls.map(url => deleteImageFromCloudinary(url));
+    await Promise.all(deletePromises);
+  } catch (error) {
+    console.error('Cloudinary multiple delete error:', error);
+    throw new Error('Failed to delete images from Cloudinary');
   }
 };

@@ -484,16 +484,16 @@ export default function DetailsPage({ params }) {
               ))}
             </div>
 
-            {/* Tagline */}
+            {/* Tagline - hidden on mobile, visible on desktop */}
             {movie.tagline && (
-              <p className="text-sm sm:text-base md:text-lg lg:text-xl italic text-primary mb-3 sm:mb-4">"{movie.tagline}"</p>
+              <p className="hidden md:block text-sm sm:text-base md:text-lg lg:text-xl italic text-primary mb-3 sm:mb-4">"{movie.tagline}"</p>
             )}
 
-            {/* Description */}
-            <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-6 sm:mb-8 leading-relaxed">{movie.overview}</p>
+            {/* Description - hidden on mobile, visible on desktop */}
+            <p className="hidden md:block text-sm sm:text-base md:text-lg text-muted-foreground mb-6 sm:mb-8 leading-relaxed">{movie.overview}</p>
 
-            {/* Additional Info */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            {/* Additional Info - hidden on mobile, visible on desktop */}
+            <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
               {movie.budget > 0 && (
                 <div>
                   <span className="text-muted-foreground">Budget: </span>
@@ -520,8 +520,8 @@ export default function DetailsPage({ params }) {
               )}
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4 mb-6 sm:mb-8">
+            {/* Action Buttons - hidden on mobile, visible on desktop */}
+            <div className="hidden md:flex flex-wrap gap-2 sm:gap-3 md:gap-4 mb-6 sm:mb-8">
               <Button size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3" onClick={handleWatchNow}>
                 <Play className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                 Watch Now
@@ -560,6 +560,86 @@ export default function DetailsPage({ params }) {
                 Share
               </Button>
             </div>
+          </div>
+        </div>
+
+        {/* Mobile-only: Full Width Content Below Poster */}
+        <div className="md:hidden mb-12">
+          {/* Tagline */}
+          {movie.tagline && (
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl italic text-primary mb-3 sm:mb-4">"{movie.tagline}"</p>
+          )}
+
+          {/* Description */}
+          <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-6 sm:mb-8 leading-relaxed">{movie.overview}</p>
+
+          {/* Additional Info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            {movie.budget > 0 && (
+              <div>
+                <span className="text-muted-foreground">Budget: </span>
+                <span className="font-semibold text-foreground">${(movie.budget / 1000000).toFixed(0)}M</span>
+              </div>
+            )}
+            {movie.revenue > 0 && (
+              <div>
+                <span className="text-muted-foreground">Revenue: </span>
+                <span className="font-semibold text-foreground">${(movie.revenue / 1000000).toFixed(0)}M</span>
+              </div>
+            )}
+            {movie.originalLanguage && (
+              <div>
+                <span className="text-muted-foreground">Language: </span>
+                <span className="font-semibold text-foreground">{movie.originalLanguage.toUpperCase()}</span>
+              </div>
+            )}
+            {movie.productionCompanies && movie.productionCompanies.length > 0 && (
+              <div>
+                <span className="text-muted-foreground">Production: </span>
+                <span className="font-semibold text-foreground">{movie.productionCompanies[0].name}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
+            <Button size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3" onClick={handleWatchNow}>
+              <Play className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+              Watch Now
+            </Button>
+            <Button 
+              size="sm" 
+              variant={inWatchlist ? "default" : "outline"}
+              className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3" 
+              onClick={handleAddToWatchlist}
+              disabled={isUpdatingWatchlist}
+            >
+              {inWatchlist ? (
+                <>
+                  <Check className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                  Remove from Watchlist
+                </>
+              ) : (
+                <>
+                  <Bookmark className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                  Add to Watchlist
+                </>
+              )}
+            </Button>
+            <Button 
+              size="sm" 
+              variant={liked ? "default" : "outline"}
+              className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3" 
+              onClick={handleLike}
+              disabled={isUpdatingFavorites}
+            >
+              <Heart className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${liked ? "fill-current" : ""}`} />
+              {liked ? "Remove from Favorites" : "Like"}
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1 sm:gap-2 bg-transparent text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3">
+              <Share2 className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+              Share
+            </Button>
           </div>
         </div>
 

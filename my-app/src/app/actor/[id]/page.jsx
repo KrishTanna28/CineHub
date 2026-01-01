@@ -351,7 +351,7 @@ export default function ActorDetailsPage({ params }) {
             </h1>
 
             {/* Meta Info */}
-            <div className="flex flex-wrap gap-2 sm:gap-4 mb-4 sm:mb-10 mt-10">
+            <div className="flex flex-wrap gap-2 sm:gap-4 mb-4 sm:mb-6">
               {person.knownForDepartment && (
                 <div className="flex items-center gap-1 sm:gap-2">
                   <Award className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
@@ -374,17 +374,17 @@ export default function ActorDetailsPage({ params }) {
               )}
             </div>
 
-            {/* Biography Summary */}
+            {/* Biography Summary - hidden on mobile, visible on desktop */}
             {person.biography && (
-              <div className="mb-6 sm:mb-8">
+              <div className="hidden md:block mb-6 sm:mb-8">
                 <p className="text-sm sm:text-base md:text-lg text-muted-foreground leading-relaxed">
                   {getBiographySummary(person.biography)}
                 </p>
               </div>
             )}
 
-            {/* Social Links - Icons Only */}
-            <div className="flex gap-3 mb-6 sm:mb-8">
+            {/* Social Links - hidden on mobile, visible on desktop */}
+            <div className="hidden md:flex gap-3 mb-6 sm:mb-8">
               {/* Wikipedia Link */}
               <a
                 href={wikipediaUrl}
@@ -430,6 +430,66 @@ export default function ActorDetailsPage({ params }) {
                 </a>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Mobile-only: Full Width Content Below Profile Picture */}
+        <div className="md:hidden mb-12">
+          {/* Biography Summary */}
+          {person.biography && (
+            <div className="mb-6 sm:mb-8">
+              <p className="text-sm sm:text-base md:text-lg text-muted-foreground leading-relaxed">
+                {getBiographySummary(person.biography)}
+              </p>
+            </div>
+          )}
+
+          {/* Social Links - Icons Only */}
+          <div className="flex gap-3">
+            {/* Wikipedia Link */}
+            <a
+              href={wikipediaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-full bg-secondary hover:bg-primary/20 flex items-center justify-center transition-colors"
+              title="Wikipedia"
+            >
+              <BookOpen className="w-5 h-5 text-foreground" />
+            </a>
+
+            {person.externalIds?.instagramId && (
+              <a
+                href={`https://instagram.com/${person.externalIds.instagramId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full bg-secondary hover:bg-primary/20 flex items-center justify-center transition-colors"
+                title="Instagram"
+              >
+                <Instagram className="w-5 h-5 text-foreground" />
+              </a>
+            )}
+            {person.externalIds?.twitterId && (
+              <a
+                href={`https://twitter.com/${person.externalIds.twitterId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full bg-secondary hover:bg-primary/20 flex items-center justify-center transition-colors"
+                title="Twitter"
+              >
+                <Twitter className="w-5 h-5 text-foreground" />
+              </a>
+            )}
+            {person.externalIds?.facebookId && (
+              <a
+                href={`https://facebook.com/${person.externalIds.facebookId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full bg-secondary hover:bg-primary/20 flex items-center justify-center transition-colors"
+                title="Facebook"
+              >
+                <Facebook className="w-5 h-5 text-foreground" />
+              </a>
+            )}
           </div>
         </div>
 

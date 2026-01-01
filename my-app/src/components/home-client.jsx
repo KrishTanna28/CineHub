@@ -15,6 +15,10 @@ export default function HomeClient({ initialData }) {
   const [featuredItems, setFeaturedItems] = useState(initialData.featuredItems)
   const [currentFeaturedIndex, setCurrentFeaturedIndex] = useState(0)
   
+  // Touch handling for mobile swipe
+  const [touchStart, setTouchStart] = useState(null)
+  const [touchEnd, setTouchEnd] = useState(null)
+  
   // Pagination states
   const [pages, setPages] = useState({
     popularMovies: 1,
@@ -35,7 +39,6 @@ export default function HomeClient({ initialData }) {
     topRatedTV: initialData.hasMore.topRatedTV
   })
   
-  const router = useRouter()
   const { user } = useUser()
   const isAuthenticated = !!user
   const featuredItem = featuredItems[currentFeaturedIndex] || null
@@ -59,6 +62,38 @@ export default function HomeClient({ initialData }) {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [featuredItems.length])
+
+  // Touch handlers for mobile swipe
+  const handleTouchStart = (e) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+    
+    if (isLeftSwipe && featuredItems.length > 0) {
+      // Swipe left - next item
+      setCurrentFeaturedIndex((prev) =>
+        prev === featuredItems.length - 1 ? 0 : prev + 1
+      )
+    }
+    
+    if (isRightSwipe && featuredItems.length > 0) {
+      // Swipe right - previous item
+      setCurrentFeaturedIndex((prev) =>
+        prev === 0 ? featuredItems.length - 1 : prev - 1
+      )
+    }
+  }
 
   // Load more functions
   const loadMorePopularMovies = async () => {
@@ -116,22 +151,26 @@ export default function HomeClient({ initialData }) {
   }
 
   const loadMoreTopRatedTV = async () => {
-    if (loadingMore.topRatedTV || !hasMore.topRatedTV) return
-    
-    setLoadingMore(prev => ({ ...prev, topRatedTV: true }))
-    try {
-      const nextPage = pages.topRatedTV + 1
-      const data = await movieAPI.getTopRatedTV(nextPage)
-      
-      setTopRatedTV(prev => [...prev, ...(data.data?.results || [])])
-      setPages(prev => ({ ...prev, topRatedTV: nextPage }))
-      setHasMore(prev => ({ ...prev, topRatedTV: data.data?.page < data.data?.totalPages }))
-    } catch (error) {
-      console.error('Failed to load more top rated TV:', error)
-    } finally {
-      setLoadingMore(prev => ({ ...prev, topRatedTV: false }))
-    }
+  if (loadingMore.topRatedTV || !hasMore.topRatedTV) return
+
+  setLoadingMore(prev => ({ ...prev, topRatedTV: true }))
+  try {
+    const nextPage = pages.topRatedTV + 1
+    const data = await movieAPI.getTopRatedTV(nextPage)
+
+    setTopRatedTV(prev => [...prev, ...(data.data?.results || [])])
+    setPages(prev => ({ ...prev, topRatedTV: nextPage }))
+    setHasMore(prev => ({
+      ...prev,
+      topRatedTV: data.data?.page < data.data?.totalPages
+    }))
+  } catch (error) {
+    console.error('Failed to load more top rated TV:', error)
+  } finally {
+    setLoadingMore(prev => ({ ...prev, topRatedTV: false }))
   }
+}
+
 
   // Auto-rotate featured content every 5 seconds
   useEffect(() => {
@@ -150,7 +189,12 @@ export default function HomeClient({ initialData }) {
     <main className="min-h-screen bg-background">
       {/* Hero Section - extends behind navbar */}
       {featuredItem && (
-        <section className="relative h-[70vh] sm:h-screen flex items-end pb-16 sm:pb-32 overflow-hidden -mt-16 cursor-pointer">
+        <section 
+          className="relative h-[70vh] sm:h-screen flex items-end pb-16 sm:pb-32 overflow-hidden -mt-16 select-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <div
             className="absolute inset-0 bg-cover bg-center transition-all duration-1000"
             style={{
@@ -161,8 +205,14 @@ export default function HomeClient({ initialData }) {
           </div>
 
           <Link 
-            href={featuredItem.mediaType === 'tv' ? `/tv/${featuredItem.id}` : `/details/${featuredItem.id}`}
+            href={user ? featuredItem.mediaType === 'tv' ? `/tv/${featuredItem.id}` : `/details/${featuredItem.id}` : "/login"}
             className="relative z-10 w-full cursor-pointer group"
+            onClick={(e) => {
+              // Prevent navigation if user was swiping
+              if (Math.abs((touchStart || 0) - (touchEnd || 0)) > 50) {
+                e.preventDefault()
+              }
+            }}
           >
             <div className="max-w-2xl px-4 sm:px-6 lg:px-8 sm:ml-8 lg:ml-12">
               <div className="flex items-center gap-2 mb-3">
@@ -175,7 +225,7 @@ export default function HomeClient({ initialData }) {
 
               <div className="flex flex-wrap gap-2 mb-4 mt-4 sm:mt-10">
                 <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium">
-                  ⭐ {featuredItem.rating?.toFixed(1)}
+                   {featuredItem.rating?.toFixed(1)}
                 </span>
                 <span className="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-sm">
                   {featuredItem.releaseDate?.split('-')[0]}

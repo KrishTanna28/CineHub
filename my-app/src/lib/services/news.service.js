@@ -1,5 +1,3 @@
-import cache from '../utils/cache.js'
-
 const API_KEY = process.env.NEXT_PUBLIC_NEWS_API_KEY
 const BASE_URL = 'https://newsapi.org/v2'
 
@@ -13,16 +11,6 @@ export async function searchNews(query, page = 1) {
   if (!API_KEY || API_KEY === 'demo') {
     console.log('⚠️ News API key not configured')
     return { articles: [], hasMore: false }
-  }
-
-  // Create cache key
-  const cacheKey = `news:search:${query}:${page}`
-  
-  // Try to get from cache first
-  const cached = await cache.get(cacheKey)
-  if (cached) {
-    console.log('✅ News cache hit:', cacheKey)
-    return cached
   }
 
   try {
@@ -57,10 +45,6 @@ export async function searchNews(query, page = 1) {
       articles: filteredArticles,
       hasMore: filteredArticles.length > 0 && data.articles.length === 20
     }
-
-    // Cache for 2 hours (news changes less frequently)
-    await cache.set(cacheKey, result, 7200)
-    console.log('✅ News data cached:', cacheKey, `(${filteredArticles.length} articles)`)
 
     return result
   } catch (error) {

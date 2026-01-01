@@ -90,7 +90,7 @@ export default function SeasonDetailsPage({ params }) {
         <div className="text-center">
           <p className="text-destructive text-xl mb-4">{error || 'Season not found'}</p>
           <Link href={`/tv/${unwrappedParams.id}`}>
-            <Button>Back to TV Show</Button>
+            <ArrowLeft className="w-7 h-7" />
           </Link>
         </div>
       </main>

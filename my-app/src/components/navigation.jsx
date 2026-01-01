@@ -85,7 +85,6 @@ export default function Navigation() {
           onClick={() => setIsOpen(false)}
         />
       )}
-
       {/* Mobile Sidebar */}
       <div className={`fixed top-0 left-0 h-full w-64 bg-background border-r border-border z-50 md:hidden transform transition-transform duration-300 ease-in-out ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
@@ -146,12 +145,19 @@ export default function Navigation() {
                     <span>Browse</span>
                   </Link>
                   <Link
+                    href="/communities"
+                    className="flex items-center gap-3 px-4 py-3 text-foreground hover:bg-secondary rounded-lg transition-colors cursor-pointer"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <span>Communities</span>
+                  </Link>
+                  <Link
                     href="/watch-rooms"
                     className="flex items-center gap-3 px-4 py-3 text-foreground hover:bg-secondary rounded-lg transition-colors cursor-pointer"
                     onClick={() => setIsOpen(false)}
                   >
                     <span>Watch Rooms</span>
-                  </Link>
+                    </Link>
                 </>
               )}
             </nav>
@@ -258,6 +264,9 @@ export default function Navigation() {
             </Link>
                 <Link href="/browse" className="text-foreground hover:text-primary transition-colors cursor-pointer">
                   Browse
+                </Link>
+                <Link href="/communities" className="text-foreground hover:text-primary transition-colors cursor-pointer">
+                  Communities
                 </Link>
                 <Link href="/watch-rooms" className="text-foreground hover:text-primary transition-colors cursor-pointer">
                   Watch Rooms
