@@ -10,11 +10,13 @@ await connectDB()
 export async function GET(request, { params }) {
   try {
     const { id } = await params
+    const { searchParams } = new URL(request.url)
+    const commentsPage = parseInt(searchParams.get('commentsPage') || '1')
+    const commentsLimit = parseInt(searchParams.get('commentsLimit') || '10')
 
     const post = await Post.findById(id)
       .populate('user', 'username avatar fullName')
       .populate('community', 'name slug icon')
-      .populate('comments.user', 'username avatar fullName')
 
     if (!post) {
       return NextResponse.json(
@@ -25,9 +27,23 @@ export async function GET(request, { params }) {
 
     await post.incrementViews()
 
+    // Calculate pagination for comments
+    const totalComments = post.comments.length
+    const startIndex = (commentsPage - 1) * commentsLimit
+    const endIndex = startIndex + commentsLimit
+    const paginatedComments = post.comments.slice(startIndex, endIndex)
+
+    // Populate comments with user data
+    await Post.populate(paginatedComments, { path: 'user', select: 'username avatar fullName' })
+    await Post.populate(paginatedComments, { path: 'replies.user', select: 'username avatar fullName' })
+
     return NextResponse.json({
       success: true,
-      data: post
+      data: {
+        ...post.toObject(),
+        comments: paginatedComments,
+        totalComments
+      }
     })
   } catch (error) {
     console.error('Get post error:', error)
@@ -55,9 +71,9 @@ export const POST = withAuth(async (request, { user, params }) => {
       )
     }
 
-    const userId = user.id.toString()
-    const likeIndex = post.likes.findIndex(id => id.toString() === userId)
-    const dislikeIndex = post.dislikes.findIndex(id => id.toString() === userId)
+    const userId = user._id?.toString()
+    const likeIndex = post.likes.findIndex(id => id?.toString() === userId)
+    const dislikeIndex = post.dislikes.findIndex(id => id?.toString() === userId)
 
     if (action === 'like') {
       // Remove from dislikes if present
@@ -68,7 +84,7 @@ export const POST = withAuth(async (request, { user, params }) => {
       if (likeIndex > -1) {
         post.likes.splice(likeIndex, 1)
       } else {
-        post.likes.push(user.id)
+        post.likes.push(user._id)
       }
     } else if (action === 'dislike') {
       // Remove from likes if present
@@ -79,7 +95,7 @@ export const POST = withAuth(async (request, { user, params }) => {
       if (dislikeIndex > -1) {
         post.dislikes.splice(dislikeIndex, 1)
       } else {
-        post.dislikes.push(user.id)
+        post.dislikes.push(user._id)
       }
     }
 
@@ -90,8 +106,8 @@ export const POST = withAuth(async (request, { user, params }) => {
       data: {
         likes: post.likes.length,
         dislikes: post.dislikes.length,
-        userLiked: post.likes.some(id => id.toString() === userId),
-        userDisliked: post.dislikes.some(id => id.toString() === userId)
+        userLiked: post.likes.some(id => id?.toString() === userId),
+        userDisliked: post.dislikes.some(id => id?.toString() === userId)
       }
     })
   } catch (error) {
@@ -120,8 +136,8 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     }
 
     // Check if user owns post or is moderator
-    const isModerator = post.community.isModerator(user.id)
-    if (post.user.toString() !== user.id.toString() && !isModerator) {
+    const isModerator = post.community.isModerator(user._id)
+    if (post.user.toString() !== user._id?.toString() && !isModerator) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 403 }
@@ -150,6 +166,55 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       {
         success: false,
         message: error.message || 'Failed to delete post'
+      },
+      { status: 500 }
+    )
+  }
+})
+
+export const PUT = withAuth(async (request, { user, params }) => {
+  try {
+    const { id } = await params
+    const { title, content, images } = await request.json()
+    
+    const post = await Post.findById(id).populate('community')
+    if (!post) {
+      return NextResponse.json(
+        { success: false, message: 'Post not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if user owns post or is moderator
+    const isModerator = post.community?.isModerator(user._id)
+    if (post.user.toString() !== user._id?.toString() && !isModerator) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized' },
+        { status: 403 }
+      )
+    }
+
+    // Update fields
+    if (title !== undefined) post.title = title
+    if (content !== undefined) post.content = content
+    if (images !== undefined) post.images = images
+
+    await post.save()
+
+    // Populate user data for response
+    await post.populate('user', 'username avatar fullName')
+    await post.populate('community', 'name slug icon')
+
+    return NextResponse.json({
+      success: true,
+      data: post
+    })
+  } catch (error) {
+    console.error('Update post error:', error)
+    return NextResponse.json( 
+      {
+        success: false,
+        message: error.message || 'Failed to update post' 
       },
       { status: 500 }
     )

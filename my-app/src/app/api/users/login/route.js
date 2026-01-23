@@ -44,7 +44,7 @@ export async function POST(request) {
     }
 
     // Generate token
-    const token = generateToken(user.id)
+    const token = generateToken(user._id)
 
     // Update last login
     user.lastLogin = new Date()

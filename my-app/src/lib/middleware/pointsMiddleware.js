@@ -8,7 +8,7 @@ import Review from '../models/Review.js';
 export const awardReviewPoints = async (req, res, next) => {
   try {
     const review = res.locals.review; // Review should be set by controller
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user._id);
 
     if (!review || !user) {
       return next();
@@ -76,7 +76,7 @@ export const awardReplyPoints = async (req, res, next) => {
   try {
     const reply = res.locals.reply;
     const review = res.locals.review;
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user._id);
 
     if (!reply || !review || !user) {
       return next();
@@ -148,7 +148,7 @@ async function updateUserStats(user, review) {
   );
 
   // Update helpfulness ratio
-  const userReviews = await Review.find({ user: user.id });
+  const userReviews = await Review.find({ user: user._id });
   let totalLikes = 0;
   let totalVotes = 0;
   

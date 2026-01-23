@@ -287,7 +287,7 @@ function detectOffensiveContent(content) {
 
 async function isDuplicateContent(review, user) {
   const userReviews = await Review.find({
-    user: user.id,
+    user: user._id,
     _id: { $ne: review._id }
   }).limit(10)
 
@@ -350,7 +350,7 @@ export async function moderateReply(reply, review, user) {
   }
 
   if (removed) {
-    review.replies = review.replies.filter(r => r._id.toString() !== reply._id.toString())
+    review.replies = review.replies.filter(r => r._id?.toString() !== reply._id?.toString())
     await review.save()
   }
 

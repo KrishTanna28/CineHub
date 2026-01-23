@@ -14,7 +14,7 @@ const rateLimitCache = new Map();
  */
 export const preventReviewSpam = async (req, res, next) => {
   try {
-    const userId = req.user.id.toString();
+    const userId = req.user._id?.toString();
     const { mediaId, content, title } = req.body;
 
     // 1. Rate Limiting - Max reviews per time period
@@ -78,7 +78,7 @@ export const preventReviewSpam = async (req, res, next) => {
  */
 export const preventReplySpam = async (req, res, next) => {
   try {
-    const userId = req.user.id.toString();
+    const userId = req.user._id?.toString();
     const { content } = req.body;
     const reviewId = req.params.reviewId;
 

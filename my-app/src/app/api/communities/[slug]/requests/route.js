@@ -35,7 +35,7 @@ export const POST = withAuth(async (request, { user, params }) => {
     }
 
     // Check if user is the creator
-    if (community.creator.toString() !== user.id.toString()) {
+    if (community.creator.toString() !== user._id?.toString()) {
       return NextResponse.json(
         { success: false, message: 'Only the creator can manage join requests' },
         { status: 403 }
@@ -90,14 +90,14 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       )
     }
 
-    if (!community.hasJoinRequest(user.id)) {
+    if (!community.hasJoinRequest(user._id)) {
       return NextResponse.json(
         { success: false, message: 'No pending join request found' },
         { status: 404 }
       )
     }
 
-    await community.removeJoinRequest(user.id)
+    await community.removeJoinRequest(user._id)
 
     return NextResponse.json({
       success: true,

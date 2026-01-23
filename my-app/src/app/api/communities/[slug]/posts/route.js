@@ -95,7 +95,7 @@ export const POST = withAuth(async (request, { user, params }) => {
     }
 
     // Check if user is a member
-    if (!community.isMember(user.id)) {
+    if (!community.isMember(user._id)) {
       return NextResponse.json(
         { success: false, message: 'Must be a member to post' },
         { status: 403 }
@@ -108,13 +108,13 @@ export const POST = withAuth(async (request, { user, params }) => {
       title,
       content,
       images: [],
-      user: user.id
+      user: user._id
     })
 
     // Upload images to Cloudinary if provided
     if (images && images.length > 0) {
       try {
-        const imageUrls = await uploadPostImagesToCloudinary(images, post._id.toString())
+        const imageUrls = await uploadPostImagesToCloudinary(images, post._id?.toString())
         post.images = imageUrls
         await post.save()
       } catch (imageError) {

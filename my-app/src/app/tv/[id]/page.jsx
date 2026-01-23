@@ -271,7 +271,7 @@ export default function TVDetailsPage({ params }) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ movieId: tvShow.id.toString() })
+          body: JSON.stringify({ movieId: tvShow.id?.toString() })
         })
 
         const data = await response.json()
@@ -358,7 +358,7 @@ export default function TVDetailsPage({ params }) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ movieId: tvShow.id.toString() })
+          body: JSON.stringify({ movieId: tvShow.id?.toString() })
         })
 
         const data = await response.json()

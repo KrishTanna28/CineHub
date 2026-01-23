@@ -126,7 +126,7 @@ export default function ReviewPreview({ mediaId, mediaType, mediaTitle }) {
       <div className="space-y-4">
         {reviews.map((review) => {
           const isSpoilerRevealed = revealedSpoilers.has(review._id)
-          const isOwnReview = user && review.user?._id === user.id
+          const isOwnReview = user && review.user?._id === user._id
           const shouldBlur = review.spoiler && !isSpoilerRevealed && !isOwnReview
 
           return (

@@ -290,9 +290,6 @@ export default function BrowsePage() {
       {/* Results */}
       <div className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold text-foreground">
-            {loading ? "Loading..." : `${totalResults.toLocaleString()} Result${totalResults !== 1 ? "s" : ""}`}
-          </h2>
           {hasActiveFilters && (
             <button
               onClick={clearFilters}

@@ -50,7 +50,7 @@ export const PUT = withAuth(async (request, { user, params }) => {
     }
 
     // Check if user owns this review
-    if (review.user.toString() !== user.id.toString()) {
+    if (review.user.toString() !== user._id?.toString()) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized to update this review' },
         { status: 403 }
@@ -98,7 +98,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     }
 
     // Check if user owns this review
-    if (review.user.toString() !== user.id.toString()) {
+    if (review.user.toString() !== user._id?.toString()) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized to delete this review' },
         { status: 403 }
@@ -108,7 +108,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     await review.deleteOne()
 
     // Remove from user's reviews array
-    user.reviews = user.reviews.filter(id => id.toString() !== reviewId)
+    user.reviews = user.reviews.filter(id => id?.toString() !== reviewId)
     user.achievements.reviewsWritten = Math.max(0, user.achievements.reviewsWritten - 1)
     await user.save()
 

@@ -22,7 +22,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     }
 
     // Check if user is the creator
-    if (community.creator.toString() !== user.id.toString()) {
+    if (community.creator.toString() !== user._id?.toString()) {
       return NextResponse.json(
         { success: false, message: 'Only the creator can delete the community' },
         { status: 403 }

@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Settings, LogOut, Trophy, Star, Users, Film, Heart, Award, Flame, Trash2 } from "lucide-react"
+import { Settings, LogOut, Trophy, Star, Users, Film, Heart, Award, Flame, Trash2, Pencil, MoreVertical } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useUser } from "@/contexts/UserContext"
@@ -166,7 +167,7 @@ export default function ProfilePage() {
     setReviewsLoading(true)
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/reviews/user/${user.id}`, {
+      const response = await fetch(`/api/reviews/user/${user._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -195,7 +196,7 @@ export default function ProfilePage() {
 
       const data = await response.json()
       if (data.success) {
-        setWatchlist(watchlist.filter(m => m.id.toString() !== movieId))
+        setWatchlist(watchlist.filter(m => m.id?.toString() !== movieId))
       }
     } catch (error) {
       console.error('Error removing from watchlist:', error)
@@ -214,7 +215,7 @@ export default function ProfilePage() {
 
       const data = await response.json()
       if (data.success) {
-        setFavorites(favorites.filter(m => m.id.toString() !== movieId))
+        setFavorites(favorites.filter(m => m.id?.toString() !== movieId))
       }
     } catch (error) {
       console.error('Error removing from favorites:', error)
@@ -432,13 +433,27 @@ export default function ProfilePage() {
                           </div>
                         </div>
                       </Link>
-                      <button
-                        onClick={() => removeFromWatchlist(movie.id.toString())}
-                        className="absolute top-2 right-2 hover:text-primary text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                        title="Remove from watchlist"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="text-white cursor-pointer p-1">
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => window.location.href = `/details/${movie.id}`}>
+                              <Pencil className="w-4 h-4" />
+                              Edit Watchlist Item
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => removeFromWatchlist(movie.id?.toString())}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Remove from Watchlist
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   )
                 })}
@@ -486,13 +501,27 @@ export default function ProfilePage() {
                           </div>
                         </div>
                       </Link>
-                      <button
-                        onClick={() => removeFromFavorites(movie.id.toString())}
-                        className="absolute top-2 right-2 hover:text-primary text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                        title="Remove from watchlist"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="text-white cursor-pointer p-1">
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => window.location.href = `/details/${movie.id}`}>
+                              <Pencil className="w-4 h-4" />
+                              Edit Favorite
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => removeFromFavorites(movie.id?.toString())}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Remove from Favorites
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   )
                 })}

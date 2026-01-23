@@ -66,15 +66,15 @@ export async function GET(request) {
     await connectDB();
 
     // Check if user already exists with this Google ID
-    let user = await User.findOne({ googleId: googleUser.id });
+    let user = await User.findOne({ googleId: googleuser._id });
 
     if (user) {
       // User exists, generate token
-      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
       
       // Redirect to auth callback page with token and user data
       const userStr = encodeURIComponent(JSON.stringify({
-        _id: user.id,
+        _id: user._id,
         email: user.email,
         username: user.username,
         fullName: user.fullName,
@@ -90,7 +90,7 @@ export async function GET(request) {
 
     if (user) {
       // Link Google account to existing user
-      user.googleId = googleUser.id;
+      user.googleId = googleuser._id;
       user.authProvider = 'google';
       user.emailVerified = true;
       
@@ -101,10 +101,10 @@ export async function GET(request) {
       
       await user.save();
       
-      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
       
       const userStr = encodeURIComponent(JSON.stringify({
-        _id: user.id,
+        _id: user._id,
         email: user.email,
         username: user.username,
         fullName: user.fullName,
@@ -119,7 +119,7 @@ export async function GET(request) {
     const username = googleUser.email.split('@')[0] + Math.floor(Math.random() * 1000);
     
     user = await User.create({
-      googleId: googleUser.id,
+      googleId: googleuser._id,
       email: googleUser.email,
       username: username,
       fullName: googleUser.name,
@@ -128,10 +128,10 @@ export async function GET(request) {
       emailVerified: true,
     });
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
     
     const userStr = encodeURIComponent(JSON.stringify({
-      _id: user.id,
+      _id: user._id,
       email: user.email,
       username: user.username,
       fullName: user.fullName,

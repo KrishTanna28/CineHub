@@ -34,7 +34,7 @@ export const POST = withAuth(async (request, { user, params }) => {
       )
     }
 
-    await post.addComment(user.id, content)
+    await post.addComment(user._id, content)
     await post.populate('user', 'username avatar fullName')
     await post.populate('comments.user', 'username avatar fullName')
 
@@ -77,9 +77,9 @@ export const PATCH = withAuth(async (request, { user, params }) => {
     }
 
     if (action === 'like') {
-      await post.likeComment(commentId, user.id)
+      await post.likeComment(commentId, user._id)
     } else if (action === 'dislike') {
-      await post.dislikeComment(commentId, user.id)
+      await post.dislikeComment(commentId, user._id)
     } else {
       return NextResponse.json(
         { success: false, message: 'Invalid action' },
@@ -90,13 +90,13 @@ export const PATCH = withAuth(async (request, { user, params }) => {
     await post.populate('comments.user', 'username avatar fullName')
 
     const comment = post.comments.id(commentId)
-    const userId = user.id.toString()
+    const userId = user._id?.toString()
 
     return NextResponse.json({
       success: true,
       data: {
-        userLiked: comment.likes.some(id => id.toString() === userId),
-        userDisliked: comment.dislikes.some(id => id.toString() === userId),
+        userLiked: comment.likes.some(id => id?.toString() === userId),
+        userDisliked: comment.dislikes.some(id => id?.toString() === userId),
         likes: comment.likes.length,
         dislikes: comment.dislikes.length
       }

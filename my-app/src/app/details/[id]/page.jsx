@@ -259,7 +259,7 @@ export default function DetailsPage({ params }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: liked ? undefined : JSON.stringify({ movieId: movie.id.toString() }),
+        body: liked ? undefined : JSON.stringify({ movieId: movie.id?.toString() }),
       }
     )
 
@@ -334,7 +334,7 @@ export default function DetailsPage({ params }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: inWatchlist ? undefined : JSON.stringify({ movieId: movie.id.toString() }),
+        body: inWatchlist ? undefined : JSON.stringify({ movieId: movie.id?.toString() }),
       }
     )
 

@@ -9,13 +9,15 @@ import { Label } from "@/components/ui/label"
 import { useUser } from "@/contexts/UserContext"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
+import { fetchPosts } from "@/lib/communities/posts.js"
 
-export default function NewPostPage() {
+export default function EditPostPage() {
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
   const [imagePreviews, setImagePreviews] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [community, setCommunity] = useState(null)
+  const [post, setPost] = useState(null)
   const [loading, setLoading] = useState(true)
   
   const params = useParams()
@@ -27,47 +29,64 @@ export default function NewPostPage() {
     if (!user) {
       toast({
         title: "Login Required",
-        description: "Please login to create a post",
+        description: "Please login to edit a post",
         variant: "destructive"
       })
       router.push('/login')
       return
     }
-    fetchCommunity()
+    fetchPostAndCommunity()
   }, [user, router])
 
-  const fetchCommunity = async () => {
+  const fetchPostAndCommunity = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/communities/${params.slug}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
       
-      if (data.success) {
-        if (!data.data.isMember) {
-          toast({
-            title: "Not a Member",
-            description: "You must be a member to create posts",
-            variant: "destructive"
-          })
-          router.push(`/communities/${params.slug}`)
-          return
-        }
-        setCommunity(data.data)
-      } else {
+      // Fetch post
+      const postData = await fetchPosts(params.id)
+      
+      if (!postData.success) {
         toast({
           title: "Error",
-          description: "Failed to load community",
+          description: "Failed to load post",
           variant: "destructive"
         })
         router.push('/communities')
+        return
+      }
+
+      const postContent = postData.data
+
+      // Check if user can edit
+      if (postContent.user?._id !== user._id && !postContent.community?.moderators?.includes(user._id)) {
+        toast({
+          title: "Unauthorized",
+          description: "You don't have permission to edit this post",
+          variant: "destructive"
+        })
+        router.push(`/communities/${params.slug}/posts/${params.id}`)
+        return
+      }
+
+      setPost(postContent)
+      setTitle(postContent.title || "")
+      setContent(postContent.content || "")
+      setImagePreviews(postContent.images || [])
+
+      // Fetch community
+      const response = await fetch(`/api/communities/${params.slug}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const communityData = await response.json()
+      
+      if (communityData.success) {
+        setCommunity(communityData.data)
       }
     } catch (error) {
-      console.error('Error fetching community:', error)
+      console.error('Error fetching post:', error)
       toast({
         title: "Error",
-        description: "Failed to load community",
+        description: "Failed to load post",
         variant: "destructive"
       })
       router.push('/communities')
@@ -124,8 +143,8 @@ export default function NewPostPage() {
     setSubmitting(true)
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/communities/${params.slug}/posts`, {
-        method: 'POST',
+      const response = await fetch(`/api/posts/${params.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -142,21 +161,21 @@ export default function NewPostPage() {
       if (data.success) {
         toast({
           title: "Success",
-          description: "Post created successfully!"
+          description: "Post updated successfully!"
         })
-        router.push(`/communities/${params.slug}/posts/${data.data._id}`)
+        router.push(`/communities/${params.slug}/posts/${params.id}`)
       } else {
         toast({
           title: "Error",
-          description: data.message || "Failed to create post",
+          description: data.message || "Failed to update post",
           variant: "destructive"
         })
       }
     } catch (error) {
-      console.error('Error creating post:', error)
+      console.error('Error updating post:', error)
       toast({
         title: "Error",
-        description: "Failed to create post",
+        description: "Failed to update post",
         variant: "destructive"
       })
     } finally {
@@ -164,12 +183,12 @@ export default function NewPostPage() {
     }
   }
 
-  if (loading || !community) {
+  if (loading || !community || !post) {
     return (
-     <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">Loading post...</p>
         </div>
       </div>
     )
@@ -178,7 +197,7 @@ export default function NewPostPage() {
   return (
     <main className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold mb-6">Create Post</h1>
+        <h1 className="text-3xl font-bold mb-6">Edit Post</h1>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Title */}
           <div>
@@ -279,7 +298,7 @@ export default function NewPostPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.back()}
+              onClick={() => router.push(`/communities/${params.slug}/posts/${params.id}`)}
               className="flex-1 sm:flex-initial cursor-pointer"
             >
               Cancel
@@ -289,7 +308,7 @@ export default function NewPostPage() {
               disabled={submitting || !title.trim() || (!content.trim() && imagePreviews.length === 0)}
               className="flex-1 sm:flex-initial cursor-pointer"
             >
-              {submitting ? 'Posting...' : 'Create Post'}
+              {submitting ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
         </form>

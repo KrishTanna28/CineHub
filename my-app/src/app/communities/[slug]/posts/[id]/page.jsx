@@ -2,12 +2,15 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, ThumbsUp, ThumbsDown, MessageCircle, Eye, Pin, Lock, Trash2, Send } from "lucide-react"
+import { ArrowLeft, ThumbsUp, ThumbsDown, MessageCircle, Eye, Pin, Lock, Trash2, Send, Pencil, MoreVertical, Cross2 } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { useUser } from "@/contexts/UserContext"
 import { useToast } from "@/hooks/use-toast"
-import Link from "next/link"
+import useInfiniteScroll from "@/hooks/useInfiniteScroll"
+import { fetchPosts } from "@/lib/communities/posts.js"
+import PostImageGallery from "@/components/post-image-gallery"
 
 export default function PostDetailPage() {
   const [post, setPost] = useState(null)
@@ -18,11 +21,28 @@ export default function PostDetailPage() {
   const [showReplies, setShowReplies] = useState(new Set())
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [loadingMoreComments, setLoadingMoreComments] = useState(false)
+  const [commentsPage, setCommentsPage] = useState(1)
+  const [hasMoreComments, setHasMoreComments] = useState(true)
+  const [allComments, setAllComments] = useState([])
+  const [showReplyPagination, setShowReplyPagination] = useState({})
+  const [updatingPost, setUpdatingPost] = useState(false)
   const viewsIncremented = useRef(false)
   const votingPost = useRef(false)
   const votingComments = useRef(new Set())
   const votingReplies = useRef(new Set())
-  
+
+  // Infinite scroll for comments
+  const loadMoreCommentsRef = useInfiniteScroll(
+    () => {
+      if (hasMoreComments && !loadingMoreComments) {
+        loadMoreComments()
+      }
+    },
+    hasMoreComments,
+    loadingMoreComments
+  )
+
   const params = useParams()
   const router = useRouter()
   const { user } = useUser()
@@ -38,14 +58,13 @@ export default function PostDetailPage() {
   const fetchPost = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
-      
-      const response = await fetch(`/api/posts/${params.id}`, { headers })
-      const data = await response.json()
-      
+      const data = await fetchPosts(params.id);
+
       if (data.success) {
         setPost(data.data)
+        setAllComments(data.data.comments || [])
+        setCommentsPage(1)
+        setHasMoreComments(data.data.totalComments > 10)
       } else {
         toast({
           title: "Error",
@@ -65,6 +84,37 @@ export default function PostDetailPage() {
     }
   }
 
+  const loadMoreComments = async () => {
+    if (!hasMoreComments || loadingMoreComments) return
+
+    setLoadingMoreComments(true)
+    try {
+      const token = localStorage.getItem('token')
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+      const nextPage = commentsPage + 1
+
+      const response = await fetch(`/api/posts/${params.id}?commentsPage=${nextPage}&commentsLimit=10`, { headers })
+      const data = await response.json()
+
+      if (data.success) {
+        setAllComments(prev => [...prev, ...(data.data.comments || [])])
+        setCommentsPage(nextPage)
+        setHasMoreComments(data.data.totalComments > allComments.length + (data.data.comments || []).length)
+      }
+    } catch (error) {
+      console.error('Error loading more comments:', error)
+    } finally {
+      setLoadingMoreComments(false)
+    }
+  }
+
+  const loadMoreReplies = (commentId) => {
+    setShowReplyPagination(prev => ({
+      ...prev,
+      [commentId]: (prev[commentId] || 3) + 5
+    }))
+  }
+
   const handleLikePost = async () => {
     if (!user) {
       router.push('/login')
@@ -77,16 +127,16 @@ export default function PostDetailPage() {
     // Optimistic update
     setPost(prev => {
       if (!prev) return prev
-      const userLiked = prev.likes?.some(id => id.toString() === user._id)
-      const userDisliked = prev.dislikes?.some(id => id.toString() === user._id)
-      
+      const userLiked = prev.likes?.some(id => id?.toString() === user._id)
+      const userDisliked = prev.dislikes?.some(id => id?.toString() === user._id)
+
       return {
         ...prev,
-        likes: userLiked 
-          ? (prev.likes || []).filter(id => id.toString() !== user._id) 
+        likes: userLiked
+          ? (prev.likes || []).filter(id => id?.toString() !== user._id)
           : [...(prev.likes || []), user._id],
-        dislikes: userDisliked 
-          ? (prev.dislikes || []).filter(id => id.toString() !== user._id) 
+        dislikes: userDisliked
+          ? (prev.dislikes || []).filter(id => id?.toString() !== user._id)
           : prev.dislikes || []
       }
     })
@@ -129,16 +179,16 @@ export default function PostDetailPage() {
     // Optimistic update
     setPost(prev => {
       if (!prev) return prev
-      const userLiked = prev.likes?.some(id => id.toString() === user._id)
-      const userDisliked = prev.dislikes?.some(id => id.toString() === user._id)
-      
+      const userLiked = prev.likes?.some(id => id?.toString() === user._id)
+      const userDisliked = prev.dislikes?.some(id => id?.toString() === user._id)
+
       return {
         ...prev,
-        likes: userLiked 
-          ? (prev.likes || []).filter(id => id.toString() !== user._id) 
+        likes: userLiked
+          ? (prev.likes || []).filter(id => id?.toString() !== user._id)
           : prev.likes || [],
-        dislikes: userDisliked 
-          ? (prev.dislikes || []).filter(id => id.toString() !== user._id) 
+        dislikes: userDisliked
+          ? (prev.dislikes || []).filter(id => id?.toString() !== user._id)
           : [...(prev.dislikes || []), user._id]
       }
     })
@@ -178,29 +228,23 @@ export default function PostDetailPage() {
     if (votingComments.current.has(commentId)) return
     votingComments.current.add(commentId)
 
-    // Optimistic update
-    setPost(prev => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        comments: prev.comments.map(comment => {
-          if (comment._id === commentId) {
-            const userLiked = comment.likes?.some(id => id.toString() === user._id)
-            const userDisliked = comment.dislikes?.some(id => id.toString() === user._id)
-            return {
-              ...comment,
-              likes: userLiked 
-                ? (comment.likes || []).filter(id => id.toString() !== user._id) 
-                : [...(comment.likes || []), user._id],
-              dislikes: userDisliked 
-                ? (comment.dislikes || []).filter(id => id.toString() !== user._id) 
-                : comment.dislikes || []
-            }
-          }
-          return comment
-        })
+    // Optimistic update - update allComments for immediate UI update
+    setAllComments(prev => prev.map(comment => {
+      if (comment._id === commentId) {
+        const userLiked = comment.likes?.some(id => id?.toString() === user._id)
+        const userDisliked = comment.dislikes?.some(id => id?.toString() === user._id)
+        return {
+          ...comment,
+          likes: userLiked
+            ? (comment.likes || []).filter(id => id?.toString() !== user._id)
+            : [...(comment.likes || []), user._id],
+          dislikes: userDisliked
+            ? (comment.dislikes || []).filter(id => id?.toString() !== user._id)
+            : comment.dislikes || []
+        }
       }
-    })
+      return comment
+    }))
 
     try {
       const token = localStorage.getItem('token')
@@ -237,29 +281,23 @@ export default function PostDetailPage() {
     if (votingComments.current.has(commentId)) return
     votingComments.current.add(commentId)
 
-    // Optimistic update
-    setPost(prev => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        comments: prev.comments.map(comment => {
-          if (comment._id === commentId) {
-            const userLiked = comment.likes?.some(id => id.toString() === user._id)
-            const userDisliked = comment.dislikes?.some(id => id.toString() === user._id)
-            return {
-              ...comment,
-              likes: userLiked 
-                ? (comment.likes || []).filter(id => id.toString() !== user._id) 
-                : comment.likes || [],
-              dislikes: userDisliked 
-                ? (comment.dislikes || []).filter(id => id.toString() !== user._id) 
-                : [...(comment.dislikes || []), user._id]
-            }
-          }
-          return comment
-        })
+    // Optimistic update - update allComments for immediate UI update
+    setAllComments(prev => prev.map(comment => {
+      if (comment._id === commentId) {
+        const userLiked = comment.likes?.some(id => id?.toString() === user._id)
+        const userDisliked = comment.dislikes?.some(id => id?.toString() === user._id)
+        return {
+          ...comment,
+          likes: userLiked
+            ? (comment.likes || []).filter(id => id?.toString() !== user._id)
+            : comment.likes || [],
+          dislikes: userDisliked
+            ? (comment.dislikes || []).filter(id => id?.toString() !== user._id)
+            : [...(comment.dislikes || []), user._id]
+        }
       }
-    })
+      return comment
+    }))
 
     try {
       const token = localStorage.getItem('token')
@@ -357,6 +395,7 @@ export default function PostDetailPage() {
 
     if (!replyContent.trim()) return
 
+    setSubmitting(true)
     try {
       const token = localStorage.getItem('token')
       const response = await fetch(`/api/posts/${params.id}/comment/${commentId}/reply`, {
@@ -389,6 +428,8 @@ export default function PostDetailPage() {
         description: "Failed to submit reply",
         variant: "destructive"
       })
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -402,37 +443,31 @@ export default function PostDetailPage() {
     if (votingReplies.current.has(key)) return
     votingReplies.current.add(key)
 
-    // Optimistic update
-    setPost(prev => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        comments: prev.comments.map(comment => {
-          if (comment._id === commentId) {
-            return {
-              ...comment,
-              replies: comment.replies.map(reply => {
-                if (reply._id === replyId) {
-                  const userLiked = reply.likes?.some(id => id.toString() === user._id)
-                  const userDisliked = reply.dislikes?.some(id => id.toString() === user._id)
-                  return {
-                    ...reply,
-                    likes: userLiked
-                      ? (reply.likes || []).filter(id => id.toString() !== user._id)
-                      : [...(reply.likes || []), user._id],
-                    dislikes: userDisliked
-                      ? (reply.dislikes || []).filter(id => id.toString() !== user._id)
-                      : reply.dislikes || []
-                  }
-                }
-                return reply
-              })
+    // Optimistic update - update allComments for immediate UI update
+    setAllComments(prev => prev.map(comment => {
+      if (comment._id === commentId) {
+        return {
+          ...comment,
+          replies: comment.replies.map(reply => {
+            if (reply._id === replyId) {
+              const userLiked = reply.likes?.some(id => id?.toString() === user._id)
+              const userDisliked = reply.dislikes?.some(id => id?.toString() === user._id)
+              return {
+                ...reply,
+                likes: userLiked
+                  ? (reply.likes || []).filter(id => id?.toString() !== user._id)
+                  : [...(reply.likes || []), user._id],
+                dislikes: userDisliked
+                  ? (reply.dislikes || []).filter(id => id?.toString() !== user._id)
+                  : reply.dislikes || []
+              }
             }
-          }
-          return comment
-        })
+            return reply
+          })
+        }
       }
-    })
+      return comment
+    }))
 
     try {
       const token = localStorage.getItem('token')
@@ -468,37 +503,31 @@ export default function PostDetailPage() {
     if (votingReplies.current.has(key)) return
     votingReplies.current.add(key)
 
-    // Optimistic update
-    setPost(prev => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        comments: prev.comments.map(comment => {
-          if (comment._id === commentId) {
-            return {
-              ...comment,
-              replies: comment.replies.map(reply => {
-                if (reply._id === replyId) {
-                  const userLiked = reply.likes?.some(id => id.toString() === user._id)
-                  const userDisliked = reply.dislikes?.some(id => id.toString() === user._id)
-                  return {
-                    ...reply,
-                    likes: userLiked
-                      ? (reply.likes || []).filter(id => id.toString() !== user._id)
-                      : reply.likes || [],
-                    dislikes: userDisliked
-                      ? (reply.dislikes || []).filter(id => id.toString() !== user._id)
-                      : [...(reply.dislikes || []), user._id]
-                  }
-                }
-                return reply
-              })
+    // Optimistic update - update allComments for immediate UI update
+    setAllComments(prev => prev.map(comment => {
+      if (comment._id === commentId) {
+        return {
+          ...comment,
+          replies: comment.replies.map(reply => {
+            if (reply._id === replyId) {
+              const userLiked = reply.likes?.some(id => id?.toString() === user._id)
+              const userDisliked = reply.dislikes?.some(id => id?.toString() === user._id)
+              return {
+                ...reply,
+                likes: userLiked
+                  ? (reply.likes || []).filter(id => id?.toString() !== user._id)
+                  : reply.likes || [],
+                dislikes: userDisliked
+                  ? (reply.dislikes || []).filter(id => id?.toString() !== user._id)
+                  : [...(reply.dislikes || []), user._id]
+              }
             }
-          }
-          return comment
-        })
+            return reply
+          })
+        }
       }
-    })
+      return comment
+    }))
 
     try {
       const token = localStorage.getItem('token')
@@ -562,9 +591,45 @@ export default function PostDetailPage() {
     }
   }
 
+  const handleUpdatePost = async () => {
+    setUpdatingPost(true)
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/posts/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: "Post updated successfully"
+        })
+        router.push(`/communities/${params.slug}`)
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to update post",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('Error updating post:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update post",
+        variant: "destructive"
+      })
+    } finally {
+      setUpdatingPost(false)
+    }
+  }
+
+
   const formatTimeAgo = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000)
-    
+
     if (seconds < 60) return `${seconds}s ago`
     const minutes = Math.floor(seconds / 60)
     if (minutes < 60) return `${minutes}m ago`
@@ -580,16 +645,17 @@ export default function PostDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Loading post...</p>
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading post...</p>
+        </div>
       </div>
     )
   }
 
   if (!post) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Post not found</p>
-      </div>
+      <NotFound />
     )
   }
 
@@ -597,8 +663,13 @@ export default function PostDetailPage() {
 
   return (
     <main className="min-h-screen bg-background">
-
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+         <button
+        onClick={() => router.back()}
+        className="flex items-center text-sm gap-2 hover:text-primary mb-5"
+      >
+        <ArrowLeft className="w-7 h-7" />
+      </button>
         {/* Post Card */}
         <div className="bg-secondary/20 rounded-lg border border-border p-6 mb-6">
           {/* Header */}
@@ -614,17 +685,32 @@ export default function PostDetailPage() {
                 Posted by <span className="font-medium">{post.user?.username || 'Unknown'}</span> • {formatTimeAgo(post.createdAt)}
               </span>
             </div>
-            
+
             {canDelete && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDelete}
-                disabled={deleting}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="cursor-pointer p-1">
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => router.push(`/communities/${params.slug}/posts/${post._id}/edit`)}>
+                    <Pencil className="w-4 h-4" />
+                    Edit Post
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleDelete}
+                    disabled={deleting}
+                  >
+                    {deleting ? (
+                      <div className="w-4 h-4 border-2 border-border border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                    {deleting ? "Deleting..." : "Delete Post"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
 
@@ -639,54 +725,38 @@ export default function PostDetailPage() {
           )}
 
           {/* Images */}
-          {post.images?.length > 0 && (
-            <div className="flex flex-col items-center gap-4 mb-4">
-              {post.images.map((image, idx) => (
-                <div key={idx} className="w-full max-w-4xl">
-                  <img
-                    src={image}
-                    alt={`Post image ${idx + 1}`}
-                    className="w-full h-auto rounded-lg border border-border object-contain"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+          <PostImageGallery images={post.images} />
 
           {/* Post Actions */}
           <div className="flex items-center gap-4 pt-4 border-t border-border">
             <button
               onClick={handleLikePost}
-              className={`flex items-center gap-2 text-sm transition-colors ${
-                post.likes?.some(id => id.toString() === user?._id)
+              className={`flex items-center gap-2 text-sm transition-colors ${post.likes?.some(id => id?.toString() === user?._id)
                   ? "text-primary font-bold"
                   : "text-muted-foreground hover:text-primary"
-              }`}
+                }`}
             >
               <ThumbsUp
-                className={`w-4 h-4 ${
-                  post.likes?.some(id => id.toString() === user?._id)
+                className={`w-4 h-4 ${post.likes?.some(id => id?.toString() === user?._id)
                     ? "fill-primary text-primary"
                     : ""
-                }`}
+                  }`}
               />
               <span>{post.likes?.length || 0}</span>
             </button>
 
             <button
               onClick={handleDislikePost}
-              className={`flex items-center gap-2 text-sm transition-colors ${
-                post.dislikes?.some(id => id.toString() === user?._id)
+              className={`flex items-center gap-2 text-sm transition-colors ${post.dislikes?.some(id => id?.toString() === user?._id)
                   ? "text-destructive"
                   : "text-muted-foreground hover:text-destructive"
-              }`}
+                }`}
             >
               <ThumbsDown
-                className={`w-4 h-4 ${
-                  post.dislikes?.some(id => id.toString() === user?._id)
+                className={`w-4 h-4 ${post.dislikes?.some(id => id?.toString() === user?._id)
                     ? "fill-destructive text-destructive"
                     : ""
-                }`}
+                  }`}
               />
               <span>{post.dislikes?.length || 0}</span>
             </button>
@@ -729,7 +799,11 @@ export default function PostDetailPage() {
                   size="sm"
                   disabled={!user || submitting || !commentText.trim()}
                 >
-                  <Send className="w-4 h-4" />
+                  {submitting ? (
+                    <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
             </form>
@@ -743,14 +817,14 @@ export default function PostDetailPage() {
           )}
 
           {/* Comments List */}
-          {post.comments?.length === 0 ? (
+          {allComments.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>No comments yet. Be the first to comment!</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {post.comments?.map((comment) => (
+              {allComments.map((comment) => (
                 <div key={comment._id} className="flex gap-3">
                   <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
                     {comment.user?.avatar ? (
@@ -775,36 +849,32 @@ export default function PostDetailPage() {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => handleLikeComment(comment._id)}
-                        className={`flex items-center gap-1 text-xs transition-colors ${
-                          comment.likes?.some(id => id.toString() === user?._id)
+                        className={`flex items-center gap-1 text-xs transition-colors ${comment.likes?.some(id => id?.toString() === user?._id)
                             ? 'text-primary'
                             : 'text-muted-foreground hover:text-primary'
-                        }`}
+                          }`}
                       >
                         <ThumbsUp
-                          className={`w-3 h-3 ${
-                            comment.likes?.some(id => id.toString() === user?._id)
+                          className={`w-3 h-3 ${comment.likes?.some(id => id?.toString() === user?._id)
                               ? 'fill-primary text-primary'
                               : ''
-                          }`}
+                            }`}
                         />
                         {comment.likes?.length || 0}
                       </button>
 
                       <button
                         onClick={() => handleDislikeComment(comment._id)}
-                        className={`flex items-center gap-1 text-xs transition-colors ${
-                          comment.dislikes?.some(id => id.toString() === user?._id)
+                        className={`flex items-center gap-1 text-xs transition-colors ${comment.dislikes?.some(id => id?.toString() === user?._id)
                             ? 'text-destructive'
                             : 'text-muted-foreground hover:text-destructive'
-                        }`}
+                          }`}
                       >
                         <ThumbsDown
-                          className={`w-3 h-3 ${
-                            comment.dislikes?.some(id => id.toString() === user?._id)
+                          className={`w-3 h-3 ${comment.dislikes?.some(id => id?.toString() === user?._id)
                               ? 'fill-destructive text-destructive'
                               : ''
-                          }`}
+                            }`}
                         />
                         {comment.dislikes?.length || 0}
                       </button>
@@ -852,9 +922,13 @@ export default function PostDetailPage() {
                           <Button
                             onClick={() => handleSubmitReply(comment._id)}
                             size="sm"
-                            disabled={!replyContent.trim()}
+                            disabled={!replyContent.trim() || submitting}
                           >
-                            <Send className="w-4 h-4" />
+                            {submitting && replyingTo === comment._id ? (
+                              <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <Send className="w-4 h-4" />
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -863,7 +937,7 @@ export default function PostDetailPage() {
                     {/* Replies */}
                     {comment.replies && comment.replies.length > 0 && showReplies.has(comment._id) && (
                       <div className="mt-4 space-y-3 pl-4 border-l-2 border-border">
-                        {comment.replies.map((reply) => (
+                        {comment.replies.slice(0, showReplyPagination[comment._id] || 3).map((reply) => (
                           <div key={reply._id} className="flex gap-3">
                             <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
                               {reply.user?.avatar ? (
@@ -888,36 +962,32 @@ export default function PostDetailPage() {
                               <div className="flex items-center gap-3">
                                 <button
                                   onClick={() => handleLikeReply(comment._id, reply._id)}
-                                  className={`flex items-center gap-1 text-xs transition-colors ${
-                                    reply.likes?.some(id => id.toString() === user?._id)
+                                  className={`flex items-center gap-1 text-xs transition-colors ${reply.likes?.some(id => id?.toString() === user?._id)
                                       ? 'text-primary'
                                       : 'text-muted-foreground hover:text-primary'
-                                  }`}
+                                    }`}
                                 >
                                   <ThumbsUp
-                                    className={`w-3 h-3 ${
-                                      reply.likes?.some(id => id.toString() === user?._id)
+                                    className={`w-3 h-3 ${reply.likes?.some(id => id?.toString() === user?._id)
                                         ? 'fill-primary text-primary'
                                         : ''
-                                    }`}
+                                      }`}
                                   />
                                   {reply.likes?.length || 0}
                                 </button>
 
                                 <button
                                   onClick={() => handleDislikeReply(comment._id, reply._id)}
-                                  className={`flex items-center gap-1 text-xs transition-colors ${
-                                    reply.dislikes?.some(id => id.toString() === user?._id)
+                                  className={`flex items-center gap-1 text-xs transition-colors ${reply.dislikes?.some(id => id?.toString() === user?._id)
                                       ? 'text-destructive'
                                       : 'text-muted-foreground hover:text-destructive'
-                                  }`}
+                                    }`}
                                 >
                                   <ThumbsDown
-                                    className={`w-3 h-3 ${
-                                      reply.dislikes?.some(id => id.toString() === user?._id)
+                                    className={`w-3 h-3 ${reply.dislikes?.some(id => id?.toString() === user?._id)
                                         ? 'fill-destructive text-destructive'
                                         : ''
-                                    }`}
+                                      }`}
                                   />
                                   {reply.dislikes?.length || 0}
                                 </button>
@@ -925,11 +995,35 @@ export default function PostDetailPage() {
                             </div>
                           </div>
                         ))}
+                        {/* Load More Replies Button */}
+                        {comment.replies.length > (showReplyPagination[comment._id] || 3) && (
+                          <button
+                            onClick={() => loadMoreReplies(comment._id)}
+                            className="text-xs text-primary hover:underline ml-9 mt-2"
+                          >
+                            Load {Math.min(5, comment.replies.length - (showReplyPagination[comment._id] || 3))} more {comment.replies.length - (showReplyPagination[comment._id] || 3) === 1 ? 'reply' : 'replies'}
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
               ))}
+
+              {/* Load More Comments */}
+              <div ref={loadMoreCommentsRef} className="mt-6 flex justify-center">
+                {loadingMoreComments && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <span>Loading more comments...</span>
+                  </div>
+                )}
+                {!loadingMoreComments && !hasMoreComments && allComments.length > 0 && (
+                  <p className="text-muted-foreground text-sm">
+                    All comments loaded • {allComments.length} total
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -55,7 +55,7 @@ export default function MovieDetailsClient({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ movieId: movie.id.toString() })
+          body: JSON.stringify({ movieId: movie.id?.toString() })
         })
         const data = await response.json()
         if (!data.success) throw new Error(data.message)
@@ -96,7 +96,7 @@ export default function MovieDetailsClient({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ movieId: movie.id.toString() })
+          body: JSON.stringify({ movieId: movie.id?.toString() })
         })
         const data = await response.json()
         if (!data.success) throw new Error(data.message)

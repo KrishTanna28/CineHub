@@ -19,7 +19,11 @@ export async function GET(request) {
     const query = { isActive: true }
     if (category && category !== 'all') query.category = category
     if (search) {
-      query.$text = { $search: search }
+      // Use regex for partial matching - case insensitive
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ]
     }
 
     let sort = {}
@@ -121,9 +125,9 @@ export const POST = withAuth(async (request, { user }) => {
       relatedEntityId,
       relatedEntityName,
       relatedEntityType,
-      creator: user.id,
-      moderators: [user.id],
-      members: [user.id],
+      creator: user._id,
+      moderators: [user._id],
+      members: [user._id],
       isPrivate,
       requireApproval
     })
@@ -131,12 +135,12 @@ export const POST = withAuth(async (request, { user }) => {
     // Upload images to Cloudinary if provided
     try {
       if (banner) {
-        const bannerUrl = await uploadCommunityBannerToCloudinary(banner, community._id.toString())
+        const bannerUrl = await uploadCommunityBannerToCloudinary(banner, community._id?.toString())
         community.banner = bannerUrl
       }
       
       if (icon) {
-        const iconUrl = await uploadCommunityIconToCloudinary(icon, community._id.toString())
+        const iconUrl = await uploadCommunityIconToCloudinary(icon, community._id?.toString())
         community.icon = iconUrl
       }
 

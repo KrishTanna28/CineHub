@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Users, FileText, Plus, TrendingUp, Clock, ThumbsUp, MessageCircle, Pin, Lock, Film, Tv, User as UserIcon, Sparkles, Trash2, UserCheck, UserX, Bell } from "lucide-react"
+import { Users, FileText, Plus, Clock, ThumbsUp, MessageCircle, Pin, Lock, Film, Tv, User as UserIcon, Sparkles, Trash2, UserCheck, UserX, Bell, Pencil, MoreVertical } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/contexts/UserContext"
 import { useToast } from "@/hooks/use-toast"
+import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 import Link from "next/link"
 
 const categoryIcons = {
@@ -18,6 +20,7 @@ export default function CommunityPage() {
   const [community, setCommunity] = useState(null)
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [sortBy, setSortBy] = useState('recent')
   const [isMember, setIsMember] = useState(false)
   const [joining, setJoining] = useState(false)
@@ -25,19 +28,38 @@ export default function CommunityPage() {
   const [isCreator, setIsCreator] = useState(false)
   const [processingRequest, setProcessingRequest] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
   
   const params = useParams()
   const router = useRouter()
   const { user } = useUser()
   const { toast } = useToast()
 
+  // Infinite scroll for posts
+  const loadMoreRef = useInfiniteScroll(
+    () => {
+      if (hasMore && !loadingMore) {
+        loadMorePosts()
+      }
+    },
+    hasMore,
+    loadingMore
+  )
+
   useEffect(() => {
     fetchCommunity()
-    fetchPosts()
+    setPage(1)
+    setPosts([])
+    setHasMore(true)
+    fetchPosts(1)
   }, [params.slug])
 
   useEffect(() => {
-    fetchPosts()
+    setPage(1)
+    setPosts([])
+    setHasMore(true)
+    fetchPosts(1)
   }, [sortBy])
 
   const fetchCommunity = async () => {
@@ -73,20 +95,41 @@ export default function CommunityPage() {
     }
   }
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (pageNum = 1) => {
+    const isFirstPage = pageNum === 1
+    if (isFirstPage) {
+      setLoading(true)
+    } else {
+      setLoadingMore(true)
+    }
+
     try {
       const token = localStorage.getItem('token')
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
       
-      const response = await fetch(`/api/communities/${params.slug}/posts?sort=${sortBy}`, { headers })
+      const response = await fetch(`/api/communities/${params.slug}/posts?sort=${sortBy}&page=${pageNum}&limit=10`, { headers })
       const data = await response.json()
       
       if (data.success) {
-        setPosts(data.data)
+        if (isFirstPage) {
+          setPosts(data.data)
+        } else {
+          setPosts(prev => [...prev, ...data.data])
+        }
+        setPage(pageNum)
+        setHasMore(data.pagination && pageNum < data.pagination.pages)
       }
     } catch (error) {
       console.error('Error fetching posts:', error)
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
     }
+  }
+
+  const loadMorePosts = () => {
+    if (!hasMore || loadingMore) return
+    fetchPosts(page + 1)
   }
 
   const handleJoinLeave = async () => {
@@ -267,6 +310,8 @@ export default function CommunityPage() {
     }
   }
 
+
+
   const formatNumber = (num) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
@@ -291,7 +336,10 @@ export default function CommunityPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Loading community...</p>
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading community...</p>
+        </div>
       </div>
     )
   }
@@ -357,9 +405,12 @@ export default function CommunityPage() {
                       onClick={handleJoinLeave}
                       disabled={joining}
                       variant={isMember ? "outline" : hasPendingRequest ? "secondary" : "default"}
-                      className="cursor-pointer"
+                      className="cursor-pointer flex items-center gap-2"
                     >
-                      {joining ? "..." : 
+                      {joining && (
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                      )}
+                      {joining ? "Processing..." : 
                        isMember ? "Leave" : 
                        hasPendingRequest ? "Cancel Request" : 
                        community.isPrivate ? "Request to Join" : "Join"}
@@ -381,15 +432,30 @@ export default function CommunityPage() {
                           Create Post
                         </Button>
                       </Link>
-                      <Button
-                        onClick={handleDeleteCommunity}
-                        disabled={deleting}
-                        variant="destructive"
-                        className="gap-2 cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        {deleting ? "Deleting..." : "Delete Community"}
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="cursor-pointer p-1">
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => window.location.href = `/communities/${params.slug}/edit`}>
+                            <Pencil className="w-4 h-4" />
+                            Edit Community
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={handleDeleteCommunity}
+                            disabled={deleting}
+                          >
+                            {deleting ? (
+                              <div className="w-4 h-4 border-2 border-border border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                            {deleting ? "Deleting..." : "Delete Community"}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </>
                   )}
                 </div>
@@ -454,8 +520,12 @@ export default function CommunityPage() {
                       size="sm"
                       className="gap-2 cursor-pointer"
                     >
-                      <UserCheck className="w-4 h-4" />
-                      Approve
+                      {processingRequest === request.user._id ? (
+                        <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <UserCheck className="w-4 h-4" />
+                      )}
+                      {processingRequest === request.user._id ? 'Processing...' : 'Approve'}
                     </Button>
                     <Button
                       onClick={() => handleJoinRequest(request.user._id, 'reject')}
@@ -464,8 +534,12 @@ export default function CommunityPage() {
                       size="sm"
                       className="gap-2 cursor-pointer"
                     >
-                      <UserX className="w-4 h-4" />
-                      Reject
+                      {processingRequest === request.user._id ? (
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <UserX className="w-4 h-4" />
+                      )}
+                      {processingRequest === request.user._id ? 'Processing...' : 'Reject'}
                     </Button>
                   </div>
                 </div>
@@ -573,6 +647,21 @@ export default function CommunityPage() {
                 </div>
               </Link>
             ))}
+
+            {/* Load More Trigger & Loading State */}
+            <div ref={loadMoreRef} className="mt-6 flex justify-center">
+              {loadingMore && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <span>Loading more posts...</span>
+                </div>
+              )}
+              {!loadingMore && !hasMore && posts.length > 0 && (
+                <p className="text-muted-foreground text-sm">
+                  You've reached the end • {posts.length} posts loaded
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>

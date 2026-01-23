@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Plus, Users, Film, Tv, User, Sparkles, Search, Filter, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/contexts/UserContext"
 import { useToast } from "@/hooks/use-toast"
+import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 
 const categories = [
   { id: 'all', label: 'All Communities' },
@@ -22,17 +23,32 @@ const sortOptions = [
 ]
 
 export default function CommunitiesPage() {
-  const [communities, setCommunities] = useState([])
+  const [allCommunities, setAllCommunities] = useState([]) // All loaded communities
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [sortBy, setSortBy] = useState('popular')
   const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [totalPages, setTotalPages] = useState(1)
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useUser()
   const { toast } = useToast()
+
+  // Infinite scroll
+  const loadMoreRef = useInfiniteScroll(
+    () => {
+      if (hasMore && !loadingMore && !searchQuery) {
+        loadMoreCommunities()
+      }
+    },
+    hasMore,
+    loadingMore
+  )
 
   useEffect(() => {
     const category = searchParams.get('category')
@@ -41,28 +57,72 @@ export default function CommunitiesPage() {
     if (sort) setSortBy(sort)
   }, [searchParams])
 
-  // Debounced search effect
+  // Reset and fetch when filters change
   useEffect(() => {
+    setPage(1)
+    setAllCommunities([])
+    setHasMore(true)
+    fetchCommunities(1)
+  }, [selectedCategory, sortBy])
+
+  // Client-side search through loaded communities
+  const filteredCommunities = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return allCommunities
+    }
+
+    const query = searchQuery.toLowerCase()
+    return allCommunities.filter(community => 
+      community.name.toLowerCase().includes(query) ||
+      community.description.toLowerCase().includes(query)
+    )
+  }, [allCommunities, searchQuery])
+
+  // Debounced backend search if not found locally
+  useEffect(() => {
+    if (!searchQuery.trim()) return
+
     const debounceTimer = setTimeout(() => {
-      fetchCommunities()
-    }, 500)
+      // If local search found results, don't hit the backend
+      if (filteredCommunities.length > 0) return
+
+      // If we've loaded all pages, no need to search backend
+      if (!hasMore) return
+
+      // Otherwise, search backend for communities we haven't loaded yet
+      searchBackend()
+    }, 800)
 
     return () => clearTimeout(debounceTimer)
-  }, [selectedCategory, sortBy, searchQuery])
+  }, [searchQuery])
 
-  const fetchCommunities = async () => {
-    setLoading(true)
+  const fetchCommunities = async (pageNum = 1) => {
+    const isFirstPage = pageNum === 1
+    if (isFirstPage) {
+      setLoading(true)
+    } else {
+      setLoadingMore(true)
+    }
+
     try {
       const params = new URLSearchParams()
       if (selectedCategory !== 'all') params.append('category', selectedCategory)
       params.append('sort', sortBy)
-      if (searchQuery.trim()) params.append('search', searchQuery.trim())
+      params.append('page', pageNum.toString())
+      params.append('limit', '20')
 
       const response = await fetch(`/api/communities?${params}`)
       const data = await response.json()
 
       if (data.success) {
-        setCommunities(data.data)
+        if (isFirstPage) {
+          setAllCommunities(data.data)
+        } else {
+          setAllCommunities(prev => [...prev, ...data.data])
+        }
+        setTotalPages(data.pagination.pages)
+        setHasMore(pageNum < data.pagination.pages)
+        setPage(pageNum)
       }
     } catch (error) {
       console.error('Error fetching communities:', error)
@@ -71,6 +131,39 @@ export default function CommunitiesPage() {
         description: "Failed to load communities",
         variant: "destructive"
       })
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
+    }
+  }
+
+  const loadMoreCommunities = () => {
+    if (!hasMore || loadingMore) return
+    fetchCommunities(page + 1)
+  }
+
+  const searchBackend = async () => {
+    if (!searchQuery.trim()) return
+
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (selectedCategory !== 'all') params.append('category', selectedCategory)
+      params.append('sort', sortBy)
+      params.append('search', searchQuery.trim())
+      params.append('limit', '100') // Get more results for search
+
+      const response = await fetch(`/api/communities?${params}`)
+      const data = await response.json()
+
+      if (data.success) {
+        // Merge with existing communities, avoiding duplicates
+        const existingIds = new Set(allCommunities.map(c => c._id))
+        const newCommunities = data.data.filter(c => !existingIds.has(c._id))
+        setAllCommunities(prev => [...prev, ...newCommunities])
+      }
+    } catch (error) {
+      console.error('Error searching communities:', error)
     } finally {
       setLoading(false)
     }
@@ -247,20 +340,25 @@ export default function CommunitiesPage() {
               <p className="text-muted-foreground">Loading communities...</p>
             </div>
           </div>
-        ) : communities.length === 0 ? (
+        ) : filteredCommunities.length === 0 ? (
           <div className="text-center py-12">
             <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <h3 className="text-xl font-semibold text-foreground mb-2">No communities found</h3>
-            <p className="text-muted-foreground mb-6">Be the first to create one!</p>
-            {user && (
+            <h3 className="text-xl font-semibold text-foreground mb-2">
+              {searchQuery ? 'No communities found' : 'No communities yet'}
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              {searchQuery ? 'Try a different search term' : 'Be the first to create one!'}
+            </p>
+            {user && !searchQuery && (
               <Link href="/communities/new">
                 <Button>Create a Community</Button>
               </Link>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {communities.map((community) => {
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredCommunities.map((community) => {
               const CategoryIcon = categories.find(c => c.id === community.category)?.icon || Sparkles
               
               return (
@@ -331,6 +429,33 @@ export default function CommunitiesPage() {
               )
             })}
           </div>
+
+          {/* Load More Trigger & Loading State */}
+          {!searchQuery && (
+            <div ref={loadMoreRef} className="mt-8 flex justify-center">
+              {loadingMore && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <span>Loading more communities...</span>
+                </div>
+              )}
+              {!loadingMore && !hasMore && allCommunities.length > 0 && (
+                <p className="text-muted-foreground text-sm">
+                  You've reached the end • {allCommunities.length} communities loaded
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Search Results Info */}
+          {searchQuery && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                Found {filteredCommunities.length} {filteredCommunities.length === 1 ? 'community' : 'communities'} matching "{searchQuery}"
+              </p>
+            </div>
+          )}
+        </>
         )}
       </div>
     </main>

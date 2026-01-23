@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect, use } from "react"
+import { useState, useEffect, use, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { ThumbsUp, ThumbsDown, MessageCircle, AlertTriangle, ArrowLeft, Star, Send, Plus, Edit2, Trash2, Minus } from "lucide-react"
+import { ThumbsUp, ThumbsDown, MessageCircle, AlertTriangle, ArrowLeft, Star, Send, Plus, Edit2, Trash2, Minus, Pencil, MoreVertical } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
@@ -14,7 +15,6 @@ export default function ReviewsPage({ params }) {
   const unwrappedParams = use(params)
   const router = useRouter()
   const { user } = useUser()
-
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -46,7 +46,7 @@ export default function ReviewsPage({ params }) {
   const [deleteConfirmation, setDeleteConfirmation] = useState(null) // { type: 'review' | 'reply', id: string, reviewId?: string }
 
   // Fetch reviews
-  const fetchReviews = async (pageNum = 1, sort = sortBy) => {
+  const fetchReviews = async (pageNum = 1, sortBy) => {
     if (pageNum === 1) {
       setLoading(true)
     } else {
@@ -59,7 +59,7 @@ export default function ReviewsPage({ params }) {
         unwrappedParams.mediaId,
         pageNum,
         10,
-        sort
+        sortBy
       )
 
       if (data.success) {
@@ -70,6 +70,7 @@ export default function ReviewsPage({ params }) {
         }
         setHasMore(data.pagination.page < data.pagination.pages)
       }
+      console.log('Fetched reviews:', data.data)
     } catch (error) {
       console.error('Failed to fetch reviews:', error)
       setError('Failed to load reviews')
@@ -134,7 +135,7 @@ export default function ReviewsPage({ params }) {
         const tempReview = {
           _id: 'temp-' + Date.now(),
           user: {
-            _id: user.id,
+            _id: user._id,
             username: user.username,
             avatar: user.avatar,
             fullName: user.fullName
@@ -191,36 +192,18 @@ export default function ReviewsPage({ params }) {
       return
     }
 
-    // Optimistic update
-    setReviews(prev => prev.map(r => {
-      if (r._id === reviewId) {
-        const userLiked = r.likes?.some(id => id.toString() === user.id)
-        const userDisliked = r.dislikes?.some(id => id.toString() === user.id)
-        
-        return {
-          ...r,
-          likeCount: userLiked ? (r.likeCount || 1) - 1 : (r.likeCount || 0) + 1,
-          dislikeCount: userDisliked ? (r.dislikeCount || 1) - 1 : r.dislikeCount || 0,
-          likes: userLiked ? (r.likes || []).filter(id => id.toString() !== user.id) : [...(r.likes || []), user.id],
-          dislikes: userDisliked ? (r.dislikes || []).filter(id => id.toString() !== user.id) : r.dislikes || []
-        }
-      }
-      return r
-    }))
-
     try {
       const data = await likeReview(reviewId)
 
       if (data.success) {
-        // Update with actual data from server
         setReviews(prev => prev.map(r => {
           if (r._id === reviewId) {
             return {
               ...r,
               likeCount: data.data.likes,
               dislikeCount: data.data.dislikes,
-              likes: data.data.userLiked ? [...(r.likes || []), user.id] : (r.likes || []).filter(id => id.toString() !== user.id),
-              dislikes: data.data.userDisliked ? [...(r.dislikes || []), user.id] : (r.dislikes || []).filter(id => id.toString() !== user.id)
+              likes: data.data.userLiked ? [...(r.likes || []).filter(id => id?.toString() !== user._id?.toString()), user._id] : (r.likes || []).filter(id => id?.toString() !== user._id?.toString()),
+              dislikes: (r.dislikes || []).filter(id => id?.toString() !== user._id?.toString())
             }
           }
           return r
@@ -229,21 +212,6 @@ export default function ReviewsPage({ params }) {
     } catch (error) {
       console.error('Failed to like review:', error)
       setError('Failed to like review')
-      // Revert optimistic update on error
-      setReviews(prev => prev.map(r => {
-        if (r._id === reviewId) {
-          const userLiked = r.likes?.some(id => id.toString() === user.id)
-          const userDisliked = r.dislikes?.some(id => id.toString() === user.id)
-          return {
-            ...r,
-            likeCount: userLiked ? (r.likeCount || 0) - 1 : (r.likeCount || 1) + 1,
-            dislikeCount: userDisliked ? (r.dislikeCount || 0) + 1 : r.dislikeCount || 0,
-            likes: userLiked ? (r.likes || []).filter(id => id.toString() !== user.id) : [...(r.likes || []), user.id],
-            dislikes: userDisliked ? [...(r.dislikes || []), user.id] : (r.dislikes || []).filter(id => id.toString() !== user.id)
-          }
-        }
-        return r
-      }))
     }
   }
 
@@ -254,36 +222,18 @@ export default function ReviewsPage({ params }) {
       return
     }
 
-    // Optimistic update
-    setReviews(prev => prev.map(r => {
-      if (r._id === reviewId) {
-        const userLiked = r.likes?.some(id => id.toString() === user.id)
-        const userDisliked = r.dislikes?.some(id => id.toString() === user.id)
-        
-        return {
-          ...r,
-          likeCount: userLiked ? (r.likeCount || 1) - 1 : r.likeCount || 0,
-          dislikeCount: userDisliked ? (r.dislikeCount || 1) - 1 : (r.dislikeCount || 0) + 1,
-          likes: userLiked ? (r.likes || []).filter(id => id.toString() !== user.id) : r.likes || [],
-          dislikes: userDisliked ? (r.dislikes || []).filter(id => id.toString() !== user.id) : [...(r.dislikes || []), user.id]
-        }
-      }
-      return r
-    }))
-
     try {
       const data = await dislikeReview(reviewId)
 
       if (data.success) {
-        // Update with actual data from server
         setReviews(prev => prev.map(r => {
           if (r._id === reviewId) {
             return {
               ...r,
               likeCount: data.data.likes,
               dislikeCount: data.data.dislikes,
-              likes: data.data.userLiked ? [...(r.likes || []), user.id] : (r.likes || []).filter(id => id.toString() !== user.id),
-              dislikes: data.data.userDisliked ? [...(r.dislikes || []), user.id] : (r.dislikes || []).filter(id => id.toString() !== user.id)
+              likes: (r.likes || []).filter(id => id?.toString() !== user._id?.toString()),
+              dislikes: data.data.userDisliked ? [...(r.dislikes || []).filter(id => id?.toString() !== user._id?.toString()), user._id] : (r.dislikes || []).filter(id => id?.toString() !== user._id?.toString())
             }
           }
           return r
@@ -292,21 +242,6 @@ export default function ReviewsPage({ params }) {
     } catch (error) {
       console.error('Failed to dislike review:', error)
       setError('Failed to dislike review')
-      // Revert optimistic update on error
-      setReviews(prev => prev.map(r => {
-        if (r._id === reviewId) {
-          const userLiked = r.likes?.some(id => id.toString() === user.id)
-          const userDisliked = r.dislikes?.some(id => id.toString() === user.id)
-          return {
-            ...r,
-            likeCount: userLiked ? (r.likeCount || 0) + 1 : r.likeCount || 0,
-            dislikeCount: userDisliked ? (r.dislikeCount || 0) - 1 : (r.dislikeCount || 1) + 1,
-            likes: userLiked ? [...(r.likes || []), user.id] : (r.likes || []).filter(id => id.toString() !== user.id),
-            dislikes: userDisliked ? (r.dislikes || []).filter(id => id.toString() !== user.id) : [...(r.dislikes || []), user.id]
-          }
-        }
-        return r
-      }))
     }
   }
 
@@ -322,7 +257,7 @@ export default function ReviewsPage({ params }) {
     const tempReply = {
       _id: 'temp-' + Date.now(),
       user: {
-        _id: user.id,
+        _id: user._id,
         username: user.username,
         avatar: user.avatar,
         fullName: user.fullName
@@ -375,28 +310,6 @@ export default function ReviewsPage({ params }) {
       return
     }
 
-    // Optimistic update
-    setReviews(prev => prev.map(r => {
-      if (r._id === reviewId) {
-        return {
-          ...r,
-          replies: r.replies.map(reply => {
-            if (reply._id === replyId) {
-              const userLiked = reply.likes?.some(id => id.toString() === user.id)
-              const userDisliked = reply.dislikes?.some(id => id.toString() === user.id)
-              return {
-                ...reply,
-                likes: userLiked ? (reply.likes || []).filter(id => id.toString() !== user.id) : [...(reply.likes || []), user.id],
-                dislikes: userDisliked ? (reply.dislikes || []).filter(id => id.toString() !== user.id) : reply.dislikes || []
-              }
-            }
-            return reply
-          })
-        }
-      }
-      return r
-    }))
-
     try {
       const data = await likeReply(reviewId, replyId)
 
@@ -409,8 +322,8 @@ export default function ReviewsPage({ params }) {
                 if (reply._id === replyId) {
                   return {
                     ...reply,
-                    likes: data.data.userLiked ? [...(reply.likes || []), user.id] : (reply.likes || []).filter(id => id.toString() !== user.id),
-                    dislikes: data.data.userDisliked ? [...(reply.dislikes || []), user.id] : (reply.dislikes || []).filter(id => id.toString() !== user.id)
+                    likes: data.data.userLiked ? [...(reply.likes || []).filter(id => id?.toString() !== user._id?.toString()), user._id] : (reply.likes || []).filter(id => id?.toString() !== user._id?.toString()),
+                    dislikes: (reply.dislikes || []).filter(id => id?.toString() !== user._id?.toString())
                   }
                 }
                 return reply
@@ -423,27 +336,6 @@ export default function ReviewsPage({ params }) {
     } catch (error) {
       console.error('Failed to like reply:', error)
       setError('Failed to like reply')
-      // Revert on error
-      setReviews(prev => prev.map(r => {
-        if (r._id === reviewId) {
-          return {
-            ...r,
-            replies: r.replies.map(reply => {
-              if (reply._id === replyId) {
-                const userLiked = reply.likes?.some(id => id.toString() === user.id)
-                const userDisliked = reply.dislikes?.some(id => id.toString() === user.id)
-                return {
-                  ...reply,
-                  likes: userLiked ? (reply.likes || []).filter(id => id.toString() !== user.id) : [...(reply.likes || []), user.id],
-                  dislikes: userDisliked ? [...(reply.dislikes || []), user.id] : (reply.dislikes || []).filter(id => id.toString() !== user.id)
-                }
-              }
-              return reply
-            })
-          }
-        }
-        return r
-      }))
     }
   }
 
@@ -453,28 +345,6 @@ export default function ReviewsPage({ params }) {
       router.push('/login')
       return
     }
-
-    // Optimistic update
-    setReviews(prev => prev.map(r => {
-      if (r._id === reviewId) {
-        return {
-          ...r,
-          replies: r.replies.map(reply => {
-            if (reply._id === replyId) {
-              const userLiked = reply.likes?.some(id => id.toString() === user.id)
-              const userDisliked = reply.dislikes?.some(id => id.toString() === user.id)
-              return {
-                ...reply,
-                likes: userLiked ? (reply.likes || []).filter(id => id.toString() !== user.id) : reply.likes || [],
-                dislikes: userDisliked ? (reply.dislikes || []).filter(id => id.toString() !== user.id) : [...(reply.dislikes || []), user.id]
-              }
-            }
-            return reply
-          })
-        }
-      }
-      return r
-    }))
 
     try {
       const data = await dislikeReply(reviewId, replyId)
@@ -488,8 +358,8 @@ export default function ReviewsPage({ params }) {
                 if (reply._id === replyId) {
                   return {
                     ...reply,
-                    likes: data.data.userLiked ? [...(reply.likes || []), user.id] : (reply.likes || []).filter(id => id.toString() !== user.id),
-                    dislikes: data.data.userDisliked ? [...(reply.dislikes || []), user.id] : (reply.dislikes || []).filter(id => id.toString() !== user.id)
+                    likes: (reply.likes || []).filter(id => id?.toString() !== user._id?.toString()),
+                    dislikes: data.data.userDisliked ? [...(reply.dislikes || []).filter(id => id?.toString() !== user._id?.toString()), user._id] : (reply.dislikes || []).filter(id => id?.toString() !== user._id?.toString())
                   }
                 }
                 return reply
@@ -502,27 +372,6 @@ export default function ReviewsPage({ params }) {
     } catch (error) {
       console.error('Failed to dislike reply:', error)
       setError('Failed to dislike reply')
-      // Revert on error
-      setReviews(prev => prev.map(r => {
-        if (r._id === reviewId) {
-          return {
-            ...r,
-            replies: r.replies.map(reply => {
-              if (reply._id === replyId) {
-                const userLiked = reply.likes?.some(id => id.toString() === user.id)
-                const userDisliked = reply.dislikes?.some(id => id.toString() === user.id)
-                return {
-                  ...reply,
-                  likes: userLiked ? [...(reply.likes || []), user.id] : (reply.likes || []).filter(id => id.toString() !== user.id),
-                  dislikes: userDisliked ? (reply.dislikes || []).filter(id => id.toString() !== user.id) : [...(reply.dislikes || []), user.id]
-                }
-              }
-              return reply
-            })
-          }
-        }
-        return r
-      }))
     }
   }
 
@@ -626,7 +475,10 @@ export default function ReviewsPage({ params }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading reviews...</p>
+        </div>
       </div>
     )
   }
@@ -765,7 +617,7 @@ export default function ReviewsPage({ params }) {
         )}
 
         {/* Sort Options */}
-      {reviews.length > 0 && <div className="flex gap-2 mb-6">
+      {reviews?.length > 0 && <div className="flex gap-2 mb-6">
         <Button
           variant={sortBy === 'recent' ? 'default' : 'outline'}
           onClick={() => { setSortBy('recent'); setPage(1); }}
@@ -791,9 +643,9 @@ export default function ReviewsPage({ params }) {
 
         {/* Reviews List */}
         <div className="space-y-6">
-          {reviews.map((review) => {
+          {reviews?.map((review) => {
             const isSpoilerRevealed = revealedSpoilers.has(review._id)
-            const isOwnReview = user && review.user?._id === user.id
+            const isOwnReview = user && review.user?._id === user._id
             
             return (
             <div key={review._id} className="bg-card rounded-lg p-6">
@@ -839,14 +691,14 @@ export default function ReviewsPage({ params }) {
                   {/* Review Content with Spoiler Blur */}
                   <div className="relative">
                     <h3 className={`text-lg font-bold text-foreground mb-2 transition-all ${
-                      review.spoiler && !isSpoilerRevealed && review.user.id !== user.id? 'blur-md select-none' : ''
+                      review.spoiler && !isSpoilerRevealed && review.user?._id !== user._id? 'blur-md select-none' : ''
                     }`}>{review.title}</h3>
                     <p className={`text-foreground whitespace-pre-wrap transition-all ${
-                      review.spoiler && !isSpoilerRevealed && review.user.id !== user.id? 'blur-md select-none' : ''
+                      review.spoiler && !isSpoilerRevealed && review.user?._id !== user._id? 'blur-md select-none' : ''
                     }`}>{review.content}</p>
                     
                     {/* Spoiler Reveal Button */}
-                    {review.spoiler && !isSpoilerRevealed && review.user.id !== user.id && (
+                    {review.spoiler && !isSpoilerRevealed && review.user?._id !== user?._id && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <button
                           onClick={() => {
@@ -865,22 +717,25 @@ export default function ReviewsPage({ params }) {
 
                 {/* Edit/Delete Buttons (only for own reviews) */}
                 {isOwnReview && (
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => handleEditReview(review)}
-                      className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                      title="Edit review"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteReview(review._id)}
-                      className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                      title="Delete review"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="cursor-pointer p-1">
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEditReview(review)}>
+                        <Pencil className="w-4 h-4" />
+                        Edit Review
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteReview(review._id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete Review
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
 
@@ -888,27 +743,33 @@ export default function ReviewsPage({ params }) {
               <div className="flex items-center gap-4 pt-4 border-t border-border">
                     <button
                       onClick={() => handleLikeReview(review._id)}
-                      className={`flex items-center gap-2 text-sm transition-colors ${review.likes?.some(id => id.toString() === user?._id)
+                      className={`flex items-center gap-2 text-sm transition-colors ${review.likes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
                           ? "text-primary font-bold"
                           : "text-muted-foreground hover:text-primary"
                         }`}
                     >
                       <ThumbsUp
-                        className={`w-4 h-4 ${review.likes?.some(id => id.toString() === user?._id) ? "fill-primary text-primary" : ""
-                          }`}
+                        className={`w-4 h-4 transition-all ${
+                          review.likes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
+                            ? "fill-current text-primary"
+                            : "fill-none"
+                        }`}
                       />
                       <span>{review.likeCount || 0}</span>
                     </button>
                     <button
                       onClick={() => handleDislikeReview(review._id)}
-                      className={`flex items-center gap-2 text-sm transition-colors ${review.dislikes?.some(id => id.toString() === user?._id)
+                      className={`flex items-center gap-2 text-sm transition-colors ${review.dislikes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
                           ? "text-destructive"
                           : "text-muted-foreground hover:text-destructive"
                         }`}
                     >
                       <ThumbsDown
-                        className={`w-4 h-4 ${review.dislikes?.some(id => id.toString() === user?._id) ? "fill-destructive text-destructive" : ""
-                          }`}
+                        className={`w-4 h-4 transition-all ${
+                          review.dislikes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
+                            ? "fill-current text-destructive"
+                            : "fill-none"
+                        }`}
                       />
                       <span>{review.dislikeCount || 0}</span>
                     </button>
@@ -1012,16 +873,16 @@ export default function ReviewsPage({ params }) {
                           <button
                             onClick={() => handleLikeReply(review._id, reply._id)}
                             className={`flex items-center gap-1 text-xs transition-colors ${
-                              reply.likes?.some(id => id.toString() === user?._id)
+                              reply.likes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
                                 ? 'text-primary'
                                 : 'text-muted-foreground hover:text-primary'
                             }`}
                           >
                             <ThumbsUp
-                              className={`w-3 h-3 ${
-                                reply.likes?.some(id => id.toString() === user?._id)
-                                  ? 'fill-primary text-primary'
-                                  : ''
+                              className={`w-3 h-3 transition-all ${
+                                reply.likes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
+                                  ? 'fill-current text-primary'
+                                  : 'fill-none'
                               }`}
                             />
                             {reply.likes?.length || 0}
@@ -1029,16 +890,16 @@ export default function ReviewsPage({ params }) {
                           <button
                             onClick={() => handleDislikeReply(review._id, reply._id)}
                             className={`flex items-center gap-1 text-xs transition-colors ${
-                              reply.dislikes?.some(id => id.toString() === user?._id)
+                              reply.dislikes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
                                 ? 'text-destructive'
                                 : 'text-muted-foreground hover:text-destructive'
                             }`}
                           >
                             <ThumbsDown
-                              className={`w-3 h-3 ${
-                                reply.dislikes?.some(id => id.toString() === user?._id)
-                                  ? 'fill-destructive text-destructive'
-                                  : ''
+                              className={`w-3 h-3 transition-all ${
+                                reply.dislikes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
+                                  ? 'fill-current text-destructive'
+                                  : 'fill-none'
                               }`}
                             />
                             {reply.dislikes?.length || 0}
@@ -1057,26 +918,31 @@ export default function ReviewsPage({ params }) {
                       </div>
 
                       {/* Edit/Delete Buttons for replies (only for own replies) */}
-                      {user && reply.user?._id === user.id && (
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => {
-                              // TODO: Implement edit reply
-                              console.log('Edit reply:', reply._id)
-                            }}
-                            className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors"
-                            title="Edit reply"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirmation({ type: 'reply', id: reply._id, reviewId: review._id })}
-                            className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
-                            title="Delete reply"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                      {user && reply.user?._id === user._id && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="cursor-pointer p-1">
+                              <MoreVertical className="w-3.5 h-3.5" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                // TODO: Implement edit reply
+                                console.log('Edit reply:', reply._id)
+                              }}
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              Edit Reply
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setDeleteConfirmation({ type: 'reply', id: reply._id, reviewId: review._id })}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Delete Reply
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
                   ))}
@@ -1095,11 +961,11 @@ export default function ReviewsPage({ params }) {
           </div>
         )}
 
-        {!hasMore && reviews.length > 0 && (
+        {!hasMore && reviews?.length > 0 && (
           <p className="text-center text-muted-foreground py-8">No more reviews to load</p>
         )}
 
-        {reviews.length === 0 && !loading && (
+        {reviews?.length === 0 && !loading && (
           <div className="text-center py-12">
             <p className="text-muted-foreground mb-4">No reviews yet. Be the first to review!</p>
           </div>

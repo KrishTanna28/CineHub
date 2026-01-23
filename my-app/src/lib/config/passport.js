@@ -4,7 +4,7 @@ import User from '../models/User.js';
 
 // Serialize user for session
 passport.serializeUser((user, done) => {
-  done(null, user.id);
+  done(null, user._id);
 });
 
 // Deserialize user from session

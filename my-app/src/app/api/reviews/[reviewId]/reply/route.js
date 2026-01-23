@@ -27,7 +27,7 @@ export const POST = withAuth(async (request, { user, params }) => {
     }
 
     // Add reply using model method
-    await review.addReply(user.id, content)
+    await review.addReply(user._id, content)
 
     // Update user achievements
     user.achievements.commentsPosted += 1

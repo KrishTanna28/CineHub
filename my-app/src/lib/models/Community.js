@@ -169,16 +169,16 @@ communitySchema.methods.removeMember = function(userId) {
 };
 
 communitySchema.methods.isMember = function(userId) {
-  return this.members.some(id => id.toString() === userId.toString());
+  return this.members.some(id => id?.toString() === userId?.toString());
 };
 
 communitySchema.methods.isModerator = function(userId) {
-  return this.moderators.some(id => id.toString() === userId.toString()) ||
-         this.creator.toString() === userId.toString();
+  return this.moderators.some(id => id?.toString() === userId?.toString()) ||
+         this.creator.toString() === userId?.toString();
 };
 
 communitySchema.methods.addJoinRequest = function(userId) {
-  const exists = this.pendingRequests.some(req => req.user.toString() === userId.toString());
+  const exists = this.pendingRequests.some(req => req.user.toString() === userId?.toString());
   if (!exists && !this.isMember(userId)) {
     this.pendingRequests.push({ user: userId });
   }
@@ -187,13 +187,13 @@ communitySchema.methods.addJoinRequest = function(userId) {
 
 communitySchema.methods.removeJoinRequest = function(userId) {
   this.pendingRequests = this.pendingRequests.filter(
-    req => req.user.toString() !== userId.toString()
+    req => req.user.toString() !== userId?.toString()
   );
   return this.save();
 };
 
 communitySchema.methods.hasJoinRequest = function(userId) {
-  return this.pendingRequests.some(req => req.user.toString() === userId.toString());
+  return this.pendingRequests.some(req => req.user.toString() === userId?.toString());
 };
 
 communitySchema.methods.approveJoinRequest = function(userId) {

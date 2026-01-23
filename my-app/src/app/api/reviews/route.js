@@ -20,6 +20,10 @@ export async function GET(request) {
 
     const reviews = await Review.find(query)
       .populate('user', 'username avatar fullName')
+      .populate({
+        path: 'replies.user',
+        select: 'username avatar fullName'
+      })
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(skip)
@@ -63,7 +67,7 @@ export const POST = withAuth(async (request, { user }) => {
 
     // Check if user already reviewed this media
     const existingReview = await Review.findOne({
-      user: user.id,
+      user: user._id,
       mediaId,
       mediaType
     })
@@ -79,7 +83,7 @@ export const POST = withAuth(async (request, { user }) => {
       mediaId,
       mediaType,
       mediaTitle,
-      user: user.id,
+      user: user._id,
       rating,
       title,
       content,

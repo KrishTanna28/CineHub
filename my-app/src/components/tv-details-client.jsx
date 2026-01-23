@@ -54,7 +54,7 @@ export default function TVDetailsClient({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ movieId: show.id.toString(), mediaType: 'tv' })
+          body: JSON.stringify({ movieId: show.id?.toString(), mediaType: 'tv' })
         })
         const data = await response.json()
         if (!data.success) throw new Error(data.message)
@@ -93,7 +93,7 @@ export default function TVDetailsClient({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ movieId: show.id.toString(), mediaType: 'tv' })
+          body: JSON.stringify({ movieId: show.id?.toString(), mediaType: 'tv' })
         })
         const data = await response.json()
         if (!data.success) throw new Error(data.message)

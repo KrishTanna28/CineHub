@@ -24,9 +24,9 @@ export const GET = withOptionalAuth(async (request, { params, user }) => {
     }
 
     // Check if user is a member, creator, or has pending request
-    const isMember = user ? community.members.some(memberId => memberId.toString() === user._id.toString()) : false
-    const isCreator = user ? community.creator._id.toString() === user._id.toString() : false
-    const hasPendingRequest = user ? community.pendingRequests?.some(req => req.user.toString() === user._id.toString()) : false
+    const isMember = user ? community.members.some(id => id?.toString() === user._id?.toString()) : false
+    const isCreator = user ? community.creator._id?.toString() === user._id?.toString() : false
+    const hasPendingRequest = user ? community.pendingRequests?.some(req => req.user.toString() === user._id?.toString()) : false
 
     // Populate pending requests if user is creator
     let populatedCommunity = community
@@ -74,7 +74,7 @@ export const POST = withAuth(async (request, { user, params }) => {
       )
     }
 
-    if (community.isMember(user.id)) {
+    if (community.isMember(user._id)) {
       return NextResponse.json(
         { success: false, message: 'Already a member' },
         { status: 400 }
@@ -83,14 +83,14 @@ export const POST = withAuth(async (request, { user, params }) => {
 
     // If private, create join request instead of directly joining
     if (community.isPrivate) {
-      if (community.hasJoinRequest(user.id)) {
+      if (community.hasJoinRequest(user._id)) {
         return NextResponse.json(
           { success: false, message: 'Join request already pending' },
           { status: 400 }
         )
       }
 
-      await community.addJoinRequest(user.id)
+      await community.addJoinRequest(user._id)
 
       return NextResponse.json({
         success: true,
@@ -100,7 +100,7 @@ export const POST = withAuth(async (request, { user, params }) => {
     }
 
     // If public, join directly
-    await community.addMember(user.id)
+    await community.addMember(user._id)
 
     return NextResponse.json({
       success: true,
@@ -133,21 +133,21 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       )
     }
 
-    if (community.creator.toString() === user.id.toString()) {
+    if (community.creator.toString() === user._id?.toString()) {
       return NextResponse.json(
         { success: false, message: 'Creator cannot leave the community' },
         { status: 400 }
       )
     }
 
-    if (!community.isMember(user.id)) {
+    if (!community.isMember(user._id)) {
       return NextResponse.json(
         { success: false, message: 'Not a member' },
         { status: 400 }
       )
     }
 
-    await community.removeMember(user.id)
+    await community.removeMember(user._id)
 
     return NextResponse.json({
       success: true,
@@ -183,7 +183,7 @@ export const PATCH = withAuth(async (request, { user, params }) => {
     }
 
     // Check if user is moderator
-    if (!community.isModerator(user.id)) {
+    if (!community.isModerator(user._id)) {
       return NextResponse.json(
         { success: false, message: 'Only moderators can update the community' },
         { status: 403 }
@@ -204,7 +204,7 @@ export const PATCH = withAuth(async (request, { user, params }) => {
             console.error('Failed to delete old banner:', err)
           )
         }
-        const bannerUrl = await uploadCommunityBannerToCloudinary(banner, community._id.toString())
+        const bannerUrl = await uploadCommunityBannerToCloudinary(banner, community._id?.toString())
         community.banner = bannerUrl
       } catch (imageError) {
         console.error('Banner upload error:', imageError)
@@ -224,7 +224,7 @@ export const PATCH = withAuth(async (request, { user, params }) => {
             console.error('Failed to delete old icon:', err)
           )
         }
-        const iconUrl = await uploadCommunityIconToCloudinary(icon, community._id.toString())
+        const iconUrl = await uploadCommunityIconToCloudinary(icon, community._id?.toString())
         community.icon = iconUrl
       } catch (imageError) {
         console.error('Icon upload error:', imageError)

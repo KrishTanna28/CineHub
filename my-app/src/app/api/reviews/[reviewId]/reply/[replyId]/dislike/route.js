@@ -17,7 +17,7 @@ export const POST = withAuth(async (request, { user, params }) => {
     }
 
     // Use the model method to toggle dislike on reply
-    await review.dislikeReply(replyId, user.id)
+    await review.dislikeReply(replyId, user._id)
 
     const reply = review.replies.id(replyId)
 
@@ -27,8 +27,8 @@ export const POST = withAuth(async (request, { user, params }) => {
       data: {
         likes: reply.likes.length,
         dislikes: reply.dislikes.length,
-        userLiked: reply.likes.some(id => id.toString() === user.id.toString()),
-        userDisliked: reply.dislikes.some(id => id.toString() === user.id.toString())
+        userLiked: reply.likes.some(id => id?.toString() === user._id?.toString()),
+        userDisliked: reply.dislikes.some(id => id?.toString() === user._id?.toString())
       }
     })
   } catch (error) {

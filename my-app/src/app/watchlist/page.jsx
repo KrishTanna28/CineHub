@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Trash2, Share2 } from "lucide-react"
+import { Trash2, Share2, Pencil, MoreVertical } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { mockMovies } from "@/lib/mock-data"
 
@@ -54,14 +55,25 @@ export default function WatchlistPage() {
                   <Button size="sm" variant="outline" className="gap-2 bg-transparent">
                     <Share2 className="w-4 h-4" />
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-2 bg-transparent text-destructive hover:text-destructive"
-                    onClick={() => removeFromWatchlist(movie.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="cursor-pointer p-1">
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => window.location.href = `/details/${movie.id}`}>
+                        <Pencil className="w-4 h-4" />
+                        Edit Watchlist Item
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => removeFromWatchlist(movie.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Remove from Watchlist
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             ))}
