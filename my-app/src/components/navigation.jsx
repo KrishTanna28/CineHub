@@ -163,6 +163,7 @@ export default function Navigation() {
             </nav>
 
             {/* Search */}
+            {user &&
             <div className="px-4 py-4 mt-4">
               <form onSubmit={handleSearch} className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -176,6 +177,7 @@ export default function Navigation() {
                 />
               </form>
             </div>
+}
           </div>
 
           {/* Sidebar Footer */}
@@ -276,7 +278,7 @@ export default function Navigation() {
           </div>
 
           {/* Search - Expandable */}
-          <div className="hidden sm:flex items-center gap-4">
+          {user && <div className="hidden sm:flex items-center gap-4">
             <div className="relative flex items-center">
               {!isSearchOpen ? (
                 <button
@@ -307,7 +309,7 @@ export default function Navigation() {
                 </form>
               )}
             </div>
-          </div>
+          </div>}
 
           {/* Profile / Auth Buttons */}
           <div className="hidden md:flex items-center gap-4">

@@ -66,7 +66,7 @@ export async function GET(request) {
     await connectDB();
 
     // Check if user already exists with this Google ID
-    let user = await User.findOne({ googleId: googleuser._id });
+    let user = await User.findOne({ googleId: googleUser.id });
 
     if (user) {
       // User exists, generate token

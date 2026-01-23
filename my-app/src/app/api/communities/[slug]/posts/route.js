@@ -79,9 +79,9 @@ export const POST = withAuth(async (request, { user, params }) => {
     const body = await request.json()
     const { title, content, images } = body
 
-    if (!title || !content) {
+    if (!title) {
       return NextResponse.json(
-        { success: false, message: 'Title and content are required' },
+        { success: false, message: 'Title is required' },
         { status: 400 }
       )
     }

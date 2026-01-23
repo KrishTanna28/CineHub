@@ -36,11 +36,14 @@ export default function PostImageGallery({ images = [] }) {
   if (images.length === 1) {
     return (
       <>
-        <div className="mb-4 cursor-pointer" onClick={() => openLightbox(0)}>
+        <div 
+          className="mb-4 cursor-pointer overflow-hidden rounded-lg border border-border bg-black/80"
+          onClick={() => openLightbox(0)}
+        >
           <img
             src={images[0]}
             alt="Post image"
-            className="w-full max-h-[500px] object-contain rounded-lg border border-border"
+            className="w-full max-h-[500px] object-contain hover:scale-105 transition-transform duration-300"
           />
         </div>
         {showLightbox && (
@@ -57,7 +60,7 @@ export default function PostImageGallery({ images = [] }) {
     )
   }
 
-  // Two images - side by side
+  // Two images - side by side with fixed height
   if (images.length === 2) {
     return (
       <>
@@ -65,13 +68,13 @@ export default function PostImageGallery({ images = [] }) {
           {images.map((image, idx) => (
             <div
               key={idx}
-              className="cursor-pointer overflow-hidden rounded-lg border border-border"
+              className="cursor-pointer overflow-hidden rounded-lg border border-border bg-black/80 h-64"
               onClick={() => openLightbox(idx)}
             >
               <img
                 src={image}
                 alt={`Post image ${idx + 1}`}
-                className="w-full h-64 object-cover hover:scale-105 transition-transform duration-300"
+                className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
               />
             </div>
           ))}
@@ -95,39 +98,39 @@ export default function PostImageGallery({ images = [] }) {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-2 mb-4 h-96">
+      <div className="grid grid-cols-2 gap-2 mb-4 h-80">
         {/* Left side - large image */}
         <div
-          className="row-span-2 cursor-pointer overflow-hidden rounded-lg border border-border"
+          className="row-span-2 cursor-pointer overflow-hidden rounded-lg border border-border bg-black/80"
           onClick={() => openLightbox(0)}
         >
           <img
             src={images[0]}
             alt="Post image 1"
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
           />
         </div>
 
         {/* Right side - two stacked images */}
         <div
-          className="cursor-pointer overflow-hidden rounded-lg border border-border"
+          className="cursor-pointer overflow-hidden rounded-lg border border-border bg-black/80"
           onClick={() => openLightbox(1)}
         >
           <img
             src={images[1]}
             alt="Post image 2"
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
           />
         </div>
 
         <div
-          className="cursor-pointer overflow-hidden rounded-lg border border-border relative"
+          className="cursor-pointer overflow-hidden rounded-lg border border-border bg-black/80 relative"
           onClick={() => openLightbox(2)}
         >
           <img
             src={images[2]}
             alt="Post image 3"
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
           />
           {remainingCount > 0 && (
             <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm hover:backdrop-blur-none transition-all">
@@ -180,12 +183,23 @@ function ImageLightbox({ images, currentIndex, onClose, onPrevious, onNext, onKe
         </button>
       )}
 
-      {/* Image */}
-      <div className="max-w-7xl max-h-[90vh] mx-auto px-20">
+      {/* Image with blur background */}
+      <div className="max-w-7xl max-h-[90vh] mx-auto px-20 relative">
+        {/* Blurred background */}
+        <div
+          className="absolute inset-0 -m-20 scale-110"
+          style={{
+            backgroundImage: `url(${images[currentIndex]})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            filter: "blur(30px)",
+            opacity: 0.5,
+          }}
+        />
         <img
           src={images[currentIndex]}
           alt={`Image ${currentIndex + 1}`}
-          className="max-w-full max-h-[90vh] object-contain rounded-lg"
+          className="relative z-10 max-w-full max-h-[90vh] object-contain rounded-lg mx-auto"
         />
       </div>
 

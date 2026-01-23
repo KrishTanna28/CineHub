@@ -156,7 +156,6 @@ communitySchema.methods.addMember = function(userId) {
     this.members.push(userId);
     this.memberCount = this.members.length;
   }
-  return this.save();
 };
 
 communitySchema.methods.removeMember = function(userId) {
@@ -189,16 +188,16 @@ communitySchema.methods.removeJoinRequest = function(userId) {
   this.pendingRequests = this.pendingRequests.filter(
     req => req.user.toString() !== userId?.toString()
   );
-  return this.save();
 };
 
 communitySchema.methods.hasJoinRequest = function(userId) {
   return this.pendingRequests.some(req => req.user.toString() === userId?.toString());
 };
 
-communitySchema.methods.approveJoinRequest = function(userId) {
+communitySchema.methods.approveJoinRequest =  async function(userId) {
   this.removeJoinRequest(userId);
-  return this.addMember(userId);
+  this.addMember(userId);
+  return await this.save();
 };
 
 const Community = mongoose.models.Community || mongoose.model('Community', communitySchema);

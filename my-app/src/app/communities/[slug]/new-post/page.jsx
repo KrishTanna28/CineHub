@@ -224,16 +224,16 @@ export default function NewPostPage() {
             {imagePreviews.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-3">
                 {imagePreviews.map((preview, idx) => (
-                  <div key={idx} className="relative group aspect-square">
+                  <div key={idx} className="relative group rounded-lg overflow-hidden border-2 border-border aspect-square bg-black/80">
                     <img
                       src={preview}
                       alt={`Upload ${idx + 1}`}
-                      className="w-full h-full object-cover rounded-lg border-2 border-border"
+                      className="w-full h-full object-contain"
                     />
                     <button
                       type="button"
                       onClick={() => removeImage(idx)}
-                      className="absolute top-2 right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      className="absolute top-2 right-2 z-20 p-1.5 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>

@@ -4,6 +4,7 @@ import "./globals.css"
 import Navigation from "@/components/navigation"
 import { Toaster } from "@/components/ui/toaster"
 import { Providers } from "@/components/providers"
+import AIAssistant from "@/components/ai-assistant"
 import { initializeServer } from "@/lib/init.js"
 
 // Initialize server services (database, cache, etc.)
@@ -28,6 +29,7 @@ export default function RootLayout({ children }) {
             {children}
           </div>
           <Toaster />
+          <AIAssistant />
         </Providers>
         <Analytics />
       </body>

@@ -261,6 +261,35 @@ export async function getTVDetails(tvId) {
     }
   }
 
+  // Search people (actors, directors, etc.)
+export async function searchPerson(query, page = 1) {
+    try {
+      const response = await api.get('/search/person', {
+        params: { query, page },
+      });
+      return {
+        results: response.data.results.map(person => ({
+          id: person.id,
+          name: person.name,
+          profilePath: getImageUrl(person.profile_path, 'w185'),
+          knownForDepartment: person.known_for_department,
+          popularity: person.popularity,
+          knownFor: person.known_for?.map(item => ({
+            id: item.id,
+            title: item.title || item.name,
+            mediaType: item.media_type,
+          })) || [],
+        })),
+        page: response.data.page,
+        totalPages: response.data.total_pages,
+        totalResults: response.data.total_results,
+      };
+    } catch (error) {
+      console.error('TMDB searchPerson error:', error.message);
+      throw new Error('Failed to search people');
+    }
+  }
+
   // Search TV shows
 export async function searchTV(query, page = 1) {
     try {

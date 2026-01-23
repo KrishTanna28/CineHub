@@ -681,16 +681,41 @@ export default function PostDetailPage() {
               {post.isLocked && (
                 <Lock className="w-4 h-4 text-muted-foreground" />
               )}
-              <span className="text-sm text-muted-foreground">
-                Posted by <span className="font-medium">{post.user?.username || 'Unknown'}</span> • {formatTimeAgo(post.createdAt)}
-              </span>
+              <span className="flex items-center gap-3">
+  {/* User avatar */}
+  <img
+    src={post.user?.avatar || '/default-avatar.png'}
+    alt={post.user?.username || 'User'}
+    className="w-8 h-8 rounded-full object-cover"
+  />
+
+  {/* Stacked text */}
+  <span className="flex flex-col leading-tight">
+    <div>
+      r/<span className="font-bold text-primary">
+        {post.community?.name || 'Unknown'}
+      </span>
+      {' • '}
+      {formatTimeAgo(post.createdAt)}
+    </div>
+
+    <div className="text-sm text-muted-foreground">
+      u/<span className="font-medium">
+        {post.user?.username || 'Unknown'}
+      </span>
+      {' • '}
+      {formatTimeAgo(post.createdAt)}
+    </div>
+  </span>
+</span>
+
             </div>
 
             {canDelete && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="cursor-pointer p-1">
-                    <MoreVertical className="w-4 h-4" />
+                    <MoreVertical className="w-4 h-4 hover:text-primary" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

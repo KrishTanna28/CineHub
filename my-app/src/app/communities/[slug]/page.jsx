@@ -30,7 +30,7 @@ export default function CommunityPage() {
   const [deleting, setDeleting] = useState(false)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
-  
+
   const params = useParams()
   const router = useRouter()
   const { user } = useUser()
@@ -67,10 +67,10 @@ export default function CommunityPage() {
     try {
       const token = localStorage.getItem('token')
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
-      
+
       const response = await fetch(`/api/communities/${params.slug}`, { headers })
       const data = await response.json()
-      
+
       if (data.success) {
         setCommunity(data.data)
         setIsMember(data.data.isMember || false)
@@ -106,10 +106,10 @@ export default function CommunityPage() {
     try {
       const token = localStorage.getItem('token')
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
-      
+
       const response = await fetch(`/api/communities/${params.slug}/posts?sort=${sortBy}&page=${pageNum}&limit=10`, { headers })
       const data = await response.json()
-      
+
       if (data.success) {
         if (isFirstPage) {
           setPosts(data.data)
@@ -146,7 +146,7 @@ export default function CommunityPage() {
     setJoining(true)
     try {
       const token = localStorage.getItem('token')
-      
+
       // Handle cancel request
       if (hasPendingRequest) {
         const response = await fetch(`/api/communities/${params.slug}/requests`, {
@@ -163,7 +163,7 @@ export default function CommunityPage() {
         }
         return
       }
-      
+
       // Handle leave
       if (isMember) {
         const response = await fetch(`/api/communities/${params.slug}`, {
@@ -187,7 +187,7 @@ export default function CommunityPage() {
         }
         return
       }
-      
+
       // Handle join or request to join
       const response = await fetch(`/api/communities/${params.slug}`, {
         method: 'POST',
@@ -320,7 +320,7 @@ export default function CommunityPage() {
 
   const formatTimeAgo = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000)
-    
+
     if (seconds < 60) return `${seconds}s ago`
     const minutes = Math.floor(seconds / 60)
     if (minutes < 60) return `${minutes}m ago`
@@ -357,7 +357,7 @@ export default function CommunityPage() {
   return (
     <main className="min-h-screen bg-background">
       {/* Banner */}
-      <div className="relative h-48 bg-black overflow-hidden">
+      <div className="relative h-32 sm:h-48 bg-black overflow-hidden">
         {community.banner && (
           <img src={community.banner} alt={community.name} className="w-full h-full object-cover" />
         )}
@@ -365,80 +365,79 @@ export default function CommunityPage() {
 
       {/* Community Header */}
       <div className="bg-secondary/30 border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-start gap-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex flex-col items-start gap-3 sm:gap-4">
             {/* Icon */}
-            <div className="relative -mt-16 flex-shrink-0">
-              <div className="w-32 h-32 bg-background border-4 border-background rounded-full overflow-hidden shadow-lg">
+            <div className="relative -mt-10 sm:-mt-14 flex-shrink-0">
+              <div className="w-16 h-16 sm:w-24 sm:h-24 bg-background border-4 border-background rounded-full overflow-hidden shadow-lg">
                 {community.icon ? (
                   <img src={community.icon} alt={community.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-black flex items-center justify-center">
-                    <CategoryIcon className="w-16 h-16 text-white" />
+                  <div className="w-full h-full bg-black flex items-center">
+                    <CategoryIcon className="w-8 h-8 sm:w-12 sm:h-12 text-white" />
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Info and Actions */}
-            <div className="flex-1 mt-4">
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div>
-                  <h1 className="text-3xl font-bold text-foreground">{community.name}</h1>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium">
-                      <CategoryIcon className="w-3 h-3" />
-                      {community.category}
+            {/* Info */}
+            <div className="w-full min-w-0">
+              {/* Line 1: Community Name - full width */}
+              <h1 className="text-lg sm:text-2xl font-bold text-foreground leading-tight">
+                {community.name}
+              </h1>
+
+              {/* Line 2: Badges (left) + Buttons (right) - NO WRAP */}
+              <div className="flex items-center justify-between gap-2 mt-1">
+                {/* Badges */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium">
+                    <CategoryIcon className="w-3 h-3" />
+                    {community.category}
+                  </span>
+                  {community.isPrivate && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-secondary text-foreground rounded text-xs">
+                      <Lock className="w-3 h-3" />
+                      Private
                     </span>
-                    {community.isPrivate && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-secondary text-foreground rounded text-xs">
-                        <Lock className="w-3 h-3" />
-                        Private
-                      </span>
-                    )}
-                  </div>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap">
-                  {!isCreator && (
-                    <Button
-                      onClick={handleJoinLeave}
-                      disabled={joining}
-                      variant={isMember ? "outline" : hasPendingRequest ? "secondary" : "default"}
-                      className="cursor-pointer flex items-center gap-2"
-                    >
-                      {joining && (
-                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                      )}
-                      {joining ? "Processing..." : 
-                       isMember ? "Leave" : 
-                       hasPendingRequest ? "Cancel Request" : 
-                       community.isPrivate ? "Request to Join" : "Join"}
-                    </Button>
-                  )}
-                  {isMember && !isCreator && (
-                    <Link href={`/communities/${params.slug}/new-post`}>
-                      <Button className="gap-2 cursor-pointer">
-                        <Plus className="w-4 h-4" />
-                        Create Post
-                      </Button>
-                    </Link>
-                  )}
-                  {isCreator && (
-                    <>
-                      <Link href={`/communities/${params.slug}/new-post`}>
-                        <Button className="gap-2 cursor-pointer">
+                {/* All actions in dropdown menu */}
+                <div className="flex-shrink-0">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="cursor-pointer p-1.5">
+                        <MoreVertical className="w-5 h-5 hover:text-primary"/>
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {(isMember || isCreator) && (
+                        <DropdownMenuItem onClick={() => window.location.href = `/communities/${params.slug}/new-post`}>
                           <Plus className="w-4 h-4" />
                           Create Post
-                        </Button>
-                      </Link>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="cursor-pointer p-1">
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        </DropdownMenuItem>
+                      )}
+                      {!isCreator && (
+                        <DropdownMenuItem
+                          onClick={handleJoinLeave}
+                          disabled={joining}
+                        >
+                          {joining ? (
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                          ) : isMember ? (
+                            <UserX className="w-4 h-4" />
+                          ) : (
+                            <UserCheck className="w-4 h-4" />
+                          )}
+                          {joining ? "Processing..." :
+                            isMember ? "Leave Community" :
+                              hasPendingRequest ? "Cancel Request" :
+                                community.isPrivate ? "Request to Join" : "Join Community"}
+                        </DropdownMenuItem>
+                      )}
+                      {isCreator && (
+                        <>
                           <DropdownMenuItem onClick={() => window.location.href = `/communities/${params.slug}/edit`}>
                             <Pencil className="w-4 h-4" />
                             Edit Community
@@ -454,27 +453,20 @@ export default function CommunityPage() {
                             )}
                             {deleting ? "Deleting..." : "Delete Community"}
                           </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </>
-                  )}
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
-              <p className="text-muted-foreground mt-3 max-w-3xl">{community.description}</p>
+              {/* Line 3: Description */}
+              <p className="text-muted-foreground mt-2 text-sm line-clamp-2">{community.description}</p>
 
-              {/* Stats */}
-              <div className="flex items-center gap-6 mt-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-semibold text-foreground">{formatNumber(community.memberCount)}</span>
-                  <span className="text-muted-foreground">members</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-semibold text-foreground">{formatNumber(community.postCount)}</span>
-                  <span className="text-muted-foreground">posts</span>
-                </div>
+              {/* Line 4: Stats */}
+              <div className="flex items-center gap-3 mt-2 text-xs sm:text-sm text-muted-foreground">
+                <span><strong className="text-foreground">{formatNumber(community.memberCount)}</strong> members</span>
+                <span><strong className="text-foreground">{formatNumber(community.postCount)}</strong> posts</span>
               </div>
             </div>
           </div>
@@ -601,7 +593,7 @@ export default function CommunityPage() {
                           <Lock className="w-4 h-4 text-muted-foreground" />
                         )}
                         <span className="text-xs text-muted-foreground">
-                          Posted by <span className="font-bold text-primary">{post.user?.username || 'Unknown'}</span> • {formatTimeAgo(post.createdAt)}
+                          u/<span className="font-bold text-primary">{post.user?.username || 'Unknown'}</span> • {formatTimeAgo(post.createdAt)}
                         </span>
                       </div>
 
@@ -609,28 +601,40 @@ export default function CommunityPage() {
                         {post.title}
                       </h3>
 
-                      {post.content && (
-                        <p className="text-muted-foreground text-sm line-clamp-3 mb-2">
-                          {post.content}
-                        </p>
-                      )}
-
                       {/* Post Images */}
                       {post.images?.length > 0 && (
                         <div className="mt-3 mb-2">
-                          <img
-                            src={post.images[0]}
-                            alt="Post preview"
-                            className="w-full max-w-2xl h-64 object-cover rounded-lg"
-                          />
+                          <div
+                            className="
+        bg-black/80
+        border border-border
+        rounded-lg
+        overflow-hidden
+        mx-auto
+        flex items-center justify-center
+        aspect-[16/9]
+
+        w-full
+        max-w-[90vw]
+        sm:max-w-[420px]
+        md:max-w-[480px]
+        lg:max-w-[520px]
+      "
+                          >
+                            <img
+                              src={post.images[0]}
+                              alt="Post preview"
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          </div>
+
                           {post.images.length > 1 && (
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs text-muted-foreground mt-1 text-center">
                               +{post.images.length - 1} more image{post.images.length > 2 ? 's' : ''}
                             </p>
                           )}
                         </div>
                       )}
-
                       {/* Post Stats */}
                       <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
