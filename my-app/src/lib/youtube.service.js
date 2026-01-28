@@ -17,7 +17,7 @@ export async function searchVideos(query, pageToken = null) {
   }
 
   try {
-    const searchQuery = `${query} official trailer OR review OR interview OR clip OR behind the scenes`
+    const searchQuery = `${query}`
     let url = `${BASE_URL}/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&maxResults=12&order=relevance&videoDuration=medium&key=${API_KEY}`
 
     if (pageToken) {

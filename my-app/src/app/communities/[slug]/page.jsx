@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Users, FileText, Plus, Clock, ThumbsUp, MessageCircle, Pin, Lock, Film, Tv, User as UserIcon, Sparkles, Trash2, UserCheck, UserX, Bell, Pencil, MoreVertical } from "lucide-react"
+import { Users, FileText, Plus, Clock, ThumbsUp, MessageCircle, Pin, Lock, Film, Tv, User as UserIcon, Sparkles, Trash2, UserCheck, UserX, Bell, Pencil, MoreVertical, ThumbsDown, Newspaper, X, Check, ExternalLink } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/contexts/UserContext"
@@ -30,6 +30,19 @@ export default function CommunityPage() {
   const [deleting, setDeleting] = useState(false)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
+  
+  // News state
+  const [news, setNews] = useState([])
+  const [loadingNews, setLoadingNews] = useState(false)
+  const newsContainerRef = useRef(null)
+  
+  // Edit states
+  const [editingAbout, setEditingAbout] = useState(false)
+  const [editingRules, setEditingRules] = useState(false)
+  const [aboutText, setAboutText] = useState('')
+  const [rulesText, setRulesText] = useState([])
+  const [savingAbout, setSavingAbout] = useState(false)
+  const [savingRules, setSavingRules] = useState(false)
 
   const params = useParams()
   const router = useRouter()
@@ -61,6 +74,166 @@ export default function CommunityPage() {
     setHasMore(true)
     fetchPosts(1)
   }, [sortBy])
+
+  // Fetch news when community loads
+  useEffect(() => {
+    if (community?.name) {
+      fetchNews()
+      setAboutText(community.description || '')
+      setRulesText(community.rules || [])
+    }
+  }, [community?.name])
+
+  // Auto-scroll news
+  useEffect(() => {
+    const container = newsContainerRef.current
+    if (!container || news.length === 0) return
+
+    let scrollInterval
+    let isPaused = false
+
+    const startScroll = () => {
+      scrollInterval = setInterval(() => {
+        if (!isPaused && container) {
+          container.scrollTop += 1
+          // Reset to top when reaching bottom
+          if (container.scrollTop >= container.scrollHeight - container.clientHeight) {
+            container.scrollTop = 0
+          }
+        }
+      }, 50)
+    }
+
+    const handleMouseEnter = () => { isPaused = true }
+    const handleMouseLeave = () => { isPaused = false }
+
+    container.addEventListener('mouseenter', handleMouseEnter)
+    container.addEventListener('mouseleave', handleMouseLeave)
+
+    startScroll()
+
+    return () => {
+      clearInterval(scrollInterval)
+      container?.removeEventListener('mouseenter', handleMouseEnter)
+      container?.removeEventListener('mouseleave', handleMouseLeave)
+    }
+  }, [news])
+
+  const fetchNews = async () => {
+    if (!community?.name) return
+    setLoadingNews(true)
+    
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_NEWS_API_KEY
+      
+      if (!apiKey || apiKey === 'demo') {
+        console.log('❌ News API key not configured')
+        setNews([])
+        setLoadingNews(false)
+        return
+      }
+
+      // Build search query based on community category and name
+      const searchTerm = community.relatedEntityName || community.name
+      const categoryTerms = community.category === 'movie' ? 'movie OR film OR cinema' 
+                         : community.category === 'tv' ? 'tv OR series OR show'
+                         : community.category === 'actor' ? 'actor OR actress OR celebrity'
+                         : 'entertainment'
+      
+      const url = `https://newsapi.org/v2/everything?q="${encodeURIComponent(searchTerm)}" AND (${categoryTerms})&sortBy=relevancy&pageSize=10&language=en&apiKey=${apiKey}`
+      
+      const response = await fetch(url)
+      const data = await response.json()
+      
+      if (data.status === 'ok' && data.articles?.length > 0) {
+        // Filter articles to include those mentioning the search term
+        const filteredArticles = data.articles.filter(article => {
+          const termLower = searchTerm.toLowerCase()
+          const articleTitle = (article.title || '').toLowerCase()
+          const articleDesc = (article.description || '').toLowerCase()
+          return articleTitle.includes(termLower) || articleDesc.includes(termLower)
+        })
+        setNews(filteredArticles.length > 0 ? filteredArticles : data.articles.slice(0, 5))
+      } else {
+        setNews([])
+      }
+    } catch (err) {
+      console.error('Failed to fetch news:', err)
+      setNews([])
+    } finally {
+      setLoadingNews(false)
+    }
+  }
+
+  const handleSaveAbout = async () => {
+    setSavingAbout(true)
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/communities/${params.slug}/update`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ description: aboutText })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setCommunity(prev => ({ ...prev, description: aboutText }))
+        setEditingAbout(false)
+        toast({ title: 'Success', description: 'About section updated' })
+      } else {
+        toast({ title: 'Error', description: data.message || 'Failed to update', variant: 'destructive' })
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to update', variant: 'destructive' })
+    } finally {
+      setSavingAbout(false)
+    }
+  }
+
+  const handleSaveRules = async () => {
+    setSavingRules(true)
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/communities/${params.slug}/update`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ rules: rulesText })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setCommunity(prev => ({ ...prev, rules: rulesText }))
+        setEditingRules(false)
+        toast({ title: 'Success', description: 'Rules updated' })
+      } else {
+        toast({ title: 'Error', description: data.message || 'Failed to update', variant: 'destructive' })
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to update', variant: 'destructive' })
+    } finally {
+      setSavingRules(false)
+    }
+  }
+
+  const addRule = () => {
+    setRulesText(prev => [...prev, { title: '' }])
+  }
+
+  const updateRule = (index, value) => {
+    setRulesText(prev => prev.map((rule, i) => i === index ? { title: value } : rule))
+  }
+
+  const removeRule = (index) => {
+    setRulesText(prev => prev.filter((_, i) => i !== index))
+  }
 
   const fetchCommunity = async () => {
     setLoading(true)
@@ -403,8 +576,18 @@ export default function CommunityPage() {
                   )}
                 </div>
 
-                {/* All actions in dropdown menu */}
-                <div className="flex-shrink-0">
+                {/* Actions */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {(isMember || isCreator) && (
+                    <Button
+                      onClick={() => window.location.href = `/communities/${params.slug}/new-post`}
+                      size="sm"
+                      className="gap-1.5 cursor-pointer hidden sm:flex"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Create Post
+                    </Button>
+                  )}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="cursor-pointer p-1.5">
@@ -413,7 +596,10 @@ export default function CommunityPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       {(isMember || isCreator) && (
-                        <DropdownMenuItem onClick={() => window.location.href = `/communities/${params.slug}/new-post`}>
+                        <DropdownMenuItem 
+                          onClick={() => window.location.href = `/communities/${params.slug}/new-post`}
+                          className="sm:hidden"
+                        >
                           <Plus className="w-4 h-4" />
                           Create Post
                         </DropdownMenuItem>
@@ -473,201 +659,448 @@ export default function CommunityPage() {
         </div>
       </div>
 
-      {/* Posts Section */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Join Requests Section - Only visible to creator */}
-        {isCreator && community.pendingRequests && community.pendingRequests.length > 0 && (
-          <div className="mb-8 bg-blue-500/10 border border-blue-500/20 rounded-lg p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Bell className="w-5 h-5 text-blue-500" />
-              <h2 className="text-xl font-bold text-foreground">
-                Pending Join Requests ({community.pendingRequests.length})
-              </h2>
-            </div>
-            <div className="space-y-3">
-              {community.pendingRequests.map((request) => (
-                <div
-                  key={request.user._id}
-                  className="flex items-center justify-between bg-background/50 rounded-lg p-4 border border-border"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
-                      {request.user.avatar ? (
-                        <img src={request.user.avatar} alt={request.user.username} className="w-full h-full rounded-full object-cover" />
-                      ) : (
-                        request.user.username.charAt(0).toUpperCase()
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-foreground">{request.user.fullName || request.user.username}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Requested {formatTimeAgo(request.requestedAt)}
-                      </p>
-                    </div>
+      {/* Main Content Section with Sidebars */}
+      <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8">
+        <div className="flex gap-6">
+          {/* Left Sidebar - Community Info (Hidden on mobile) */}
+          <aside className="hidden md:block w-72 lg:w-80 flex-shrink-0">
+            <div className="sticky top-20 space-y-4">
+              {/* Community Stats Card */}
+              <div className="bg-secondary/30 border border-border rounded-lg p-4">
+                <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" />
+                  Community Info
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Members</span>
+                    <span className="font-semibold text-foreground">{formatNumber(community.memberCount)}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={() => handleJoinRequest(request.user._id, 'approve')}
-                      disabled={processingRequest === request.user._id}
-                      size="sm"
-                      className="gap-2 cursor-pointer"
-                    >
-                      {processingRequest === request.user._id ? (
-                        <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <UserCheck className="w-4 h-4" />
-                      )}
-                      {processingRequest === request.user._id ? 'Processing...' : 'Approve'}
-                    </Button>
-                    <Button
-                      onClick={() => handleJoinRequest(request.user._id, 'reject')}
-                      disabled={processingRequest === request.user._id}
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 cursor-pointer"
-                    >
-                      {processingRequest === request.user._id ? (
-                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <UserX className="w-4 h-4" />
-                      )}
-                      {processingRequest === request.user._id ? 'Processing...' : 'Reject'}
-                    </Button>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Posts</span>
+                    <span className="font-semibold text-foreground">{formatNumber(community.postCount)}</span>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Sort Controls */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-foreground">Posts</h2>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-          >
-            <option value="recent">Most Recent</option>
-            <option value="top">Top Rated</option>
-            <option value="hot">Hot</option>
-          </select>
-        </div>
-
-        {/* Posts List */}
-        {posts.length === 0 ? (
-          <div className="text-center py-12 bg-secondary/20 rounded-lg border border-border">
-            <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">No posts yet</h3>
-            <p className="text-muted-foreground mb-4">Be the first to create a post in this community!</p>
-            {isMember && (
-              <Link href={`/communities/${params.slug}/new-post`}>
-                <Button className="cursor-pointer">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Post
-                </Button>
-              </Link>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {posts.map((post) => (
-              <Link key={post._id} href={`/communities/${params.slug}/posts/${post._id}`}>
-                <div className="bg-secondary/20 hover:bg-secondary/30 rounded-lg border border-border p-4 transition-colors cursor-pointer">
-                  <div className="flex gap-4">
-                    {/* Vote Section */}
-                    <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                      <ThumbsUp className="w-5 h-5 text-muted-foreground" />
-                      <span className="text-sm font-semibold text-foreground">
-                        {post.likes?.length || 0}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Category</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium">
+                      <CategoryIcon className="w-3 h-3" />
+                      {community.category}
+                    </span>
+                  </div>
+                  {community.isPrivate && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Privacy</span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary text-foreground rounded text-xs">
+                        <Lock className="w-3 h-3" />
+                        Private
                       </span>
                     </div>
+                  )}
+                  {community.createdAt && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Created</span>
+                      <span className="text-sm text-foreground">{new Date(community.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        {post.isPinned && (
-                          <Pin className="w-4 h-4 text-primary" />
-                        )}
-                        {post.isLocked && (
-                          <Lock className="w-4 h-4 text-muted-foreground" />
-                        )}
-                        <span className="text-xs text-muted-foreground">
-                          u/<span className="font-bold text-primary">{post.user?.username || 'Unknown'}</span> • {formatTimeAgo(post.createdAt)}
-                        </span>
-                      </div>
-
-                      <h3 className="text-lg font-semibold text-foreground mb-2 line-clamp-2">
-                        {post.title}
-                      </h3>
-
-                      {/* Post Images */}
-                      {post.images?.length > 0 && (
-                        <div className="mt-3 mb-2">
-                          <div
-                            className="
-        bg-black/80
-        border border-border
-        rounded-lg
-        overflow-hidden
-        mx-auto
-        flex items-center justify-center
-        aspect-[16/9]
-
-        w-full
-        max-w-[90vw]
-        sm:max-w-[420px]
-        md:max-w-[480px]
-        lg:max-w-[520px]
-      "
-                          >
-                            <img
-                              src={post.images[0]}
-                              alt="Post preview"
-                              className="max-w-full max-h-full object-contain"
-                            />
-                          </div>
-
-                          {post.images.length > 1 && (
-                            <p className="text-xs text-muted-foreground mt-1 text-center">
-                              +{post.images.length - 1} more image{post.images.length > 2 ? 's' : ''}
-                            </p>
+              {/* About Section - Editable */}
+              <div className="bg-secondary/30 border border-border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" />
+                    About
+                  </h3>
+                  {isCreator && !editingAbout && (
+                    <button 
+                      onClick={() => setEditingAbout(true)}
+                      className="p-1 cursor-pointer"
+                    >
+                      <Pencil className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                    </button>
+                  )}
+                </div>
+                {editingAbout ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={aboutText}
+                      onChange={(e) => setAboutText(e.target.value)}
+                      className="w-full p-2 bg-input border border-border rounded-lg text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                      rows={4}
+                      maxLength={500}
+                    />
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">{aboutText.length}/500</span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { setEditingAbout(false); setAboutText(community.description || '') }}
+                          className="p-1.5 hover:bg-secondary rounded transition-colors cursor-pointer"
+                        >
+                          <X className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                        <button
+                          onClick={handleSaveAbout}
+                          disabled={savingAbout}
+                          className="p-1.5 hover:bg-primary/20 rounded transition-colors cursor-pointer"
+                        >
+                          {savingAbout ? (
+                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4 text-primary" />
                           )}
-                        </div>
-                      )}
-                      {/* Post Stats */}
-                      <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <MessageCircle className="w-4 h-4" />
-                          <span>{post.comments?.length || 0} comments</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          <span>{post.views || 0} views</span>
-                        </div>
+                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                ) : (
+                  <p className="text-sm text-muted-foreground">{community.description || 'No description available'}</p>
+                )}
+              </div>
 
-            {/* Load More Trigger & Loading State */}
-            <div ref={loadMoreRef} className="mt-6 flex justify-center">
-              {loadingMore && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  <span>Loading more posts...</span>
+              {/* Rules Section - Editable */}
+              <div className="bg-secondary/30 border border-border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" />
+                    Community Rules
+                  </h3>
+                  {isCreator && !editingRules && (
+                    <button 
+                      onClick={() => setEditingRules(true)}
+                      className="p-1 cursor-pointer"
+                    >
+                      <Pencil className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                    </button>
+                  )}
                 </div>
-              )}
-              {!loadingMore && !hasMore && posts.length > 0 && (
-                <p className="text-muted-foreground text-sm">
-                  You've reached the end • {posts.length} posts loaded
-                </p>
-              )}
+                {editingRules ? (
+                  <div className="space-y-3">
+                    {rulesText.map((rule, index) => (
+                      <div key={index} className="flex items-center gap-2 p-2 bg-secondary/30 rounded-lg">
+                        <span className="text-primary font-semibold text-sm">{index + 1}.</span>
+                        <input
+                          type="text"
+                          value={rule.title}
+                          onChange={(e) => updateRule(index, e.target.value)}
+                          placeholder="Enter rule"
+                          className="flex-1 p-1.5 bg-input border border-border rounded text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                        <button
+                          onClick={() => removeRule(index)}
+                          className="p-1 rounded cursor-pointer"
+                        >
+                        <X className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={addRule}
+                      className="w-full p-2 border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4 inline mr-1" />
+                      Add Rule
+                    </button>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => { setEditingRules(false); setRulesText(community.rules || []) }}
+                        className="p-1.5"
+                      >
+                        <X className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                      </button>
+                      <button
+                        onClick={handleSaveRules}
+                        disabled={savingRules}
+                        className="p-1.5"
+                      >
+                        {savingRules ? (
+                          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Check className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <ul className="text-sm text-muted-foreground space-y-2">
+                    {(community.rules && community.rules.length > 0) ? (
+                      community.rules.map((rule, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-muted-foreground font-semibold">{index + 1}.</span>
+                          <span className="text-muted-foreground">{rule.title}</span>
+                        </li>
+                      ))
+                    ) : (
+                      <>
+                        <li className="text-muted-foreground">No rules have been set for this community.</li>
+                      </>
+                    )}
+                  </ul>
+                )}
+              </div>
             </div>
+          </aside>
+
+          {/* Center - Posts Section */}
+          <div className="flex-1 min-w-0">
+            {/* Join Requests Section - Only visible to creator */}
+            {isCreator && community.pendingRequests && community.pendingRequests.length > 0 && (
+              <div className="mb-6 bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 md:p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Bell className="w-5 h-5 text-blue-500" />
+                  <h2 className="text-lg md:text-xl font-bold text-foreground">
+                    Pending Join Requests ({community.pendingRequests.length})
+                  </h2>
+                </div>
+                <div className="space-y-3">
+                  {community.pendingRequests.map((request) => (
+                    <div
+                      key={request.user._id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-background/50 rounded-lg p-4 border border-border"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold flex-shrink-0">
+                          {request.user.avatar ? (
+                            <img src={request.user.avatar} alt={request.user.username} className="w-full h-full rounded-full object-cover" />
+                          ) : (
+                            request.user.username.charAt(0).toUpperCase()
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-foreground">{request.user.fullName || request.user.username}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Requested {formatTimeAgo(request.requestedAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => handleJoinRequest(request.user._id, 'approve')}
+                          disabled={processingRequest === request.user._id}
+                          size="sm"
+                          className="gap-2 cursor-pointer"
+                        >
+                          {processingRequest === request.user._id ? (
+                            <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <UserCheck className="w-4 h-4" />
+                          )}
+                          {processingRequest === request.user._id ? 'Processing...' : 'Approve'}
+                        </Button>
+                        <Button
+                          onClick={() => handleJoinRequest(request.user._id, 'reject')}
+                          disabled={processingRequest === request.user._id}
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 cursor-pointer"
+                        >
+                          {processingRequest === request.user._id ? (
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <UserX className="w-4 h-4" />
+                          )}
+                          {processingRequest === request.user._id ? 'Processing...' : 'Reject'}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sort Controls */}
+            <div className="flex items-center justify-start mb-6">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-4 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+              >
+                <option value="recent">Most Recent</option>
+                <option value="top">Top Rated</option>
+                <option value="hot">Hot</option>
+              </select>
+            </div>
+
+            {/* Posts List */}
+            {posts.length === 0 ? (
+              <div className="text-center py-12 bg-secondary/20 rounded-lg border border-border">
+                <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">No posts yet</h3>
+                <p className="text-muted-foreground mb-4">Be the first to create a post in this community!</p>
+                {isMember && (
+                  <Link href={`/communities/${params.slug}/new-post`}>
+                    <Button className="cursor-pointer">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Post
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <Link key={post._id} href={`/communities/${params.slug}/posts/${post._id}`}>
+                    <div className="bg-secondary/20 hover:bg-secondary/30 rounded-lg border border-border p-4 transition-colors cursor-pointer">
+                      <div className="flex gap-4">
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            {post.isPinned && (
+                              <Pin className="w-4 h-4 text-primary" />
+                            )}
+                            {post.isLocked && (
+                              <Lock className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            {post.user?.avatar ? (
+                              <img 
+                                src={post.user?.avatar} 
+                                alt={post.user?.username}
+                                className="w-8 h-8 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                <CategoryIcon className="w-4 h-4 text-primary" />
+                              </div>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              u/<span className="font-bold text-primary">{post.user?.username || 'Unknown'}</span> • {formatTimeAgo(post.createdAt)}
+                            </span>
+                          </div>
+
+                          <h3 className="text-lg font-semibold text-foreground mb-2 line-clamp-2">
+                            {post.title}
+                          </h3>
+
+                          {/* Post Images */}
+                          {post.images?.length > 0 && (
+                            <div className="mt-3 mb-2">
+                              <div className="bg-black/80 border border-border rounded-lg overflow-hidden flex items-center justify-center aspect-[16/9] w-full max-w-full">
+                                <img
+                                  src={post.images[0]}
+                                  alt="Post preview"
+                                  className="max-w-full max-h-full object-contain"
+                                />
+                              </div>
+
+                              {post.images.length > 1 && (
+                                <p className="text-xs text-muted-foreground mt-1 text-center">
+                                  +{post.images.length - 1} more image{post.images.length > 2 ? 's' : ''}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {/* Post Stats */}
+                          <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <MessageCircle className="w-4 h-4" />
+                              <span>{post.comments?.length || 0} comments</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              <span>{post.views || 0} views</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+
+                {/* Load More Trigger & Loading State */}
+                <div ref={loadMoreRef} className="mt-6 flex justify-center">
+                  {loadingMore && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      <span>Loading more posts...</span>
+                    </div>
+                  )}
+                  {!loadingMore && !hasMore && posts.length > 0 && (
+                    <p className="text-muted-foreground text-sm">
+                      You've reached the end • {posts.length} posts loaded
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Right Sidebar - Latest News (Hidden on mobile and small tablets) */}
+          <aside className="hidden lg:block w-80 xl:w-96 flex-shrink-0">
+            <div className="sticky top-20">
+              {/* News Section with Auto-Scroll */}
+              <div className="bg-secondary/30 border border-border rounded-lg overflow-hidden">
+                <div className="p-4 border-b border-border">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <Newspaper className="w-4 h-4 text-primary" />
+                    Latest News
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Related to {community.relatedEntityName || community.name}
+                  </p>
+                </div>
+                
+                {loadingNews ? (
+                  <div className="p-8 flex justify-center">
+                    <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : news.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <Newspaper className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">No recent news found</p>
+                    <p className="text-xs text-muted-foreground mt-1">Check back later for updates</p>
+                  </div>
+                ) : (
+                  <div 
+                    ref={newsContainerRef}
+                    className="h-[500px] overflow-hidden"
+                  >
+                    <div className="space-y-0">
+                      {/* Duplicate news for seamless loop */}
+                      {[...news, ...news].map((article, index) => (
+                        <a
+                          key={index}
+                          href={article.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block border-b border-border last:border-b-0 hover:bg-secondary/50 transition-colors"
+                        >
+                          <div className="p-4">
+                            {article.urlToImage && (
+                              <div className="w-full h-32 bg-secondary rounded-lg overflow-hidden mb-3">
+                                <img
+                                  src={article.urlToImage}
+                                  alt={article.title}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => { e.target.style.display = 'none' }}
+                                />
+                              </div>
+                            )}
+                            <h4 className="font-medium text-sm text-foreground line-clamp-2 hover:text-primary transition-colors">
+                              {article.title}
+                            </h4>
+                            {article.description && (
+                              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                                {article.description}
+                              </p>
+                            )}
+                            <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+                              <span className="line-clamp-1">{article.source?.name || 'News'}</span>
+                              <span>{new Date(article.publishedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+                            </div>
+                            <div className="flex items-center gap-1 mt-2 text-xs text-primary">
+                              <ExternalLink className="w-3 h-3" />
+                              <span>Read more</span>
+                            </div>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
     </main>
   )

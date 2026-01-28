@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Newspaper } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 
-export default function NewsCarousel({ 
+export default function NewsCarousel({
   news = [],
   loading = false,
   onLoadMore = null,
@@ -14,7 +14,7 @@ export default function NewsCarousel({
   entityName = ""
 }) {
   const [scrollPosition, setScrollPosition] = useState(0)
-  
+
   const loadMoreRef = useInfiniteScroll(
     () => {
       if (onLoadMore && hasMore && !isLoadingMore) {
@@ -62,7 +62,7 @@ export default function NewsCarousel({
         style={{ scrollBehavior: "smooth" }}
       >
         {news.map((article, index) => (
-          <a 
+          <a
             key={index}
             href={article.url}
             target="_blank"
@@ -94,7 +94,13 @@ export default function NewsCarousel({
               </p>
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span className="line-clamp-1">{article.source?.name || 'Unknown Source'}</span>
-                <span>{new Date(article.publishedAt).toLocaleDateString()}</span>
+                <span>
+                  {new Date(article.publishedAt).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
               </div>
             </div>
           </a>

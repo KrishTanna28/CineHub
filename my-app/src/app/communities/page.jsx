@@ -3,31 +3,31 @@
 import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Plus, Users, Film, Tv, User, Sparkles, Search, Filter, ChevronDown, ChevronUp } from "lucide-react"
+import { Plus, Users, Film, Tv, User, Sparkles, Search, Filter, ChevronDown, ChevronUp, Heart, MessageCircle, Eye, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/contexts/UserContext"
 import { useToast } from "@/hooks/use-toast"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 
 const categories = [
-  { id: 'all', label: 'All Communities' },
+  { id: 'all', label: 'All Posts' },
   { id: 'movie', label: 'Movies', icon: Film },
   { id: 'tv', label: 'TV Shows', icon: Tv },
   { id: 'actor', label: 'Actors & Cast', icon: User },
 ]
 
 const sortOptions = [
-  { id: 'popular', label: 'Popular' },
-  { id: 'recent', label: 'Recently Created' },
-  { id: 'members', label: 'Most Members' }
+  { id: 'recent', label: 'Most Recent' },
+  { id: 'popular', label: 'Most Popular' },
+  { id: 'hot', label: 'Trending' }
 ]
 
 export default function CommunitiesPage() {
-  const [allCommunities, setAllCommunities] = useState([]) // All loaded communities
+  const [allPosts, setAllPosts] = useState([]) // All loaded posts
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('all')
-  const [sortBy, setSortBy] = useState('popular')
+  const [sortBy, setSortBy] = useState('recent')
   const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -43,7 +43,7 @@ export default function CommunitiesPage() {
   const loadMoreRef = useInfiniteScroll(
     () => {
       if (hasMore && !loadingMore && !searchQuery) {
-        loadMoreCommunities()
+        loadMorePosts()
       }
     },
     hasMore,
@@ -60,23 +60,24 @@ export default function CommunitiesPage() {
   // Reset and fetch when filters change
   useEffect(() => {
     setPage(1)
-    setAllCommunities([])
+    setAllPosts([])
     setHasMore(true)
-    fetchCommunities(1)
+    fetchPosts(1)
   }, [selectedCategory, sortBy])
 
-  // Client-side search through loaded communities
-  const filteredCommunities = useMemo(() => {
+  // Client-side search through loaded posts
+  const filteredPosts = useMemo(() => {
     if (!searchQuery.trim()) {
-      return allCommunities
+      return allPosts
     }
 
     const query = searchQuery.toLowerCase()
-    return allCommunities.filter(community => 
-      community.name.toLowerCase().includes(query) ||
-      community.description.toLowerCase().includes(query)
+    return allPosts.filter(post => 
+      post.title.toLowerCase().includes(query) ||
+      (post.content && post.content.toLowerCase().includes(query)) ||
+      (post.community?.name && post.community.name.toLowerCase().includes(query))
     )
-  }, [allCommunities, searchQuery])
+  }, [allPosts, searchQuery])
 
   // Debounced backend search if not found locally
   useEffect(() => {
@@ -84,19 +85,19 @@ export default function CommunitiesPage() {
 
     const debounceTimer = setTimeout(() => {
       // If local search found results, don't hit the backend
-      if (filteredCommunities.length > 0) return
+      if (filteredPosts.length > 0) return
 
       // If we've loaded all pages, no need to search backend
       if (!hasMore) return
 
-      // Otherwise, search backend for communities we haven't loaded yet
+      // Otherwise, search backend for posts we haven't loaded yet
       searchBackend()
     }, 800)
 
     return () => clearTimeout(debounceTimer)
   }, [searchQuery])
 
-  const fetchCommunities = async (pageNum = 1) => {
+  const fetchPosts = async (pageNum = 1) => {
     const isFirstPage = pageNum === 1
     if (isFirstPage) {
       setLoading(true)
@@ -111,24 +112,24 @@ export default function CommunitiesPage() {
       params.append('page', pageNum.toString())
       params.append('limit', '20')
 
-      const response = await fetch(`/api/communities?${params}`)
+      const response = await fetch(`/api/communities/posts?${params}`)
       const data = await response.json()
 
       if (data.success) {
         if (isFirstPage) {
-          setAllCommunities(data.data)
+          setAllPosts(data.data)
         } else {
-          setAllCommunities(prev => [...prev, ...data.data])
+          setAllPosts(prev => [...prev, ...data.data])
         }
         setTotalPages(data.pagination.pages)
         setHasMore(pageNum < data.pagination.pages)
         setPage(pageNum)
       }
     } catch (error) {
-      console.error('Error fetching communities:', error)
+      console.error('Error fetching posts:', error)
       toast({
         title: "Error",
-        description: "Failed to load communities",
+        description: "Failed to load posts",
         variant: "destructive"
       })
     } finally {
@@ -137,9 +138,9 @@ export default function CommunitiesPage() {
     }
   }
 
-  const loadMoreCommunities = () => {
+  const loadMorePosts = () => {
     if (!hasMore || loadingMore) return
-    fetchCommunities(page + 1)
+    fetchPosts(page + 1)
   }
 
   const searchBackend = async () => {
@@ -153,17 +154,17 @@ export default function CommunitiesPage() {
       params.append('search', searchQuery.trim())
       params.append('limit', '100') // Get more results for search
 
-      const response = await fetch(`/api/communities?${params}`)
+      const response = await fetch(`/api/communities/posts?${params}`)
       const data = await response.json()
 
       if (data.success) {
-        // Merge with existing communities, avoiding duplicates
-        const existingIds = new Set(allCommunities.map(c => c._id))
-        const newCommunities = data.data.filter(c => !existingIds.has(c._id))
-        setAllCommunities(prev => [...prev, ...newCommunities])
+        // Merge with existing posts, avoiding duplicates
+        const existingIds = new Set(allPosts.map(p => p._id))
+        const newPosts = data.data.filter(p => !existingIds.has(p._id))
+        setAllPosts(prev => [...prev, ...newPosts])
       }
     } catch (error) {
-      console.error('Error searching communities:', error)
+      console.error('Error searching posts:', error)
     } finally {
       setLoading(false)
     }
@@ -214,7 +215,7 @@ export default function CommunitiesPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="text"
-                      placeholder="Search communities..."
+                      placeholder="Search posts..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onBlur={() => {
@@ -236,7 +237,7 @@ export default function CommunitiesPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Search communities..."
+                    placeholder="Search posts..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-80 pl-11 pr-4 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
@@ -332,22 +333,22 @@ export default function CommunitiesPage() {
           </div>
         </div>
 
-        {/* Communities List */}
+        {/* Posts Feed */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading communities...</p>
+              <p className="text-muted-foreground">Loading posts...</p>
             </div>
           </div>
-        ) : filteredCommunities.length === 0 ? (
+        ) : filteredPosts.length === 0 ? (
           <div className="text-center py-12">
-            <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+            <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
             <h3 className="text-xl font-semibold text-foreground mb-2">
-              {searchQuery ? 'No communities found' : 'No communities yet'}
+              {searchQuery ? 'No posts found' : 'No posts yet'}
             </h3>
             <p className="text-muted-foreground mb-6">
-              {searchQuery ? 'Try a different search term' : 'Be the first to create one!'}
+              {searchQuery ? 'Try a different search term' : 'Join a community and start posting!'}
             </p>
             {user && !searchQuery && (
               <Link href="/communities/new">
@@ -357,105 +358,150 @@ export default function CommunitiesPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredCommunities.map((community) => {
-              const CategoryIcon = categories.find(c => c.id === community.category)?.icon || Sparkles
-              
-              return (
-                <Link 
-                  key={community._id} 
-                  href={`/communities/${community.slug}`}
-                  className="block"
-                >
-                  <div className="bg-secondary/20 rounded-lg border border-border hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer overflow-hidden h-full">
-                    {/* Banner */}
-                    {community.banner ? (
-                      <div className="h-24 bg-cover bg-center" style={{ backgroundImage: `url(${community.banner})` }}>
-                        <div className="h-full bg-gradient-to-b from-transparent to-background/80" />
-                      </div>
-                    ) : (
-                      <div className="h-24 bg-black" />
-                    )}
-
-                    <div className="p-4 -mt-8 relative">
-                      {/* Icon */}
-                      <div className="mb-3">
-                        {community.icon ? (
-                          <img 
-                            src={community.icon} 
-                            alt={community.name}
-                            className="w-16 h-16 rounded-full border-4 border-background object-cover"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 rounded-full border-4 border-background bg-black flex items-center justify-center">
-                            <CategoryIcon className="w-8 h-8 text-white" />
+            <div className="space-y-4">
+              {filteredPosts.map((post) => {
+                const CategoryIcon = categories.find(c => c.id === post.community?.category)?.icon || Sparkles
+                
+                return (
+                  <Link 
+                    key={post._id} 
+                    href={`/communities/${post.community?.slug}`}
+                    className="block"
+                  >
+                    <div className="bg-secondary/20 rounded-lg border border-border hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer overflow-hidden">
+                      <div className="p-4">
+                        {/* Community Info Header */}
+                        <div className="flex items-center gap-3 mb-3">
+                          {post.user?.avatar ? (
+                            <img 
+                              src={post.user?.avatar} 
+                              alt={post.user?.username}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                              <CategoryIcon className="w-4 h-4 text-primary" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-foreground text-sm truncate">
+                                {post.community?.name || 'Unknown Community'}
+                              </span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
+                                post.community?.category === 'movie' ? 'bg-blue-500/20 text-blue-400' :
+                                post.community?.category === 'tv' ? 'bg-purple-500/20 text-purple-400' :
+                                post.community?.category === 'actor' ? 'bg-green-500/20 text-green-400' :
+                                'bg-gray-500/20 text-gray-400'
+                              }`}>
+                                {post.community?.category}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>Posted by {post.user?.username || 'Anonymous'}</span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {formatTimeAgo(post.createdAt)}
+                              </span>
+                            </div>
                           </div>
-                        )}
-                      </div>
-
-                      {/* Info */}
-                      <div>
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <h3 className="text-lg font-bold text-foreground line-clamp-1 hover:text-primary transition-colors">
-                            {community.name}
-                          </h3>
-                          <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${
-                            community.category === 'movie' ? 'bg-blue-500/20 text-blue-400' :
-                            community.category === 'tv' ? 'bg-purple-500/20 text-purple-400' :
-                            community.category === 'actor' ? 'bg-green-500/20 text-green-400' :
-                            'bg-gray-500/20 text-gray-400'
-                          }`}>
-                            {community.category}
-                          </span>
                         </div>
 
-                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                          {community.description}
-                        </p>
+                        {/* Post Title */}
+                        <h3 className="text-lg font-semibold text-foreground mb-2 line-clamp-2 hover:text-primary transition-colors">
+                          {post.title}
+                        </h3>
 
-                        {/* Stats */}
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Users className="w-3 h-3" />
-                            {formatNumber(community.memberCount || 0)} members
+                        {/* Post Content Preview */}
+                        {post.content && (
+                          <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
+                            {post.content}
+                          </p>
+                        )}
+
+                        {/* Post Images Preview */}
+                        {post.images && post.images.length > 0 && (
+                          <div className="mt-3 mb-2">
+                          <div
+                            className="
+        bg-black/80
+        border border-border
+        rounded-lg
+        overflow-hidden
+        mx-auto
+        flex items-center justify-center
+        aspect-[16/9]
+
+        w-full
+        max-w-[90vw]
+        sm:max-w-[420px]
+        md:max-w-[680px]
+        lg:max-w-[820px]
+      "
+                          >
+                            <img
+                              src={post.images[0]}
+                              alt="Post preview"
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          </div>
+                            {post.images.length > 1 && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                +{post.images.length - 1} more images
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Post Stats */}
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2 border-t border-border/50">
+                          <span className="flex items-center gap-1.5">
+                            <Heart className="w-4 h-4" />
+                            {formatNumber(post.likesCount || 0)}
                           </span>
-                          <span>•</span>
-                          <span>{community.postCount || 0} posts</span>
+                          <span className="flex items-center gap-1.5">
+                            <MessageCircle className="w-4 h-4" />
+                            {formatNumber(post.commentsCount || 0)}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <Eye className="w-4 h-4" />
+                            {formatNumber(post.views || 0)}
+                          </span>
                         </div>
                       </div>
                     </div>
+                  </Link>
+                )
+              })}
+            </div>
+
+            {/* Load More Trigger & Loading State */}
+            {!searchQuery && (
+              <div ref={loadMoreRef} className="mt-8 flex justify-center">
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <span>Loading more posts...</span>
                   </div>
-                </Link>
-              )
-            })}
-          </div>
+                )}
+                {!loadingMore && !hasMore && allPosts.length > 0 && (
+                  <p className="text-muted-foreground text-sm">
+                    You've reached the end • {allPosts.length} posts loaded
+                  </p>
+                )}
+              </div>
+            )}
 
-          {/* Load More Trigger & Loading State */}
-          {!searchQuery && (
-            <div ref={loadMoreRef} className="mt-8 flex justify-center">
-              {loadingMore && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  <span>Loading more communities...</span>
-                </div>
-              )}
-              {!loadingMore && !hasMore && allCommunities.length > 0 && (
-                <p className="text-muted-foreground text-sm">
-                  You've reached the end • {allCommunities.length} communities loaded
+            {/* Search Results Info */}
+            {searchQuery && (
+              <div className="mt-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Found {filteredPosts.length} {filteredPosts.length === 1 ? 'post' : 'posts'} matching "{searchQuery}"
                 </p>
-              )}
-            </div>
-          )}
-
-          {/* Search Results Info */}
-          {searchQuery && (
-            <div className="mt-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                Found {filteredCommunities.length} {filteredCommunities.length === 1 ? 'community' : 'communities'} matching "{searchQuery}"
-              </p>
-            </div>
-          )}
-        </>
+              </div>
+            )}
+          </>
         )}
       </div>
     </main>

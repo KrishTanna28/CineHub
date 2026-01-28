@@ -171,7 +171,7 @@ export const PATCH = withAuth(async (request, { user, params }) => {
   try {
     const { slug } = await params
     const body = await request.json()
-    const { description, banner, icon } = body
+    const { description, banner, icon, rules } = body
 
     const community = await Community.findOne({ slug })
 
@@ -191,8 +191,13 @@ export const PATCH = withAuth(async (request, { user, params }) => {
     }
 
     // Update description if provided
-    if (description) {
+    if (description !== undefined) {
       community.description = description
+    }
+
+    // Update rules if provided
+    if (rules !== undefined) {
+      community.rules = rules
     }
 
     // Update banner if provided

@@ -39,6 +39,13 @@ export default function VideosGrid({
     }
   }
 
+  const decodeHTMLEntities = (text) => {
+    if (typeof window === "undefined") return text
+    const textarea = document.createElement("textarea")
+    textarea.innerHTML = text
+    return textarea.value
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center py-8">
@@ -99,7 +106,7 @@ export default function VideosGrid({
             {/* YouTube Thumbnail */}
             <img
               src={`https://img.youtube.com/vi/${video.key}/maxresdefault.jpg`}
-              alt={video.name}
+              alt={decodeHTMLEntities(video.name)}
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
               onError={(e) => {
                 e.target.src = `https://img.youtube.com/vi/${video.key}/hqdefault.jpg`
@@ -111,7 +118,7 @@ export default function VideosGrid({
               <>
                 <iframe
                   src={`https://www.youtube.com/embed/${video.key}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${video.key}&playsinline=1&enablejsapi=1`}
-                  title={video.name}
+                  title={decodeHTMLEntities(video.name)}
                   className={`absolute inset-0 w-full h-full object-cover scale-110 transition-opacity duration-700 ${videoLoaded[video.id || video.key] ? 'opacity-100' : 'opacity-0'
                     }`}
                   allow="autoplay; encrypted-media"
@@ -132,7 +139,7 @@ export default function VideosGrid({
             {/* Video Info */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col items-start justify-end p-4 transition-all duration-300">
               <p className="text-white font-semibold text-sm line-clamp-2 mb-1 transition-all duration-300 group-hover/video:text-primary">
-                {video.name}
+                {decodeHTMLEntities(video.name)}
               </p>
               <p className="text-white/70 text-xs uppercase tracking-wide">{video.type || 'Video'}</p>
             </div>
