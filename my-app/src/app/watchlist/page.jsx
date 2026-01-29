@@ -62,10 +62,6 @@ export default function WatchlistPage() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => window.location.href = `/details/${movie.id}`}>
-                        <Pencil className="w-4 h-4" />
-                        Edit Watchlist Item
-                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => removeFromWatchlist(movie.id)}
                       >

@@ -533,17 +533,8 @@ export default function DetailsPage({ params }) {
                 onClick={handleAddToWatchlist}
                 disabled={isUpdatingWatchlist}
               >
-                {inWatchlist ? (
-                  <>
-                    <Check className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                    Remove from Watchlist
-                  </>
-                ) : (
-                  <>
-                    <Bookmark className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                    Add to Watchlist
-                  </>
-                )}
+                <Bookmark className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${inWatchlist ? "fill-current" : ""}`} />
+                Watchlist
               </Button>
               <Button 
                 size="sm" 
@@ -553,7 +544,7 @@ export default function DetailsPage({ params }) {
                 disabled={isUpdatingFavorites}
               >
                 <Heart className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${liked ? "fill-current" : ""}`} />
-                {liked ? "Remove from Favorites" : "Like"}
+                {liked ? "Like" : "Like"}
               </Button>
               <Button size="sm" variant="outline" className="gap-1 sm:gap-2 bg-transparent text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3">
                 <Share2 className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
@@ -614,17 +605,8 @@ export default function DetailsPage({ params }) {
               onClick={handleAddToWatchlist}
               disabled={isUpdatingWatchlist}
             >
-              {inWatchlist ? (
-                <>
-                  <Check className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                  Remove from Watchlist
-                </>
-              ) : (
-                <>
-                  <Bookmark className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                  Add to Watchlist
-                </>
-              )}
+              <Bookmark className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${inWatchlist ? "fill-current" : ""}`} />
+                Watchlist
             </Button>
             <Button 
               size="sm" 
@@ -634,7 +616,7 @@ export default function DetailsPage({ params }) {
               disabled={isUpdatingFavorites}
             >
               <Heart className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${liked ? "fill-current" : ""}`} />
-              {liked ? "Remove from Favorites" : "Like"}
+              Like
             </Button>
             <Button size="sm" variant="outline" className="gap-1 sm:gap-2 bg-transparent text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3">
               <Share2 className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />

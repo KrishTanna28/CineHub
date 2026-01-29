@@ -1,0 +1,49 @@
+import { NextResponse } from 'next/server'
+import Community from '@/lib/models/Community.js'
+import connectDB from '@/lib/config/database.js'
+
+await connectDB()
+
+// GET /api/communities/search - Search communities
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const query = searchParams.get('q')
+    const limit = parseInt(searchParams.get('limit') || '10')
+
+    if (!query || query.trim().length === 0) {
+      return NextResponse.json({
+        success: true,
+        communities: []
+      })
+    }
+
+    const searchRegex = { $regex: query, $options: 'i' }
+
+    const communities = await Community.find({
+      isActive: true,
+      $or: [
+        { name: searchRegex },
+        { description: searchRegex }
+      ]
+    })
+      .select('name slug icon description memberCount category')
+      .sort({ memberCount: -1 })
+      .limit(limit)
+      .lean()
+
+    return NextResponse.json({
+      success: true,
+      communities
+    })
+  } catch (error) {
+    console.error('Search communities error:', error)
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message || 'Failed to search communities'
+      },
+      { status: 500 }
+    )
+  }
+}

@@ -24,30 +24,102 @@ export async function GET(request, { params }) {
       )
     }
 
-    let sort = {}
+    const postQuery = { community: community._id, isApproved: true }
+    const skip = (page - 1) * limit
+
+    // Use aggregation for proper sorting with computed fields
+    const pipeline = [
+      { $match: postQuery },
+      {
+        $addFields: {
+          likesCount: { $size: { $ifNull: ['$likes', []] } },
+          dislikesCount: { $size: { $ifNull: ['$dislikes', []] } },
+          commentsCount: { $size: { $ifNull: ['$comments', []] } },
+          // Score = likes - dislikes (for popular sorting)
+          score: {
+            $subtract: [
+              { $size: { $ifNull: ['$likes', []] } },
+              { $size: { $ifNull: ['$dislikes', []] } }
+            ]
+          },
+          // Hot score: engagement weighted by recency
+          hotScore: {
+            $add: [
+              {
+                $multiply: [
+                  {
+                    $add: [
+                      { $size: { $ifNull: ['$likes', []] } },
+                      { $multiply: [{ $size: { $ifNull: ['$comments', []] } }, 2] },
+                      { $divide: [{ $ifNull: ['$views', 0] }, 10] }
+                    ]
+                  },
+                  {
+                    $max: [
+                      0.1,
+                      {
+                        $subtract: [
+                          1,
+                          {
+                            $divide: [
+                              { $subtract: [new Date(), '$createdAt'] },
+                              172800000 // 48 hours
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                $cond: [
+                  { $lt: [{ $subtract: [new Date(), '$createdAt'] }, 21600000] },
+                  5,
+                  0
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ]
+
+    // Add sorting based on sortBy parameter
     switch (sortBy) {
-      case 'top':
-        sort = { score: -1, createdAt: -1 }
+      case 'popular':
+        pipeline.push({ $sort: { score: -1, likesCount: -1, commentsCount: -1, createdAt: -1 } })
         break
       case 'hot':
-        sort = { views: -1, createdAt: -1 }
+        pipeline.push({ $sort: { hotScore: -1, createdAt: -1 } })
         break
       case 'recent':
       default:
-        sort = { createdAt: -1 }
+        pipeline.push({ $sort: { createdAt: -1 } })
         break
     }
 
-    const skip = (page - 1) * limit
+    // Pagination
+    pipeline.push({ $skip: skip })
+    pipeline.push({ $limit: limit })
+
+    // Lookup user
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'user',
+          pipeline: [{ $project: { username: 1, avatar: 1, fullName: 1 } }]
+        }
+      },
+      { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } }
+    )
 
     const [posts, total] = await Promise.all([
-      Post.find({ community: community._id, isApproved: true })
-        .populate('user', 'username avatar fullName')
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Post.countDocuments({ community: community._id, isApproved: true })
+      Post.aggregate(pipeline),
+      Post.countDocuments(postQuery)
     ])
 
     return NextResponse.json({

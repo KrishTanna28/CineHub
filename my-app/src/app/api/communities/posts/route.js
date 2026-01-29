@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Post from '@/lib/models/Post.js'
 import Community from '@/lib/models/Community.js'
+import User from '@/lib/models/User.js'
 import connectDB from '@/lib/config/database.js'
 
 await connectDB()
@@ -37,52 +38,134 @@ export async function GET(request) {
       ]
     }
 
-    let sort = {}
+    const skip = (page - 1) * limit
+
+    // Use aggregation for proper sorting with computed fields
+    const pipeline = [
+      { $match: postQuery },
+      {
+        $addFields: {
+          likesCount: { $size: { $ifNull: ['$likes', []] } },
+          dislikesCount: { $size: { $ifNull: ['$dislikes', []] } },
+          commentsCount: { $size: { $ifNull: ['$comments', []] } },
+          // Score = likes - dislikes (for popular sorting)
+          score: {
+            $subtract: [
+              { $size: { $ifNull: ['$likes', []] } },
+              { $size: { $ifNull: ['$dislikes', []] } }
+            ]
+          },
+          // Hot score: engagement weighted by recency (Wilson score approximation)
+          // Higher engagement + more recent = higher hot score
+          hotScore: {
+            $add: [
+              // Base engagement score
+              {
+                $multiply: [
+                  {
+                    $add: [
+                      { $size: { $ifNull: ['$likes', []] } },
+                      { $multiply: [{ $size: { $ifNull: ['$comments', []] } }, 2] },
+                      { $divide: [{ $ifNull: ['$views', 0] }, 10] }
+                    ]
+                  },
+                  // Decay factor based on age (posts older than 48h get penalized)
+                  {
+                    $max: [
+                      0.1,
+                      {
+                        $subtract: [
+                          1,
+                          {
+                            $divide: [
+                              { $subtract: [new Date(), '$createdAt'] },
+                              172800000 // 48 hours in milliseconds
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              // Bonus for very recent posts (last 6 hours)
+              {
+                $cond: [
+                  { $lt: [{ $subtract: [new Date(), '$createdAt'] }, 21600000] }, // 6 hours
+                  5,
+                  0
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ]
+
+    // Add sorting based on sortBy parameter
     switch (sortBy) {
-      case 'top':
-        sort = { score: -1, createdAt: -1 }
+      case 'popular':
+        // Most popular: highest score (likes - dislikes), then by total engagement
+        pipeline.push({
+          $sort: { score: -1, likesCount: -1, commentsCount: -1, createdAt: -1 }
+        })
         break
       case 'hot':
-        sort = { views: -1, createdAt: -1 }
-        break
-      case 'popular':
-        sort = { likesCount: -1, createdAt: -1 }
+        // Trending: hot score (recent + engaging posts)
+        pipeline.push({
+          $sort: { hotScore: -1, createdAt: -1 }
+        })
         break
       case 'recent':
       default:
-        sort = { createdAt: -1 }
+        // Most recent: by creation time
+        pipeline.push({
+          $sort: { createdAt: -1 }
+        })
         break
     }
 
-    const skip = (page - 1) * limit
+    // Pagination
+    pipeline.push({ $skip: skip })
+    pipeline.push({ $limit: limit })
 
-    const [posts, total] = await Promise.all([
-      Post.find(postQuery)
-        .populate('user', 'username avatar fullName')
-        .populate('community', 'name slug icon category')
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
+    // Lookup user and community
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'user',
+          pipeline: [{ $project: { username: 1, avatar: 1, fullName: 1 } }]
+        }
+      },
+      { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'communities',
+          localField: 'community',
+          foreignField: '_id',
+          as: 'community',
+          pipeline: [{ $project: { name: 1, slug: 1, icon: 1, category: 1 } }]
+        }
+      },
+      { $unwind: { path: '$community', preserveNullAndEmptyArrays: true } }
+    )
+
+    const [posts, totalCount] = await Promise.all([
+      Post.aggregate(pipeline),
       Post.countDocuments(postQuery)
     ])
 
-    // Add computed fields
-    const postsWithCounts = posts.map(post => ({
-      ...post,
-      likesCount: post.likes?.length || 0,
-      dislikesCount: post.dislikes?.length || 0,
-      commentsCount: post.comments?.length || 0
-    }))
-
     return NextResponse.json({
       success: true,
-      data: postsWithCounts,
+      data: posts,
       pagination: {
         page,
         limit,
-        total,
-        pages: Math.ceil(total / limit)
+        total: totalCount,
+        pages: Math.ceil(totalCount / limit)
       }
     })
   } catch (error) {
