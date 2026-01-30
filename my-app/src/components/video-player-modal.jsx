@@ -36,10 +36,10 @@ export default function VideoPlayerModal({videoKey, videoTitle, onClose }) {
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute -top-12 right-0 p-2 text-white hover:text-primary transition-colors"
+          className="absolute -top-12 right-0 p-2 transition-colors cursor-pointer"
           aria-label="Close video"
         >
-          <X className="w-8 h-8" />
+          <X className="w-8 h-8 text-muted-foreground hover:text-primary" />
         </button>
 
         {/* Video Title */}

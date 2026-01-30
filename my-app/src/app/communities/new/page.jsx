@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useUser } from "@/contexts/UserContext"
 import { useToast } from "@/hooks/use-toast"
-import Link from "next/link"
 
 const categories = [
+  { id: 'general', label: 'General', icon: Sparkles, description: 'Community about general topics' },
   { id: 'movie', label: 'Movie', icon: Film, description: 'Community about a specific movie or movies in general' },
   { id: 'tv', label: 'TV Show', icon: Tv, description: 'Community about a TV series or TV shows in general' },
   { id: 'actor', label: 'Actor/Cast', icon: User, description: 'Community about actors, directors, or crew members' }
@@ -19,7 +19,7 @@ const categories = [
 export default function NewCommunityPage() {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
-  const [category, setCategory] = useState("")
+  const [category, setCategory] = useState("general")
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState([])
   const [selectedEntity, setSelectedEntity] = useState(null)
@@ -30,10 +30,11 @@ export default function NewCommunityPage() {
   const [isPrivate, setIsPrivate] = useState(false)
   
   const router = useRouter()
-  const { user } = useUser()
+  const { user, isLoading } = useUser()
   const { toast } = useToast()
 
   useEffect(() => {
+    if(isLoading) return
     if (!user) {
       toast({
         title: "Login Required",
@@ -46,7 +47,7 @@ export default function NewCommunityPage() {
 
   // Debounced search
   useEffect(() => {
-    if (!searchQuery.trim() || !category) return
+    if (!searchQuery.trim()) return
 
     const debounceTimer = setTimeout(() => {
       handleSearch()
@@ -56,7 +57,7 @@ export default function NewCommunityPage() {
   }, [searchQuery, category])
 
   const handleSearch = async () => {
-    if (!searchQuery.trim() || !category) return
+    if (!searchQuery.trim()) return
 
     setSearching(true)
     try {
@@ -228,7 +229,6 @@ export default function NewCommunityPage() {
                 setSelectedEntity(null)
                 setSearchResults([])
               }}
-              required
               className="w-full px-4 py-3 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
             >
               <option value="">Select a category...</option>
@@ -305,9 +305,9 @@ export default function NewCommunityPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedEntity(null)}
-                    className="p-1 hover:bg-secondary rounded cursor-pointer"
+                    className="p-1 cursor-pointer"
                   >
-                    <X className="w-5 h-5 text-muted-foreground" />
+                    <X className="w-5 h-5 text-muted-foreground hover:text-primary" />
                   </button>
                 </div>
               )}
@@ -324,9 +324,9 @@ export default function NewCommunityPage() {
                   <button
                     type="button"
                     onClick={() => setBannerPreview("")}
-                    className="absolute top-2 right-2 p-2 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 cursor-pointer"
+                    className="absolute top-2 right-2 p-2 cursor-pointer"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4 text-muted-foreground hover:text-primary" />
                   </button>
                 </>
               ) : (
@@ -355,9 +355,9 @@ export default function NewCommunityPage() {
                     <button
                       type="button"
                       onClick={() => setIconPreview("")}
-                      className="absolute top-0 right-0 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 cursor-pointer"
+                    className="absolute top-2 right-2 p-2 cursor-pointer"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-3 h-3 hover:text-primary" />
                     </button>
                   </>
                 ) : (
@@ -405,7 +405,7 @@ export default function NewCommunityPage() {
             </Button>
             <Button
               type="submit"
-              disabled={submitting || !name.trim() || !description.trim() || !category}
+              disabled={submitting || !name.trim() || !description.trim()}
               className="flex-1 sm:flex-initial cursor-pointer"
             >
               {submitting ? 'Creating...' : 'Create Community'}

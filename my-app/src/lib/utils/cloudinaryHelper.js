@@ -127,6 +127,37 @@ export const uploadPostImagesToCloudinary = async (base64Images, postId) => {
 };
 
 /**
+ * Upload post videos to Cloudinary
+ * @param {Array<String>} base64Videos - Array of base64 encoded videos
+ * @param {String} postId - Post ID for unique naming
+ * @returns {Promise<Array<String>>} Array of Cloudinary secure URLs
+ */
+export const uploadPostVideosToCloudinary = async (base64Videos, postId) => {
+  try {
+    const uploadPromises = base64Videos.map(async (base64Data, index) => {
+      const result = await cloudinary.uploader.upload(base64Data, {
+        folder: 'moviehub/posts/videos',
+        public_id: `video_${postId}_${index}_${Date.now()}`,
+        resource_type: 'video',
+        transformation: [
+          { quality: 'auto' },
+          { fetch_format: 'mp4' }
+        ],
+        overwrite: true,
+        chunk_size: 6000000 // 6MB chunks for large files
+      });
+
+      return result.secure_url;
+    });
+
+    return await Promise.all(uploadPromises);
+  } catch (error) {
+    console.error('Cloudinary post videos upload error:', error);
+    throw new Error('Failed to upload post videos to Cloudinary');
+  }
+};
+
+/**
  * Delete image from Cloudinary
  * @param {String} imageUrl - Cloudinary image URL
  * @returns {Promise<void>}

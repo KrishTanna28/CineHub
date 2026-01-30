@@ -3,7 +3,7 @@ import Post from '@/lib/models/Post.js'
 import Community from '@/lib/models/Community.js'
 import { withAuth } from '@/lib/middleware/withAuth.js'
 import connectDB from '@/lib/config/database.js'
-import { uploadPostImagesToCloudinary } from '@/lib/utils/cloudinaryHelper.js'
+import { uploadPostImagesToCloudinary, uploadPostVideosToCloudinary } from '@/lib/utils/cloudinaryHelper.js'
 
 await connectDB()
 
@@ -149,7 +149,7 @@ export const POST = withAuth(async (request, { user, params }) => {
   try {
     const { slug } = await params
     const body = await request.json()
-    const { title, content, images } = body
+    const { title, content, images, videos } = body
 
     if (!title) {
       return NextResponse.json(
@@ -180,6 +180,7 @@ export const POST = withAuth(async (request, { user, params }) => {
       title,
       content,
       images: [],
+      videos: [],
       user: user._id
     })
 
@@ -192,6 +193,18 @@ export const POST = withAuth(async (request, { user, params }) => {
       } catch (imageError) {
         console.error('Image upload error:', imageError)
         // Continue without images - post is already created
+      }
+    }
+
+    // Upload videos to Cloudinary if provided
+    if (videos && videos.length > 0) {
+      try {
+        const videoUrls = await uploadPostVideosToCloudinary(videos, post._id?.toString())
+        post.videos = videoUrls
+        await post.save()
+      } catch (videoError) {
+        console.error('Video upload error:', videoError)
+        // Continue without videos - post is already created
       }
     }
 

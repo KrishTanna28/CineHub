@@ -75,7 +75,7 @@ const postSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Post title is required'],
     minlength: [3, 'Title must be at least 3 characters'],
-    maxlength: [300, 'Title cannot exceed 300 characters'],
+    maxlength: [500, 'Title cannot exceed 300 characters'],
     trim: true
   },
   content: {
@@ -85,6 +85,11 @@ const postSchema = new mongoose.Schema({
   
   // Images
   images: [{
+    type: String
+  }],
+  
+  // Videos
+  videos: [{
     type: String
   }],
   

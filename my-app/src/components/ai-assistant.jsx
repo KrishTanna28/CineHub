@@ -7,14 +7,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/contexts/UserContext"
 
-// Default fallback suggestions
-const DEFAULT_SUGGESTIONS = [
-  "What's trending this week?",
-  "Recommend a sci-fi movie",
-  "Tell me about upcoming releases",
-  "Best movies of 2025",
-]
-
 // Check if suggestions are from today
 const isSameDay = (dateString) => {
   if (!dateString) return false
@@ -39,7 +31,7 @@ export default function AIAssistant() {
   ])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [suggestedQuestions, setSuggestedQuestions] = useState(DEFAULT_SUGGESTIONS)
+  const [suggestedQuestions, setSuggestedQuestions] = useState([])
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
 
@@ -198,7 +190,6 @@ export default function AIAssistant() {
               </div>
               <div>
                 <h3 className="font-semibold text-foreground text-sm">CineBot</h3>
-                <p className="text-xs text-muted-foreground">Your movie assistant</p>
               </div>
             </div>
             <div className="flex items-center gap-1">

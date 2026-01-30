@@ -9,8 +9,10 @@ import { useUser } from "@/contexts/UserContext"
 import { useToast } from "@/hooks/use-toast"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 import Link from "next/link"
+import PostMediaPreview from "@/components/post-media-preview"
 
 const categoryIcons = {
+  general: Sparkles,
   movie: Film,
   tv: Tv,
   actor: UserIcon
@@ -506,6 +508,11 @@ export default function CommunityPage() {
     return `${Math.floor(months / 12)}y ago`
   }
 
+  const formatDate = (date) => {
+    const d = new Date(date)
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -528,12 +535,14 @@ export default function CommunityPage() {
   const CategoryIcon = categoryIcons[community.category] || Sparkles
 
   return (
-    <main className="min-h-screen bg-background">
-      {/* Banner */}
-      <div className="relative h-32 sm:h-48 bg-black overflow-hidden">
+    <main className="min-h-screen bg-background -mt-16">
+      {/* Banner - Extended behind navbar */}
+      <div className="relative h-48 sm:h-64 bg-black overflow-hidden">
         {community.banner && (
           <img src={community.banner} alt={community.name} className="w-full h-full object-cover" />
         )}
+        {/* Gradient overlay for better text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
       </div>
 
       {/* Community Header */}
@@ -647,12 +656,12 @@ export default function CommunityPage() {
               </div>
 
               {/* Line 3: Description */}
-              <p className="text-muted-foreground mt-2 text-sm line-clamp-2">{community.description}</p>
+              <p className="text-muted-foreground mt-2 text-sm line-clamp-2 lg:hidden md:hidden">{community.description}</p>
 
               {/* Line 4: Stats */}
               <div className="flex items-center gap-3 mt-2 text-xs sm:text-sm text-muted-foreground">
-                <span><strong className="text-foreground">{formatNumber(community.memberCount)}</strong> members</span>
-                <span><strong className="text-foreground">{formatNumber(community.postCount)}</strong> posts</span>
+                <span><strong className="text-foreground">{formatNumber(community.memberCount)}</strong> {community.memberCount === 1 ? "member" : "members"}</span>
+                <span><strong className="text-foreground">{formatNumber(community.postCount)}</strong> {community.postCount === 1 ? "post" : "posts"}</span>
               </div>
             </div>
           </div>
@@ -663,7 +672,7 @@ export default function CommunityPage() {
       <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8">
         <div className="flex gap-6">
           {/* Left Sidebar - Community Info (Hidden on mobile) */}
-          <aside className="hidden md:block w-72 lg:w-80 flex-shrink-0">
+          <aside className="hidden lg:block w-72 lg:w-80 flex-shrink-0">
             <div className="sticky top-20 space-y-4">
               {/* Community Stats Card */}
               <div className="bg-secondary/30 border border-border rounded-lg p-4">
@@ -674,11 +683,11 @@ export default function CommunityPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Members</span>
-                    <span className="font-semibold text-foreground">{formatNumber(community.memberCount)}</span>
+                    <span className="text-sm text-muted-foreground">{formatNumber(community.memberCount)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Posts</span>
-                    <span className="font-semibold text-foreground">{formatNumber(community.postCount)}</span>
+                    <span className="text-sm text-muted-foreground">{formatNumber(community.postCount)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Category</span>
@@ -699,7 +708,7 @@ export default function CommunityPage() {
                   {community.createdAt && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Created</span>
-                      <span className="text-sm text-foreground">{new Date(community.createdAt).toLocaleDateString()}</span>
+                      <span className="text-sm text-muted-foreground">{formatDate(community.createdAt)}</span>
                     </div>
                   )}
                 </div>
@@ -735,19 +744,19 @@ export default function CommunityPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => { setEditingAbout(false); setAboutText(community.description || '') }}
-                          className="p-1.5 hover:bg-secondary rounded transition-colors cursor-pointer"
+                          className="p-1.5 hover:transition-colors cursor-pointer"
                         >
-                          <X className="w-4 h-4 text-muted-foreground" />
+                          <X className="w-4 h-4 text-muted-foreground hover:text-primary" />
                         </button>
                         <button
                           onClick={handleSaveAbout}
                           disabled={savingAbout}
-                          className="p-1.5 hover:bg-primary/20 rounded transition-colors cursor-pointer"
+                          className="p-1.5 hover: transition-colors cursor-pointer"
                         >
                           {savingAbout ? (
                             <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                           ) : (
-                            <Check className="w-4 h-4 text-primary" />
+                            <Check className="w-4 h-4 text-muted-foreground hover:text-primary" />
                           )}
                         </button>
                       </div>
@@ -788,9 +797,9 @@ export default function CommunityPage() {
                         />
                         <button
                           onClick={() => removeRule(index)}
-                          className="p-1 rounded cursor-pointer"
+                          className="p-1.5 hover:transition-colors cursor-pointer"
                         >
-                        <X className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                          <X className="w-4 h-4 text-muted-foreground hover:text-primary" />
                         </button>
                       </div>
                     ))}
@@ -804,9 +813,9 @@ export default function CommunityPage() {
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={() => { setEditingRules(false); setRulesText(community.rules || []) }}
-                        className="p-1.5"
-                      >
-                        <X className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                        className="p-1.5 hover:transition-colors cursor-pointer"
+                        >
+                          <X className="w-4 h-4 text-muted-foreground hover:text-primary" />
                       </button>
                       <button
                         onClick={handleSaveRules}
@@ -971,24 +980,9 @@ export default function CommunityPage() {
                             {post.title}
                           </h3>
 
-                          {/* Post Images */}
-                          {post.images?.length > 0 && (
-                            <div className="mt-3 mb-2">
-                              <div className="bg-black/80 border border-border rounded-lg overflow-hidden flex items-center justify-center aspect-[16/9] w-full max-w-full">
-                                <img
-                                  src={post.images[0]}
-                                  alt="Post preview"
-                                  className="max-w-full max-h-full object-contain"
-                                />
-                              </div>
+                          {/* Post Media Preview */}
+                          <PostMediaPreview images={post.images} videos={post.videos} />
 
-                              {post.images.length > 1 && (
-                                <p className="text-xs text-muted-foreground mt-1 text-center">
-                                  +{post.images.length - 1} more image{post.images.length > 2 ? 's' : ''}
-                                </p>
-                              )}
-                            </div>
-                          )}
                           {/* Post Stats */}
                           <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">

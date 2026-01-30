@@ -92,9 +92,9 @@ export const POST = withAuth(async (request, { user }) => {
     } = body
 
     // Validation
-    if (!name || !description || !category) {
+    if (!name || !description) {
       return NextResponse.json(
-        { success: false, message: 'Name, description, and category are required' },
+        { success: false, message: 'Name and description are required' },
         { status: 400 }
       )
     }

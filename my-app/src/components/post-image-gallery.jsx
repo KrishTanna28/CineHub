@@ -166,10 +166,10 @@ function ImageLightbox({ images, currentIndex, onClose, onPrevious, onNext, onKe
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-10"
+        className="absolute top-4 right-4 p-2 transition-colors z-10 cursor-pointer"
         aria-label="Close"
       >
-        <X className="w-6 h-6" />
+        <X className="w-6 h-6 text-muted-foreground hover:text-primary" />
       </button>
 
       {/* Previous button */}

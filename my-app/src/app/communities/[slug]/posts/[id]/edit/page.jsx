@@ -209,11 +209,11 @@ export default function EditPostPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter a title..."
-              maxLength={200}
+              maxLength={500}
               required
               className="text-base"
             />
-            <p className="text-xs text-muted-foreground mt-1">{title.length}/200 characters</p>
+            <p className="text-xs text-muted-foreground mt-1">{title.length}/500 characters</p>
           </div>
 
           {/* Content */}
@@ -227,10 +227,10 @@ export default function EditPostPage() {
               onChange={(e) => setContent(e.target.value)}
               placeholder="Share your thoughts, opinions, or questions..."
               rows={8}
-              maxLength={5000}
+              maxLength={10000}
               className="w-full p-4 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
             />
-            <p className="text-xs text-muted-foreground mt-1">{content.length}/5000 characters</p>
+            <p className="text-xs text-muted-foreground mt-1">{content.length}/10000 characters</p>
           </div>
 
           {/* Images */}
@@ -252,9 +252,9 @@ export default function EditPostPage() {
                     <button
                       type="button"
                       onClick={() => removeImage(idx)}
-                      className="absolute top-2 right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      className="absolute top-2 right-2 p-1.5 cursor-pointer"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-4 h-4 text-muted-foreground hover:text-primary" />
                     </button>
                   </div>
                 ))}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { Search, Menu, X, User, LogOut, Settings, Home, Compass, Users, Film, Tv, MessageCircle, Loader2 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -41,7 +41,12 @@ export default function Navigation() {
   const [showSearchDropdown, setShowSearchDropdown] = useState(false)
   const searchRef = useRef(null)
   const router = useRouter()
+  const pathname = usePathname()
   const { user, isLoading, logout } = useUser()
+
+  // Check if we're on a specific community page (slug page - transparent navbar at top)
+  // Match /communities/[slug] but not /communities, /communities/[slug]/new-post, /communities/[slug]/edit, /communities/[slug]/posts/[id]
+  const isCommunitySlugPage = pathname?.match(/^\/communities\/[^\/]+$/) !== null
 
   // Perform search across all categories
   const performSearch = useCallback(async (query) => {
@@ -173,9 +178,9 @@ export default function Navigation() {
             </Link>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-2 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
+              className="p-2 cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 text-muted-foreground hover:text-primary" />
             </button>
           </div>
 
@@ -311,9 +316,8 @@ export default function Navigation() {
 
       {/* Main Navbar */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-30 transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'
+        className={`fixed top-0 left-0 right-0 z-30 transition-all duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'
           } ${hasBackground ? 'bg-background/95 backdrop-blur border-b border-border' : 'bg-transparent border-none'}`}
-
       >
         <div className="w-full px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
@@ -427,7 +431,7 @@ export default function Navigation() {
                                     )}
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium text-foreground truncate">r/{community.name}</p>
-                                      <p className="text-xs text-muted-foreground truncate">{community.memberCount || 0} members</p>
+                                      <p className="text-xs text-muted-foreground truncate">{community.memberCount == 1 ? "1 member" : `${community.memberCount || 0} members`}</p>
                                     </div>
                                   </Link>
                                 ))}
@@ -592,9 +596,9 @@ export default function Navigation() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="md:hidden p-2 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
+              className="md:hidden p-2 cursor-pointer"
             >
-              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isOpen ? <X className="w-6 h-6 text-muted-foreground hover:text-primary" /> : <Menu className="w-6 h-6 text-muted-foreground hover:text-primary" />}
             </button>
           </div>
 

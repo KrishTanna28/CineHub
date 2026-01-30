@@ -10,7 +10,7 @@ import { useUser } from "@/contexts/UserContext"
 import { useToast } from "@/hooks/use-toast"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 import { fetchPosts } from "@/lib/communities/posts.js"
-import PostImageGallery from "@/components/post-image-gallery"
+import PostMediaGallery from "@/components/post-media-gallery"
 
 export default function PostDetailPage() {
   const [post, setPost] = useState(null)
@@ -740,17 +740,17 @@ export default function PostDetailPage() {
           </div>
 
           {/* Title */}
-          <h1 className="text-3xl font-bold text-foreground mb-4">{post.title}</h1>
+          <h1 className="text-xl font-bold text-foreground mb-4">{post.title}</h1>
+
+          {/* Media Gallery (Images + Videos) */}
+          <PostMediaGallery images={post.images} videos={post.videos} />
 
           {/* Content */}
           {post.content && (
-            <div className="text-foreground whitespace-pre-wrap mb-4">
+            <div className="text-muted-foreground whitespace-pre-wrap mb-4">
               {post.content}
             </div>
           )}
-
-          {/* Images */}
-          <PostImageGallery images={post.images} />
 
           {/* Post Actions */}
           <div className="flex items-center gap-4 pt-4 border-t border-border">

@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Plus, Users, Film, Tv, User, Sparkles, Filter, ChevronDown, ChevronUp, Heart, MessageCircle, Eye, Clock, AlertTriangle } from "lucide-react"
+import { Plus, Users, Film, Tv, User, Sparkles, Filter, ChevronDown, ChevronUp, Heart, MessageCircle, Eye, Clock, AlertTriangle, ThumbsUp, ThumbsDown, Video, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/contexts/UserContext"
 import { useToast } from "@/hooks/use-toast"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
+import PostMediaPreview from "@/components/post-media-preview"
 
 const categories = [
   { id: 'all', label: 'All Posts' },
+  { id: 'general', label: 'General', icon: Sparkles },
   { id: 'movie', label: 'Movies', icon: Film },
   { id: 'tv', label: 'TV Shows', icon: Tv },
   { id: 'actor', label: 'Actors & Cast', icon: User },
@@ -34,6 +36,8 @@ export default function CommunitiesPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [recentPosts, setRecentPosts] = useState([])
   const [recentPostsLoading, setRecentPostsLoading] = useState(true)
+  const [recommendedCommunities, setRecommendedCommunities] = useState([])
+  const [communitiesLoading, setCommunitiesLoading] = useState(true)
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useUser()
@@ -60,7 +64,23 @@ export default function CommunitiesPage() {
   // Fetch recent posts for sidebar
   useEffect(() => {
     fetchRecentPosts()
+    fetchRecommendedCommunities()
   }, [])
+
+  const fetchRecommendedCommunities = async () => {
+    setCommunitiesLoading(true)
+    try {
+      const response = await fetch('/api/communities?sort=popular&limit=8')
+      const data = await response.json()
+      if (data.success) {
+        setRecommendedCommunities(data.data)
+      }
+    } catch (error) {
+      console.error('Error fetching recommended communities:', error)
+    } finally {
+      setCommunitiesLoading(false)
+    }
+  }
 
   const fetchRecentPosts = async () => {
     setRecentPostsLoading(true)
@@ -249,8 +269,87 @@ export default function CommunitiesPage() {
           </div>
         </div>
 
-        {/* Main Content Area with Sidebar */}
+        {/* Main Content Area with Sidebars */}
         <div className="flex gap-6">
+          {/* Left Sidebar - Recommended Communities */}
+          <aside className="hidden lg:block w-72 flex-shrink-0">
+            <div className="sticky top-24">
+              <div className="bg-secondary/30 rounded-lg border border-border overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    Communities to Join
+                  </h3>
+                </div>
+
+                {/* Communities List */}
+                <div className="divide-y divide-border/50">
+                  {communitiesLoading ? (
+                    <div className="p-4 flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : recommendedCommunities.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      No communities found
+                    </div>
+                  ) : (
+                    recommendedCommunities.map((community) => {
+                      const CategoryIcon = categories.find(c => c.id === community.category)?.icon || Sparkles
+                      
+                      return (
+                        <Link 
+                          key={community._id}
+                          href={`/communities/${community.slug}`}
+                          className="block hover:bg-secondary/50 transition-colors"
+                        >
+                          <div className="p-3 flex items-center gap-3">
+                            {/* Community Icon */}
+                            {community.icon ? (
+                              <img 
+                                src={community.icon} 
+                                alt={community.name}
+                                className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                <CategoryIcon className="w-5 h-5 text-primary" />
+                              </div>
+                            )}
+
+                            {/* Community Info */}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-medium text-foreground truncate">
+                                {community.name}
+                              </h4>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                  community.category === 'movie' ? 'bg-blue-500/20 text-blue-400' :
+                                  community.category === 'tv' ? 'bg-purple-500/20 text-purple-400' :
+                                  community.category === 'actor' ? 'bg-green-500/20 text-green-400' :
+                                  'bg-gray-500/20 text-gray-400'
+                                }`}>
+                                  {community.category}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Users className="w-3 h-3" />
+                                  {formatNumber(community.memberCount || 0)}
+                                </span>
+                                <span>•</span>
+                                <span>{formatNumber(community.postCount || 0)} posts</span>
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          </aside>
+
           {/* Posts Feed - Main Column */}
           <div className="flex-1 min-w-0">
             {/* Posts Feed */}
@@ -281,17 +380,17 @@ export default function CommunitiesPage() {
                     return (
                       <Link 
                         key={post._id} 
-                        href={`/communities/${post.community?.slug}`}
+                        href={`/communities/${post.community?.slug}/posts/${post._id}`}
                         className="block"
                       >
                         <div className="bg-secondary/20 rounded-lg border border-border hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer overflow-hidden">
                           <div className="p-4">
                             {/* Community Info Header */}
                             <div className="flex items-center gap-3 mb-3">
-                              {post.user?.avatar ? (
+                              {post.community?.icon ? (
                                 <img 
-                                  src={post.user?.avatar} 
-                                  alt={post.user?.username}
+                                  src={post.community?.icon} 
+                                  alt={post.community?.name}
                                   className="w-8 h-8 rounded-full object-cover"
                                 />
                               ) : (
@@ -314,7 +413,7 @@ export default function CommunitiesPage() {
                                   </span>
                                   </div>
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <span>Posted by {post.user?.username || 'Anonymous'}</span>
+                                    <span>Posted by {post.user?.username == user.username ? 'You' : post.user?.username || 'Anonymous'}</span>
                                     <span>•</span>
                                     <span className="flex items-center gap-1">
                                       <Clock className="w-3 h-3" />
@@ -329,29 +428,18 @@ export default function CommunitiesPage() {
                                 {post.title}
                               </h3>
 
-                              {/* Post Images Preview */}
-                              {post.images && post.images.length > 0 && (
-                                <div className="mt-3 mb-2">
-                                  <div className="bg-black/80 border border-border rounded-lg overflow-hidden mx-auto flex items-center justify-center aspect-[16/9] w-full max-w-[90vw] sm:max-w-[420px] md:max-w-[680px] lg:max-w-[820px]">
-                                    <img
-                                      src={post.images[0]}
-                                      alt="Post preview"
-                                      className="max-w-full max-h-full object-contain"
-                                    />
-                                  </div>
-                                  {post.images.length > 1 && (
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                      +{post.images.length - 1} more images
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                              {/* Post Media Preview */}
+                              <PostMediaPreview images={post.images} videos={post.videos} />
 
                               {/* Post Stats */}
                               <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2 border-t border-border/50">
                                 <span className="flex items-center gap-1.5">
-                                  <Heart className="w-4 h-4" />
+                                  <ThumbsUp className="w-4 h-4" />
                                   {formatNumber(post.likesCount || 0)}
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                  <ThumbsDown className="w-4 h-4" />
+                                  {formatNumber(post.dislikesCount || 0)}
                                 </span>
                                 <span className="flex items-center gap-1.5">
                                   <MessageCircle className="w-4 h-4" />
@@ -461,18 +549,22 @@ export default function CommunitiesPage() {
                               {/* Stats */}
                               <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
                                 <span className="flex items-center gap-1">
-                                  <Heart className="w-3 h-3" />
-                                  {formatNumber(post.likesCount || 0)} upvotes
+                                  <ThumbsUp className="w-3 h-3" />
+                                  {formatNumber(post.likesCount || 0)}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <ThumbsDown className="w-3 h-3" />
+                                  {formatNumber(post.dislikesCount || 0)}
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <MessageCircle className="w-3 h-3" />
-                                  {formatNumber(post.commentsCount || 0)} comments
+                                  {formatNumber(post.commentsCount || 0)}
                                 </span>
                               </div>
                             </div>
 
                             {/* Thumbnail */}
-                            {post.images && post.images.length > 0 && (
+                            {post.images && post.images.length > 0 ? (
                               <div className="flex-shrink-0">
                                 <div className="w-16 h-16 rounded-md overflow-hidden bg-black/50 flex items-center justify-center">
                                   <img 
@@ -482,7 +574,20 @@ export default function CommunitiesPage() {
                                   />
                                 </div>
                               </div>
-                            )}
+                            ) : post.videos && post.videos.length > 0 ? (
+                              <div className="flex-shrink-0">
+                                <div className="w-16 h-16 rounded-md overflow-hidden bg-black/50 flex items-center justify-center relative">
+                                  <video 
+                                    src={post.videos[0]} 
+                                    className="w-full h-full object-cover"
+                                    preload="metadata"
+                                  />
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                    <Play className="w-5 h-5 text-white fill-white" />
+                                  </div>
+                                </div>
+                              </div>
+                            ) : null}
                           </div>
                         </Link>
                       )

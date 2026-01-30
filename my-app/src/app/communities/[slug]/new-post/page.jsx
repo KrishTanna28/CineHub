@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, X, Upload, Image } from "lucide-react"
+import { ArrowLeft, X, Upload, Image, Video } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,6 +14,7 @@ export default function NewPostPage() {
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
   const [imagePreviews, setImagePreviews] = useState([])
+  const [videoPreviews, setVideoPreviews] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [community, setCommunity] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -100,6 +101,40 @@ export default function NewPostPage() {
     setImagePreviews(prev => prev.filter((_, i) => i !== index))
   }
 
+  const handleVideoUpload = (files) => {
+    const fileArray = Array.from(files)
+    if (videoPreviews.length + fileArray.length > 3) {
+      toast({
+        title: "Too Many Videos",
+        description: "You can upload maximum 3 videos per post",
+        variant: "destructive"
+      })
+      return
+    }
+
+    fileArray.forEach((file) => {
+      // Check file size (max 100MB)
+      if (file.size > 100 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Video must be less than 100MB",
+          variant: "destructive"
+        })
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setVideoPreviews(prev => [...prev, { data: reader.result, name: file.name }])
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const removeVideo = (index) => {
+    setVideoPreviews(prev => prev.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -112,10 +147,10 @@ export default function NewPostPage() {
       return
     }
 
-    if (!content.trim() && imagePreviews.length === 0) {
+    if (!content.trim() && imagePreviews.length === 0 && videoPreviews.length === 0) {
       toast({
         title: "Validation Error",
-        description: "Please add content or images to your post",
+        description: "Please add content, images, or videos to your post",
         variant: "destructive"
       })
       return
@@ -133,7 +168,8 @@ export default function NewPostPage() {
         body: JSON.stringify({
           title,
           content,
-          images: imagePreviews
+          images: imagePreviews,
+          videos: videoPreviews.map(v => v.data)
         })
       })
 
@@ -190,11 +226,11 @@ export default function NewPostPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter a title..."
-              maxLength={200}
+              maxLength={500}
               required
               className="text-base"
             />
-            <p className="text-xs text-muted-foreground mt-1">{title.length}/200 characters</p>
+            <p className="text-xs text-muted-foreground mt-1">{title.length}/500 characters</p>
           </div>
 
           {/* Content */}
@@ -208,10 +244,10 @@ export default function NewPostPage() {
               onChange={(e) => setContent(e.target.value)}
               placeholder="Share your thoughts, opinions, or questions..."
               rows={8}
-              maxLength={5000}
+              maxLength={10000}
               className="w-full p-4 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
             />
-            <p className="text-xs text-muted-foreground mt-1">{content.length}/5000 characters</p>
+            <p className="text-xs text-muted-foreground mt-1">{content.length}/10000 characters</p>
           </div>
 
           {/* Images */}
@@ -233,9 +269,9 @@ export default function NewPostPage() {
                     <button
                       type="button"
                       onClick={() => removeImage(idx)}
-                      className="absolute top-2 right-2 z-20 p-1.5 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      className="absolute top-2 right-2 z-20 p-1.5 transition-opacity cursor-pointer"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-4 h-4 text-muted-foreground hover:text-primary" />
                     </button>
                   </div>
                 ))}
@@ -263,6 +299,58 @@ export default function NewPostPage() {
             </p>
           </div>
 
+          {/* Videos */}
+          <div>
+            <Label className="text-base font-semibold mb-3 block">
+              Videos (Optional)
+            </Label>
+            
+            {/* Video Grid */}
+            {videoPreviews.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                {videoPreviews.map((video, idx) => (
+                  <div key={idx} className="relative group rounded-lg overflow-hidden border-2 border-border bg-black/80">
+                    <video
+                      src={video.data}
+                      className="w-full aspect-video object-contain"
+                      controls
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeVideo(idx)}
+                      className="absolute top-2 right-2 z-20 p-1.5 transition-opacity cursor-pointer"
+                    >
+                      <X className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                    </button>
+                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/70 rounded text-xs text-white truncate max-w-[80%]">
+                      {video.name}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Video Upload Button */}
+            {videoPreviews.length < 3 && (
+              <label className="flex items-center justify-center gap-2 p-6 bg-secondary/20 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-secondary/30 transition-colors">
+                <Video className="w-6 h-6 text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">
+                  Click to upload videos ({videoPreviews.length}/3)
+                </span>
+                <input
+                  type="file"
+                  accept="video/*"
+                  multiple
+                  onChange={(e) => handleVideoUpload(e.target.files)}
+                  className="hidden"
+                />
+              </label>
+            )}
+            <p className="text-xs text-muted-foreground mt-2">
+              Supported formats: MP4, MOV, WebM. Max 3 videos, 100MB each.
+            </p>
+          </div>
+
           {/* Guidelines */}
           <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
             <h3 className="font-semibold text-foreground mb-2">Community Guidelines</h3>
@@ -286,7 +374,7 @@ export default function NewPostPage() {
             </Button>
             <Button
               type="submit"
-              disabled={submitting || !title.trim() || (!content.trim() && imagePreviews.length === 0)}
+              disabled={submitting || !title.trim() || (!content.trim() && imagePreviews.length === 0 && videoPreviews.length === 0)}
               className="flex-1 sm:flex-initial cursor-pointer"
             >
               {submitting ? 'Posting...' : 'Create Post'}

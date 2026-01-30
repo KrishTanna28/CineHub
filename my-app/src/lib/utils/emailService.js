@@ -391,7 +391,7 @@ export const sendWelcomeEmail = async (email, userName) => {
               </div>
 
               <div style="text-align: center; margin-top: 40px;">
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" class="cta-button">
+                <a href="${process.env.FRONTEND_URL}" class="cta-button">
                   Start Exploring 🍿
                 </a>
               </div>

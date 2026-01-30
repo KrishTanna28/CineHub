@@ -27,7 +27,8 @@ const communitySchema = new mongoose.Schema({
   // Category - Only entertainment related
   category: {
     type: String,
-    enum: ['movie', 'tv', 'actor', 'mixed'],
+    enum: ['general', 'movie', 'tv', 'actor', 'mixed'],
+    default: 'general',
     index: true
   },
   
