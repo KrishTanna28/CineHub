@@ -428,7 +428,7 @@ export default function ProfilePage() {
                           <div className="poster-overlay">
                             <div className="w-full">
                               <h3 className="font-bold text-white mb-2 line-clamp-2">{title}</h3>
-                              <span className="rating-badge">⭐ {movie.rating?.toFixed(1)}</span>
+                              <span className="rating-badge"><Star className="w-3 h-3 text-primary" />{movie.rating?.toFixed(1)}</span>
                             </div>
                           </div>
                         </div>
@@ -492,7 +492,7 @@ export default function ProfilePage() {
                           <div className="poster-overlay">
                             <div className="w-full">
                               <h3 className="font-bold text-white mb-2 line-clamp-2">{title}</h3>
-                              <span className="rating-badge">⭐ {movie.rating?.toFixed(1)}</span>
+                              <span className="rating-badge"><Star className="w-3 h-3 text-primary" />{movie.rating?.toFixed(1)}</span>
                             </div>
                           </div>
                         </div>
@@ -557,7 +557,7 @@ export default function ProfilePage() {
                             })}
                           </p>
                         </div>
-                        <span className="rating-badge">⭐ {review.rating}/10</span>
+                        <span className="rating-badge"><Star className="w-3 h-3 text-primary" /> {review.rating}/10</span>
                       </div>
                       <p className="text-foreground line-clamp-3">{review.content}</p>
                       <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">

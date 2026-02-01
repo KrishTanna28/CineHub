@@ -239,3 +239,8 @@
 .animate-scroll-slow:hover {
   animation: scroll-slow 0.5s ease-in-out;
 }
+
+input,
+textarea {
+  font-size: 16px;
+}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, ThumbsUp, ThumbsDown, MessageCircle, Eye, Pin, Lock, Trash2, Send, Pencil, MoreVertical, Cross2 } from "lucide-react"
+import { ArrowLeft, ThumbsUp, ThumbsDown, MessageCircle, Eye, Pin, Lock, Trash2, Send, Pencil, MoreVertical, Cross2, X } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -664,12 +664,12 @@ export default function PostDetailPage() {
   return (
     <main className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-         <button
-        onClick={() => router.back()}
-        className="flex items-center text-sm gap-2 hover:text-primary mb-5"
-      >
-        <ArrowLeft className="w-7 h-7" />
-      </button>
+        <button
+          onClick={() => router.back()}
+          className="flex items-center text-sm gap-2 hover:text-primary mb-5"
+        >
+          <ArrowLeft className="w-7 h-7" />
+        </button>
         {/* Post Card */}
         <div className="bg-secondary/20 rounded-lg border border-border p-6 mb-6">
           {/* Header */}
@@ -682,32 +682,32 @@ export default function PostDetailPage() {
                 <Lock className="w-4 h-4 text-muted-foreground" />
               )}
               <span className="flex items-center gap-3">
-  {/* User avatar */}
-  <img
-    src={post.user?.avatar || '/default-avatar.png'}
-    alt={post.user?.username || 'User'}
-    className="w-8 h-8 rounded-full object-cover"
-  />
+                {/* User avatar */}
+                <img
+                  src={post.user?.avatar || '/default-avatar.png'}
+                  alt={post.user?.username || 'User'}
+                  className="w-8 h-8 rounded-full object-cover"
+                />
 
-  {/* Stacked text */}
-  <span className="flex flex-col leading-tight">
-    <div>
-      r/<span className="font-bold text-primary">
-        {post.community?.name || 'Unknown'}
-      </span>
-      {' • '}
-      {formatTimeAgo(post.createdAt)}
-    </div>
+                {/* Stacked text */}
+                <span className="flex flex-col leading-tight">
+                  <div>
+                    r/<span className="font-bold text-primary">
+                      {post.community?.name || 'Unknown'}
+                    </span>
+                    {' • '}
+                    {formatTimeAgo(post.createdAt)}
+                  </div>
 
-    <div className="text-sm text-muted-foreground">
-      u/<span className="font-medium">
-        {post.user?.username || 'Unknown'}
-      </span>
-      {' • '}
-      {formatTimeAgo(post.createdAt)}
-    </div>
-  </span>
-</span>
+                  <div className="text-sm text-muted-foreground">
+                    u/<span className="font-medium">
+                      {post.user?.username || 'Unknown'}
+                    </span>
+                    {' • '}
+                    {formatTimeAgo(post.createdAt)}
+                  </div>
+                </span>
+              </span>
 
             </div>
 
@@ -757,14 +757,14 @@ export default function PostDetailPage() {
             <button
               onClick={handleLikePost}
               className={`flex items-center gap-2 text-sm transition-colors ${post.likes?.some(id => id?.toString() === user?._id)
-                  ? "text-primary font-bold"
-                  : "text-muted-foreground hover:text-primary"
+                ? "text-primary font-bold"
+                : "text-muted-foreground hover:text-primary"
                 }`}
             >
               <ThumbsUp
                 className={`w-4 h-4 ${post.likes?.some(id => id?.toString() === user?._id)
-                    ? "fill-primary text-primary"
-                    : ""
+                  ? "fill-primary text-primary"
+                  : ""
                   }`}
               />
               <span>{post.likes?.length || 0}</span>
@@ -773,14 +773,14 @@ export default function PostDetailPage() {
             <button
               onClick={handleDislikePost}
               className={`flex items-center gap-2 text-sm transition-colors ${post.dislikes?.some(id => id?.toString() === user?._id)
-                  ? "text-destructive"
-                  : "text-muted-foreground hover:text-destructive"
+                ? "text-destructive"
+                : "text-muted-foreground hover:text-destructive"
                 }`}
             >
               <ThumbsDown
                 className={`w-4 h-4 ${post.dislikes?.some(id => id?.toString() === user?._id)
-                    ? "fill-destructive text-destructive"
-                    : ""
+                  ? "fill-destructive text-destructive"
+                  : ""
                   }`}
               />
               <span>{post.dislikes?.length || 0}</span>
@@ -875,14 +875,14 @@ export default function PostDetailPage() {
                       <button
                         onClick={() => handleLikeComment(comment._id)}
                         className={`flex items-center gap-1 text-xs transition-colors ${comment.likes?.some(id => id?.toString() === user?._id)
-                            ? 'text-primary'
-                            : 'text-muted-foreground hover:text-primary'
+                          ? 'text-primary'
+                          : 'text-muted-foreground hover:text-primary'
                           }`}
                       >
                         <ThumbsUp
                           className={`w-3 h-3 ${comment.likes?.some(id => id?.toString() === user?._id)
-                              ? 'fill-primary text-primary'
-                              : ''
+                            ? 'fill-primary text-primary'
+                            : ''
                             }`}
                         />
                         {comment.likes?.length || 0}
@@ -891,14 +891,14 @@ export default function PostDetailPage() {
                       <button
                         onClick={() => handleDislikeComment(comment._id)}
                         className={`flex items-center gap-1 text-xs transition-colors ${comment.dislikes?.some(id => id?.toString() === user?._id)
-                            ? 'text-destructive'
-                            : 'text-muted-foreground hover:text-destructive'
+                          ? 'text-destructive'
+                          : 'text-muted-foreground hover:text-destructive'
                           }`}
                       >
                         <ThumbsDown
                           className={`w-3 h-3 ${comment.dislikes?.some(id => id?.toString() === user?._id)
-                              ? 'fill-destructive text-destructive'
-                              : ''
+                            ? 'fill-destructive text-destructive'
+                            : ''
                             }`}
                         />
                         {comment.dislikes?.length || 0}
@@ -944,7 +944,8 @@ export default function PostDetailPage() {
                               borderColor: 'var(--border)',
                             }}
                           />
-                          <Button
+                          <div className="flex flex-col items-center gap-2">                          
+                            <Button
                             onClick={() => handleSubmitReply(comment._id)}
                             size="sm"
                             disabled={!replyContent.trim() || submitting}
@@ -955,6 +956,8 @@ export default function PostDetailPage() {
                               <Send className="w-4 h-4" />
                             )}
                           </Button>
+                            <X className="w-6 h-6 text-muted-foreground hover:text-destructive cursor-pointer" onClick={() => setReplyingTo(null)} />
+                          </div>
                         </div>
                       </div>
                     )}
@@ -988,14 +991,14 @@ export default function PostDetailPage() {
                                 <button
                                   onClick={() => handleLikeReply(comment._id, reply._id)}
                                   className={`flex items-center gap-1 text-xs transition-colors ${reply.likes?.some(id => id?.toString() === user?._id)
-                                      ? 'text-primary'
-                                      : 'text-muted-foreground hover:text-primary'
+                                    ? 'text-primary'
+                                    : 'text-muted-foreground hover:text-primary'
                                     }`}
                                 >
                                   <ThumbsUp
                                     className={`w-3 h-3 ${reply.likes?.some(id => id?.toString() === user?._id)
-                                        ? 'fill-primary text-primary'
-                                        : ''
+                                      ? 'fill-primary text-primary'
+                                      : ''
                                       }`}
                                   />
                                   {reply.likes?.length || 0}
@@ -1004,14 +1007,14 @@ export default function PostDetailPage() {
                                 <button
                                   onClick={() => handleDislikeReply(comment._id, reply._id)}
                                   className={`flex items-center gap-1 text-xs transition-colors ${reply.dislikes?.some(id => id?.toString() === user?._id)
-                                      ? 'text-destructive'
-                                      : 'text-muted-foreground hover:text-destructive'
+                                    ? 'text-destructive'
+                                    : 'text-muted-foreground hover:text-destructive'
                                     }`}
                                 >
                                   <ThumbsDown
                                     className={`w-3 h-3 ${reply.dislikes?.some(id => id?.toString() === user?._id)
-                                        ? 'fill-destructive text-destructive'
-                                        : ''
+                                      ? 'fill-destructive text-destructive'
+                                      : ''
                                       }`}
                                   />
                                   {reply.dislikes?.length || 0}

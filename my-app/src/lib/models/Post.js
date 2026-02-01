@@ -181,7 +181,7 @@ postSchema.methods.likeComment = function(commentId, userId) {
   const comment = this.comments.id(commentId);
   if (!comment) throw new Error('Comment not found');
   
-  const userIdStr = user._id?.toString();
+  const userIdStr = userId?.toString();
   const dislikeIndex = comment.dislikes.findIndex(id => id?.toString() === userIdStr);
   const likeIndex = comment.likes.findIndex(id => id?.toString() === userIdStr);
   
@@ -204,7 +204,7 @@ postSchema.methods.dislikeComment = function(commentId, userId) {
   const comment = this.comments.id(commentId);
   if (!comment) throw new Error('Comment not found');
   
-  const userIdStr = user._id?.toString();
+  const userIdStr = userId?.toString();
   const likeIndex = comment.likes.findIndex(id => id?.toString() === userIdStr);
   const dislikeIndex = comment.dislikes.findIndex(id => id?.toString() === userIdStr);
   
@@ -243,7 +243,7 @@ postSchema.methods.likeReply = function(commentId, replyId, userId) {
   const reply = comment.replies.id(replyId);
   if (!reply) throw new Error('Reply not found');
   
-  const userIdStr = user._id?.toString();
+  const userIdStr = userId?.toString();
   const dislikeIndex = reply.dislikes.findIndex(id => id?.toString() === userIdStr);
   const likeIndex = reply.likes.findIndex(id => id?.toString() === userIdStr);
   
@@ -269,7 +269,7 @@ postSchema.methods.dislikeReply = function(commentId, replyId, userId) {
   const reply = comment.replies.id(replyId);
   if (!reply) throw new Error('Reply not found');
   
-  const userIdStr = user._id?.toString();
+  const userIdStr = userId?.toString();
   const likeIndex = reply.likes.findIndex(id => id?.toString() === userIdStr);
   const dislikeIndex = reply.dislikes.findIndex(id => id?.toString() === userIdStr);
   

@@ -830,3 +830,648 @@ export function formatReviews(reviews) {
       updatedAt: review.updated_at || review.created_at,
     }));
   }
+
+// ===== ADDITIONAL RECOMMENDATION CATEGORIES =====
+
+// Get movies by genre
+export async function getMoviesByGenre(genreId, page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page, 
+        with_genres: genreId,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getMoviesByGenre error:', error.message);
+    throw new Error('Failed to fetch movies by genre');
+  }
+}
+
+// Get TV shows by genre
+export async function getTVByGenre(genreId, page = 1) {
+  try {
+    const response = await api.get('/discover/tv', {
+      params: { 
+        page, 
+        with_genres: genreId,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMediaList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getTVByGenre error:', error.message);
+    throw new Error('Failed to fetch TV shows by genre');
+  }
+}
+
+// Get movies from specific decade
+export async function getMoviesByDecade(startYear, endYear, page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        'primary_release_date.gte': `${startYear}-01-01`,
+        'primary_release_date.lte': `${endYear}-12-31`,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getMoviesByDecade error:', error.message);
+    throw new Error('Failed to fetch movies by decade');
+  }
+}
+
+// Get critically acclaimed movies (high rating)
+export async function getCriticallyAcclaimed(page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        'vote_average.gte': 8,
+        'vote_count.gte': 1000,
+        sort_by: 'vote_average.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getCriticallyAcclaimed error:', error.message);
+    throw new Error('Failed to fetch critically acclaimed movies');
+  }
+}
+
+// Get hidden gems (high rating but lower vote count)
+export async function getHiddenGems(page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        'vote_average.gte': 7.5,
+        'vote_count.gte': 100,
+        'vote_count.lte': 1000,
+        sort_by: 'vote_average.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getHiddenGems error:', error.message);
+    throw new Error('Failed to fetch hidden gems');
+  }
+}
+
+// Get award-winning movies (based on keywords)
+export async function getAwardWinners(page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        'vote_average.gte': 7.5,
+        'vote_count.gte': 2000,
+        sort_by: 'vote_average.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getAwardWinners error:', error.message);
+    throw new Error('Failed to fetch award winners');
+  }
+}
+
+// Get movies by original language
+export async function getMoviesByLanguage(language, page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        with_original_language: language,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getMoviesByLanguage error:', error.message);
+    throw new Error('Failed to fetch movies by language');
+  }
+}
+
+// Get family-friendly movies
+export async function getFamilyMovies(page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        with_genres: '10751,16', // Family and Animation
+        certification_country: 'US',
+        'certification.lte': 'PG-13',
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getFamilyMovies error:', error.message);
+    throw new Error('Failed to fetch family movies');
+  }
+}
+
+// Get documentaries
+export async function getDocumentaries(page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        with_genres: 99, // Documentary genre ID
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getDocumentaries error:', error.message);
+    throw new Error('Failed to fetch documentaries');
+  }
+}
+
+// Get movies released in a specific year
+export async function getMoviesByYear(year, page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        primary_release_year: year,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getMoviesByYear error:', error.message);
+    throw new Error('Failed to fetch movies by year');
+  }
+}
+
+// Get TV genres
+export async function getTVGenres() {
+  try {
+    const response = await api.get('/genre/tv/list');
+    return response.data.genres;
+  } catch (error) {
+    console.error('TMDB getTVGenres error:', error.message);
+    throw new Error('Failed to fetch TV genres');
+  }
+}
+
+// Get trending movies specifically
+export async function getTrendingMovies(timeWindow = 'week', page = 1) {
+  try {
+    const response = await api.get(`/trending/movie/${timeWindow}`, {
+      params: { page },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getTrendingMovies error:', error.message);
+    throw new Error('Failed to fetch trending movies');
+  }
+}
+
+// Get trending TV shows specifically
+export async function getTrendingTV(timeWindow = 'week', page = 1) {
+  try {
+    const response = await api.get(`/trending/tv/${timeWindow}`, {
+      params: { page },
+    });
+    return {
+      results: formatMediaList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getTrendingTV error:', error.message);
+    throw new Error('Failed to fetch trending TV shows');
+  }
+}
+
+// Get movies with specific runtime (short movies under 90 min)
+export async function getShortMovies(page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        'with_runtime.lte': 90,
+        'vote_average.gte': 6,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getShortMovies error:', error.message);
+    throw new Error('Failed to fetch short movies');
+  }
+}
+
+// Get epic long movies (over 150 min)
+export async function getEpicMovies(page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        'with_runtime.gte': 150,
+        'vote_average.gte': 7,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getEpicMovies error:', error.message);
+    throw new Error('Failed to fetch epic movies');
+  }
+}
+
+// Get new releases (released in last 30 days)
+export async function getNewReleases(page = 1) {
+  try {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        'primary_release_date.gte': thirtyDaysAgo.toISOString().split('T')[0],
+        'primary_release_date.lte': today.toISOString().split('T')[0],
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getNewReleases error:', error.message);
+    throw new Error('Failed to fetch new releases');
+  }
+}
+
+// Get movies with specific certification (R-rated, etc.)
+export async function getMoviesByCertification(certification, page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        certification_country: 'US',
+        certification: certification,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getMoviesByCertification error:', error.message);
+    throw new Error('Failed to fetch movies by certification');
+  }
+}
+
+// Get late night movies (thrillers, horror released in last 2 years)
+export async function getLateNightMovies(page = 1) {
+  try {
+    const currentYear = new Date().getFullYear();
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        with_genres: '27,53', // Horror, Thriller
+        'primary_release_date.gte': `${currentYear - 2}-01-01`,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getLateNightMovies error:', error.message);
+    throw new Error('Failed to fetch late night movies');
+  }
+}
+
+// Get feel-good movies (Comedy, Romance with good ratings)
+export async function getFeelGoodMovies(page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        with_genres: '35,10749', // Comedy, Romance
+        'vote_average.gte': 6.5,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getFeelGoodMovies error:', error.message);
+    throw new Error('Failed to fetch feel-good movies');
+  }
+}
+
+// Get mind-bending movies (Sci-Fi, Mystery with high ratings)
+export async function getMindBendingMovies(page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        with_genres: '878,9648', // Sci-Fi, Mystery
+        'vote_average.gte': 7,
+        sort_by: 'vote_average.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getMindBendingMovies error:', error.message);
+    throw new Error('Failed to fetch mind-bending movies');
+  }
+}
+
+// Get binge-worthy TV shows (highly rated with many episodes)
+export async function getBingeWorthyTV(page = 1) {
+  try {
+    const response = await api.get('/discover/tv', {
+      params: { 
+        page,
+        'vote_average.gte': 7.5,
+        'vote_count.gte': 500,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMediaList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getBingeWorthyTV error:', error.message);
+    throw new Error('Failed to fetch binge-worthy TV shows');
+  }
+}
+
+// Get limited series (miniseries with 1 season)
+export async function getLimitedSeries(page = 1) {
+  try {
+    const response = await api.get('/discover/tv', {
+      params: { 
+        page,
+        with_type: '2', // Miniseries type
+        'vote_average.gte': 7,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMediaList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getLimitedSeries error:', error.message);
+    throw new Error('Failed to fetch limited series');
+  }
+}
+
+// Get anime movies and shows
+export async function getAnime(page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        with_genres: 16, // Animation
+        with_original_language: 'ja', // Japanese
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getAnime error:', error.message);
+    throw new Error('Failed to fetch anime');
+  }
+}
+
+// Get anime TV shows
+export async function getAnimeTV(page = 1) {
+  try {
+    const response = await api.get('/discover/tv', {
+      params: { 
+        page,
+        with_genres: 16, // Animation
+        with_original_language: 'ja', // Japanese
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMediaList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getAnimeTV error:', error.message);
+    throw new Error('Failed to fetch anime TV shows');
+  }
+}
+
+// Get reality TV shows
+export async function getRealityTV(page = 1) {
+  try {
+    const response = await api.get('/discover/tv', {
+      params: { 
+        page,
+        with_genres: 10764, // Reality
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMediaList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getRealityTV error:', error.message);
+    throw new Error('Failed to fetch reality TV shows');
+  }
+}
+
+// Get crime dramas
+export async function getCrimeDramas(page = 1) {
+  try {
+    const response = await api.get('/discover/tv', {
+      params: { 
+        page,
+        with_genres: '80,18', // Crime, Drama
+        'vote_average.gte': 7,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMediaList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getCrimeDramas error:', error.message);
+    throw new Error('Failed to fetch crime dramas');
+  }
+}
+
+// Get superhero content
+export async function getSuperheroContent(page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        with_keywords: '9715', // Superhero keyword
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getSuperheroContent error:', error.message);
+    throw new Error('Failed to fetch superhero content');
+  }
+}
+
+// Get movies based on true stories
+export async function getBasedOnTrueStory(page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        with_keywords: '9672', // Based on true story keyword
+        'vote_average.gte': 6.5,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getBasedOnTrueStory error:', error.message);
+    throw new Error('Failed to fetch movies based on true stories');
+  }
+}
+
+// Get movies from specific production companies (Netflix, Marvel, etc)
+export async function getMoviesByCompany(companyId, page = 1) {
+  try {
+    const response = await api.get('/discover/movie', {
+      params: { 
+        page,
+        with_companies: companyId,
+        sort_by: 'popularity.desc'
+      },
+    });
+    return {
+      results: formatMovieList(response.data.results),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getMoviesByCompany error:', error.message);
+    throw new Error('Failed to fetch movies by company');
+  }
+}

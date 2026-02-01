@@ -49,7 +49,7 @@ export default function TVDetailsPage({ params }) {
     console.log('🎬 Fetching YouTube videos for TV show:', tvTitle, 'Page:', pageNum)
     try {
       const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY
-      
+
       if (!apiKey || apiKey === 'demo') {
         console.log('❌ YouTube API key not configured')
         setFeaturedVideos([])
@@ -61,11 +61,11 @@ export default function TVDetailsPage({ params }) {
       // Search for videos about the TV show (trailers, reviews, interviews, clips)
       const searchQuery = `${tvTitle} official trailer OR review OR interview OR clip OR behind the scenes`
       let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&maxResults=12&order=relevance&videoDuration=medium&key=${apiKey}`
-      
+
       if (pageToken) {
         url += `&pageToken=${pageToken}`
       }
-      
+
       console.log('📡 Fetching from YouTube API...')
       const response = await fetch(url)
       const data = await response.json()
@@ -83,7 +83,7 @@ export default function TVDetailsPage({ params }) {
         }))
 
         console.log('✅ Found', videos.length, 'YouTube videos')
-        
+
         if (pageNum === 1) {
           setFeaturedVideos(videos)
         } else {
@@ -131,7 +131,7 @@ export default function TVDetailsPage({ params }) {
     try {
       const apiKey = process.env.NEXT_PUBLIC_NEWS_API_KEY
       console.log('🔑 API Key exists:', !!apiKey, 'Length:', apiKey?.length)
-      
+
       if (!apiKey || apiKey === 'demo') {
         console.log('❌ News API key not configured, showing placeholder')
         setNews([])
@@ -139,15 +139,15 @@ export default function TVDetailsPage({ params }) {
         setIsLoadingMoreNews(false)
         return
       }
-      
+
       const url = `https://newsapi.org/v2/everything?q="${encodeURIComponent(tvTitle)}" AND (TV OR series OR show)&sortBy=relevancy&pageSize=20&page=${pageNum}&language=en&apiKey=${apiKey}`
       console.log('📡 Fetching from NewsAPI...')
-      
+
       const response = await fetch(url)
       const data = await response.json()
-      
+
       console.log('📰 NewsAPI Response:', data)
-      
+
       if (data.status === 'ok' && data.articles && data.articles.length > 0) {
         // Filter articles to only include those that actually mention the TV show title
         const filteredArticles = data.articles.filter(article => {
@@ -155,20 +155,20 @@ export default function TVDetailsPage({ params }) {
           const articleTitle = (article.title || '').toLowerCase()
           const articleDesc = (article.description || '').toLowerCase()
           const articleContent = (article.content || '').toLowerCase()
-          
-          return articleTitle.includes(titleLower) || 
-                 articleDesc.includes(titleLower) || 
-                 articleContent.includes(titleLower)
+
+          return articleTitle.includes(titleLower) ||
+            articleDesc.includes(titleLower) ||
+            articleContent.includes(titleLower)
         })
-        
+
         console.log('✅ Found', filteredArticles.length, 'relevant news articles (filtered from', data.articles.length, ')')
-        
+
         if (pageNum === 1) {
           setNews(filteredArticles)
         } else {
           setNews(prev => [...prev, ...filteredArticles])
         }
-        
+
         setHasMoreNews(filteredArticles.length > 0 && data.articles.length === 20)
       } else {
         console.log('⚠️ No news articles found or API error:', data.message || data.code)
@@ -208,13 +208,13 @@ export default function TVDetailsPage({ params }) {
         if (response.success) {
           setTvShow(response.data)
           setLikeCount(response.data.voteCount || 0)
-          
+
           // Check if TV show is in watchlist/favorites
           if (user) {
             checkIfInWatchlist()
             checkIfInFavorites()
           }
-          
+
           // Fetch YouTube videos and news about the TV show
           if (response.data.name) {
             setVideosPage(1)
@@ -246,7 +246,7 @@ export default function TVDetailsPage({ params }) {
 
     try {
       const token = localStorage.getItem('token')
-      
+
       if (liked) {
         // Remove from favorites
         const response = await fetch(`/api/users/me/favorites/${tvShow.id}`, {
@@ -296,7 +296,7 @@ export default function TVDetailsPage({ params }) {
           'Authorization': `Bearer ${token}`
         }
       })
-      
+
       const data = await response.json()
       if (data.success) {
         const isInList = data.data.some(item => item.movieId === unwrappedParams.id)
@@ -315,7 +315,7 @@ export default function TVDetailsPage({ params }) {
           'Authorization': `Bearer ${token}`
         }
       })
-      
+
       const data = await response.json()
       if (data.success) {
         const isInList = data.data.some(item => item.movieId === unwrappedParams.id)
@@ -334,7 +334,7 @@ export default function TVDetailsPage({ params }) {
 
     try {
       const token = localStorage.getItem('token')
-      
+
       if (inWatchlist) {
         // Remove from watchlist
         const response = await fetch(`/api/users/me/watchlist/${tvShow.id}`, {
@@ -555,19 +555,19 @@ export default function TVDetailsPage({ params }) {
                 <Play className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                 Watch Now
               </Button>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant={inWatchlist ? "default" : "outline"}
-                className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3" 
+                className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3"
                 onClick={handleAddToWatchlist}
               >
                 <Bookmark className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${inWatchlist ? "fill-current" : ""}`} />
                 Watchlist
               </Button>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant={liked ? "default" : "outline"}
-                className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3" 
+                className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3"
                 onClick={handleLike}
               >
                 <Heart className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${liked ? "fill-current" : ""}`} />
@@ -625,19 +625,19 @@ export default function TVDetailsPage({ params }) {
               <Play className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
               Watch Now
             </Button>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant={inWatchlist ? "default" : "outline"}
-              className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3" 
+              className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3"
               onClick={handleAddToWatchlist}
             >
               <Bookmark className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${inWatchlist ? "fill-current" : ""}`} />
               Watchlist
             </Button>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant={liked ? "default" : "outline"}
-              className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3" 
+              className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3"
               onClick={handleLike}
             >
               <Heart className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${liked ? "fill-current" : ""}`} />
@@ -680,8 +680,8 @@ export default function TVDetailsPage({ params }) {
                           S{season.seasonNumber}
                         </span>
                         <span className="px-2 py-1 bg-black/70 text-white rounded text-xs font-medium">
-                            ⭐ {season.rating.toFixed(1)}
-                          </span>
+                          <Star className="w-3 h-3 text-primary" /> {season.rating.toFixed(1)}
+                        </span>
                       </div>
                     </div>
                     <div>
@@ -710,10 +710,10 @@ export default function TVDetailsPage({ params }) {
 
           {/* Clips Section */}
           {tvShow.videos && tvShow.videos.length > 0 && (
-            <ClipsSection 
+            <ClipsSection
               isModalOpen={isModalOpen}
               setIsModalOpen={setIsModalOpen}
-              videos={tvShow.videos} 
+              videos={tvShow.videos}
               movieTitle={tvShow.title}
               selectedVideo={selectedVideo}
               setSelectedVideo={setSelectedVideo}
@@ -728,12 +728,12 @@ export default function TVDetailsPage({ params }) {
             </div>
 
             {!loadingFeaturedVideos && featuredVideos.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center">
                 <div className="flex flex-col items-center justify-center text-center">
-                  <div className="flex flex-col items-center justify-center text-center">
                   <Film className="w-16 h-16 sm:w-20 sm:h-20 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground mb-2">No Featured Content Available</p>
                 </div>
-                </div>
+              </div>
             ) : (
               <VideosGrid
                 videos={featuredVideos}
@@ -774,11 +774,15 @@ export default function TVDetailsPage({ params }) {
           </div>
 
           {/* Similar TV Shows */}
-          {tvShow.similar && tvShow.similar.length > 0 && (
+          {((tvShow.recommendations && tvShow.recommendations.length > 0) || (tvShow.similar && tvShow.similar.length > 0)) && (
             <div>
-              <h2 className="text-2xl font-bold text-foreground mb-6">Similar TV Shows</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-6">More Like This</h2>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4">
-                {tvShow.similar.slice(0, 7).map((item) => (
+                {/* Prioritize recommendations, then fill with similar shows */}
+                {[...new Map(
+                  [...(tvShow.recommendations || []), ...(tvShow.similar || [])]
+                    .map(item => [item.id, item])
+                ).values()].slice(0, 14).map((item) => (
                   <Link key={item.id} href={`/tv/${item.id}`} className="group cursor-pointer">
                     <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-secondary">
                       {item.poster ? (
@@ -794,8 +798,9 @@ export default function TVDetailsPage({ params }) {
                       )}
                       {item.rating > 0 && (
                         <div className="absolute top-2 right-2">
-                          <span className="px-2 py-1 bg-black/70 text-white rounded text-xs font-medium">
-                            ⭐ {item.rating.toFixed(1)}
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-black/70 text-white rounded text-xs font-medium">
+                            <Star className="w-3 h-3 text-primary" />
+                            {item.rating.toFixed(1)}
                           </span>
                         </div>
                       )}

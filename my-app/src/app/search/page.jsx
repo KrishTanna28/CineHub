@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Search, Film, Tv, User } from "lucide-react"
+import { Search, Film, Tv, User, Star } from "lucide-react"
 import { searchMulti } from "@/lib/movies"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 
@@ -151,8 +151,9 @@ export default function SearchPage() {
                       </div>
 
                       {item.rating > 0 && item.mediaType !== "person" && (
-                        <div className="absolute top-2 right-2 text-xs px-2 py-1 bg-black/70 text-white rounded">
-                          ⭐ {item.rating.toFixed(1)}
+                        <div className="absolute top-2 right-2 inline-flex items-center gap-1 text-xs px-2 py-1 bg-black/70 text-white rounded">
+                          <Star className="w-3 h-3 text-primary" />
+                          {item.rating.toFixed(1)}
                         </div>
                       )}
                     </div>

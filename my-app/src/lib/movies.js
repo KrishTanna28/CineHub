@@ -122,3 +122,82 @@ export async function discoverTV(filters = {}) {
 export async function getPersonDetails(personId) {
   return request(`/person/${personId}`);
 }
+
+// ===== ADDITIONAL RECOMMENDATION CATEGORIES =====
+
+// Get movies by genre
+export async function getMoviesByGenre(genreId, page = 1) {
+  return request(`/discover?genres=${genreId}&sortBy=popularity.desc&page=${page}`);
+}
+
+// Get TV shows by genre
+export async function getTVByGenre(genreId, page = 1) {
+  return request(`/tv/discover?genres=${genreId}&sortBy=popularity.desc&page=${page}`);
+}
+
+// Get trending movies
+export async function getTrendingMovies(timeWindow = 'day', page = 1) {
+  return request(`/trending?mediaType=movie&timeWindow=${timeWindow}&page=${page}`);
+}
+
+// Get trending TV
+export async function getTrendingTV(timeWindow = 'day', page = 1) {
+  return request(`/trending?mediaType=tv&timeWindow=${timeWindow}&page=${page}`);
+}
+
+// Get critically acclaimed (high rating)
+export async function getCriticallyAcclaimed(page = 1) {
+  return request(`/discover?minRating=8&sortBy=vote_average.desc&page=${page}`);
+}
+
+// Get hidden gems
+export async function getHiddenGems(page = 1) {
+  return request(`/discover?minRating=7.5&sortBy=vote_average.desc&page=${page}`);
+}
+
+// Get documentaries
+export async function getDocumentaries(page = 1) {
+  return request(`/discover?genres=99&sortBy=popularity.desc&page=${page}`);
+}
+
+// Get new releases
+export async function getNewReleases(page = 1) {
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+  return request(`/discover?sortBy=popularity.desc&page=${page}`);
+}
+
+// Get feel-good movies (Comedy, Romance)
+export async function getFeelGoodMovies(page = 1) {
+  return request(`/discover?genres=35,10749&minRating=6.5&sortBy=popularity.desc&page=${page}`);
+}
+
+// Get mind-bending movies (Sci-Fi, Mystery)
+export async function getMindBendingMovies(page = 1) {
+  return request(`/discover?genres=878,9648&minRating=7&sortBy=vote_average.desc&page=${page}`);
+}
+
+// Get binge-worthy TV
+export async function getBingeWorthyTV(page = 1) {
+  return request(`/tv/discover?minRating=7.5&sortBy=popularity.desc&page=${page}`);
+}
+
+// Get anime movies
+export async function getAnimeMovies(page = 1) {
+  return request(`/discover?genres=16&language=ja&sortBy=popularity.desc&page=${page}`);
+}
+
+// Get anime TV
+export async function getAnimeTV(page = 1) {
+  return request(`/tv/discover?genres=16&language=ja&sortBy=popularity.desc&page=${page}`);
+}
+
+// Get crime dramas TV
+export async function getCrimeDramas(page = 1) {
+  return request(`/tv/discover?genres=80,18&minRating=7&sortBy=popularity.desc&page=${page}`);
+}
+
+// Get based on true story
+export async function getBasedOnTrueStory(page = 1) {
+  return request(`/discover?minRating=6.5&sortBy=popularity.desc&page=${page}`);
+}

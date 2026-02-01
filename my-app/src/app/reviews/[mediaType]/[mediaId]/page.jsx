@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 import { useUser } from "@/contexts/UserContext"
-import {getReviews, updateReview, createReview, likeReview, dislikeReview, addReply, likeReply, dislikeReply, deleteReview, } from "@/lib/reviews"
+import { getReviews, updateReview, createReview, likeReview, dislikeReview, addReply, likeReply, dislikeReply, deleteReview, } from "@/lib/reviews"
 
 export default function ReviewsPage({ params }) {
   const unwrappedParams = use(params)
@@ -41,7 +41,7 @@ export default function ReviewsPage({ params }) {
   const [showReplies, setShowReplies] = useState(new Set())
   const [mentionUser, setMentionUser] = useState(null)
   const [revealedSpoilers, setRevealedSpoilers] = useState(new Set())
-  
+
   // Delete confirmation
   const [deleteConfirmation, setDeleteConfirmation] = useState(null) // { type: 'review' | 'reply', id: string, reviewId?: string }
 
@@ -446,7 +446,7 @@ export default function ReviewsPage({ params }) {
       console.error('Failed to delete:', error)
       setError('Failed to delete')
       setTimeout(() => setError(null), 3000)
-      
+
       // Revert optimistic update on error
       if (deletedItem.type === 'review' && backupData) {
         setReviews(prev => [backupData, ...prev])
@@ -528,37 +528,77 @@ export default function ReviewsPage({ params }) {
             </h2>
             <form onSubmit={handleSubmitReview} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Rating: {hoverRating || reviewForm.rating}/10
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Rating
+                  </label>
+
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.1"
+                      value={reviewForm.rating}
+                      onChange={(e) => {
+                        const raw = e.target.value
+
+                        if (raw === '') {
+                          setHoverRating(0)
+                          setReviewForm(prev => ({ ...prev, rating: '' }))
+                          return
+                        }
+
+                        const value = parseFloat(raw)
+
+                        if (!isNaN(value) && value >= 0 && value <= 10) {
+                          setHoverRating(0)
+                          setReviewForm(prev => ({
+                            ...prev,
+                            rating: Math.round(value * 10) / 10
+                          }))
+                        }
+                      }}
+                      className="w-20 text-center font-semibold"
+                    />
+                    <span className="text-sm text-muted-foreground">/ 10</span>
+                  </div>
+                </div>
+
                 <div
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-1"
                   onMouseLeave={() => setHoverRating(0)}
                 >
                   {[...Array(10)].map((_, i) => {
                     const starValue = i + 1
-                    const isFilled = hoverRating ? i < hoverRating : i < reviewForm.rating
+                    const currentRating =
+                      hoverRating > 0 ? hoverRating : reviewForm.rating
+                    const fillPercentage =
+                      Math.min(Math.max(currentRating - i, 0), 1) * 100
 
                     return (
                       <button
                         key={i}
                         type="button"
-                        onClick={() => setReviewForm(prev => ({ ...prev, rating: starValue }))}
+                        onClick={() => {
+                          setHoverRating(0)
+                          setReviewForm(prev => ({ ...prev, rating: starValue }))
+                        }}
                         onMouseEnter={() => setHoverRating(starValue)}
-                        className="transition-all hover:scale-110 focus:outline-none"
+                        className="transition-all hover:scale-110 focus:outline-none relative"
                       >
-                        <Star
-                          className={`w-8 h-8 cursor-pointer transition-colors ${isFilled
-                              ? 'fill-primary text-primary'
-                              : 'text-muted-foreground hover:text-primary/50'
-                            }`}
-                        />
+                        <Star className="w-7 h-7 text-muted-foreground" />
+                        <div
+                          className="absolute inset-0 overflow-hidden"
+                          style={{ width: `${fillPercentage}%` }}
+                        >
+                          <Star className="w-7 h-7 fill-primary text-primary" />
+                        </div>
                       </button>
                     )
                   })}
                 </div>
               </div>
-
               <div>
                 <Input
                   style={{
@@ -617,339 +657,339 @@ export default function ReviewsPage({ params }) {
         )}
 
         {/* Sort Options */}
-      {reviews?.length > 0 && <div className="flex gap-2 mb-6">
-        <Button
-          variant={sortBy === 'recent' ? 'default' : 'outline'}
-          onClick={() => { setSortBy('recent'); setPage(1); }}
-          size="sm"
-        >
-          Recent
-        </Button>
-        <Button
-          variant={sortBy === 'popular' ? 'default' : 'outline'}
-          onClick={() => { setSortBy('popular'); setPage(1); }}
-          size="sm"
-        >
-          Popular
-        </Button>
-        <Button
-          variant={sortBy === 'rating' ? 'default' : 'outline'}
-          onClick={() => { setSortBy('rating'); setPage(1); }}
-          size="sm"
-        >
-          Highest Rated
-        </Button>
-      </div>}
+        {reviews?.length > 0 && <div className="flex gap-2 mb-6">
+          <Button
+            variant={sortBy === 'recent' ? 'default' : 'outline'}
+            onClick={() => { setSortBy('recent'); setPage(1); }}
+            size="sm"
+          >
+            Recent
+          </Button>
+          <Button
+            variant={sortBy === 'popular' ? 'default' : 'outline'}
+            onClick={() => { setSortBy('popular'); setPage(1); }}
+            size="sm"
+          >
+            Popular
+          </Button>
+          <Button
+            variant={sortBy === 'rating' ? 'default' : 'outline'}
+            onClick={() => { setSortBy('rating'); setPage(1); }}
+            size="sm"
+          >
+            Highest Rated
+          </Button>
+        </div>}
 
         {/* Reviews List */}
         <div className="space-y-6">
           {reviews?.map((review) => {
             const isSpoilerRevealed = revealedSpoilers.has(review._id)
             const isOwnReview = user && review.user?._id === user._id
-            
-            return (
-            <div key={review._id} className="bg-card rounded-lg p-6">
-              {/* Review Header */}
-              <div className="flex items-start gap-4 mb-4">
-                <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                  {review.user?.avatar ? (
-                    <img src={review.user.avatar} alt={review.user.username} className="w-full h-full rounded-full object-cover" />
-                  ) : (
-                    <span className="text-lg font-bold text-foreground">
-                      {review.user?.username?.[0]?.toUpperCase()}
-                    </span>
-                  )}
-                </div>
 
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-foreground">{review.user?.username}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(review.createdAt).toLocaleDateString()}
-                    </span>
-                    {review.spoiler && (
-                      <span className="px-2 py-0.5 bg-destructive/20 text-destructive rounded text-xs flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" />
-                        Spoiler
+            return (
+              <div key={review._id} className="bg-card rounded-lg p-6">
+                {/* Review Header */}
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                    {review.user?.avatar ? (
+                      <img src={review.user.avatar} alt={review.user.username} className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <span className="text-lg font-bold text-foreground">
+                        {review.user?.username?.[0]?.toUpperCase()}
                       </span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1 mb-2">
-                    {[...Array(10)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`w-4 h-4 ${i < review.rating ? 'fill-primary text-primary' : 'text-muted-foreground'
-                          }`}
-                      />
-                    ))}
-                    <span className="ml-2 text-sm font-semibold text-foreground">
-                      {review.rating}/10
-                    </span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-foreground">{review.user?.username}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(review.createdAt).toLocaleDateString()}
+                      </span>
+                      {review.spoiler && (
+                        <span className="px-2 py-0.5 bg-destructive/20 text-destructive rounded text-xs flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Spoiler
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1 mb-2">
+                      {[...Array(10)].map((_, i) => {
+                        const fillPercentage = Math.min(Math.max(review.rating - i, 0), 1) * 100
+                        return (
+                          <div key={i} className="relative">
+                            <Star className="w-4 h-4 text-muted-foreground" />
+                            <div
+                              className="absolute inset-0 overflow-hidden"
+                              style={{ width: `${fillPercentage}%` }}
+                            >
+                              <Star className="w-4 h-4 fill-primary text-primary" />
+                            </div>
+                          </div>
+                        )
+                      })}
+                      <span className="ml-2 text-sm font-semibold text-foreground">
+                        {review.rating}/10
+                      </span>
+                    </div>
+
+                    {/* Review Content with Spoiler Blur */}
+                    <div className="relative">
+                      <h3 className={`text-lg font-bold text-foreground mb-2 transition-all ${review.spoiler && !isSpoilerRevealed && review.user?._id !== user._id ? 'blur-md select-none' : ''
+                        }`}>{review.title}</h3>
+                      <p className={`text-foreground whitespace-pre-wrap transition-all ${review.spoiler && !isSpoilerRevealed && review.user?._id !== user._id ? 'blur-md select-none' : ''
+                        }`}>{review.content}</p>
+
+                      {/* Spoiler Reveal Button */}
+                      {review.spoiler && !isSpoilerRevealed && review.user?._id !== user?._id && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <button
+                            onClick={() => {
+                              const newRevealed = new Set(revealedSpoilers)
+                              newRevealed.add(review._id)
+                              setRevealedSpoilers(newRevealed)
+                            }}
+                            className="px-4 py-2 bg-destructive/90 hover:bg-destructive text-white rounded-lg font-semibold transition-colors shadow-lg"
+                          >
+                            Click to Reveal Spoiler
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Review Content with Spoiler Blur */}
-                  <div className="relative">
-                    <h3 className={`text-lg font-bold text-foreground mb-2 transition-all ${
-                      review.spoiler && !isSpoilerRevealed && review.user?._id !== user._id? 'blur-md select-none' : ''
-                    }`}>{review.title}</h3>
-                    <p className={`text-foreground whitespace-pre-wrap transition-all ${
-                      review.spoiler && !isSpoilerRevealed && review.user?._id !== user._id? 'blur-md select-none' : ''
-                    }`}>{review.content}</p>
-                    
-                    {/* Spoiler Reveal Button */}
-                    {review.spoiler && !isSpoilerRevealed && review.user?._id !== user?._id && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <button
-                          onClick={() => {
-                            const newRevealed = new Set(revealedSpoilers)
-                            newRevealed.add(review._id)
-                            setRevealedSpoilers(newRevealed)
-                          }}
-                          className="px-4 py-2 bg-destructive/90 hover:bg-destructive text-white rounded-lg font-semibold transition-colors shadow-lg"
-                        >
-                          Click to Reveal Spoiler
+                  {/* Edit/Delete Buttons (only for own reviews) */}
+                  {isOwnReview && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="cursor-pointer p-1">
+                          <MoreVertical className="w-4 h-4" />
                         </button>
-                      </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEditReview(review)}>
+                          <Pencil className="w-4 h-4" />
+                          Edit Review
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteReview(review._id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete Review
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+
+                {/* Review Actions */}
+                <div className="flex items-center gap-4 pt-4 border-t border-border">
+                  <button
+                    onClick={() => handleLikeReview(review._id)}
+                    className={`flex items-center gap-2 text-sm transition-colors ${review.likes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
+                      ? "text-primary font-bold"
+                      : "text-muted-foreground hover:text-primary"
+                      }`}
+                  >
+                    <ThumbsUp
+                      className={`w-4 h-4 transition-all ${review.likes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
+                        ? "fill-current text-primary"
+                        : "fill-none"
+                        }`}
+                    />
+                    <span>{review.likeCount || 0}</span>
+                  </button>
+                  <button
+                    onClick={() => handleDislikeReview(review._id)}
+                    className={`flex items-center gap-2 text-sm transition-colors ${review.dislikes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
+                      ? "text-destructive"
+                      : "text-muted-foreground hover:text-destructive"
+                      }`}
+                  >
+                    <ThumbsDown
+                      className={`w-4 h-4 transition-all ${review.dislikes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
+                        ? "fill-current text-destructive"
+                        : "fill-none"
+                        }`}
+                    />
+                    <span>{review.dislikeCount || 0}</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const newShowReplies = new Set(showReplies)
+                        if (newShowReplies.has(review._id)) {
+                          newShowReplies.delete(review._id)
+                        } else {
+                          newShowReplies.add(review._id)
+                        }
+                        setShowReplies(newShowReplies)
+                      }}
+                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>{review.replyCount == 1 ? review.replyCount + ' Reply' : review.replyCount + ' Replies'}</span>
+                    </button>
+
+                    {user && (
+                      <button
+                        onClick={() => setReplyingTo(replyingTo === review._id ? null : review._id)}
+                        className="w-5 h-5 rounded-full border border-muted-foreground flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                        title={replyingTo === review._id ? 'Cancel Reply' : 'Write Reply'}
+                      >
+                        {replyingTo === review._id ? (
+                          <Minus className="w-3 h-3" />
+                        ) : (
+                          <Plus className="w-3 h-3" />
+                        )}
+                      </button>
                     )}
                   </div>
                 </div>
 
-                {/* Edit/Delete Buttons (only for own reviews) */}
-                {isOwnReview && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="cursor-pointer p-1">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEditReview(review)}>
-                        <Pencil className="w-4 h-4" />
-                        Edit Review
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteReview(review._id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete Review
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-
-              {/* Review Actions */}
-              <div className="flex items-center gap-4 pt-4 border-t border-border">
-                    <button
-                      onClick={() => handleLikeReview(review._id)}
-                      className={`flex items-center gap-2 text-sm transition-colors ${review.likes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
-                          ? "text-primary font-bold"
-                          : "text-muted-foreground hover:text-primary"
-                        }`}
-                    >
-                      <ThumbsUp
-                        className={`w-4 h-4 transition-all ${
-                          review.likes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
-                            ? "fill-current text-primary"
-                            : "fill-none"
-                        }`}
-                      />
-                      <span>{review.likeCount || 0}</span>
-                    </button>
-                    <button
-                      onClick={() => handleDislikeReview(review._id)}
-                      className={`flex items-center gap-2 text-sm transition-colors ${review.dislikes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
-                          ? "text-destructive"
-                          : "text-muted-foreground hover:text-destructive"
-                        }`}
-                    >
-                      <ThumbsDown
-                        className={`w-4 h-4 transition-all ${
-                          review.dislikes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
-                            ? "fill-current text-destructive"
-                            : "fill-none"
-                        }`}
-                      />
-                      <span>{review.dislikeCount || 0}</span>
-                    </button>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      const newShowReplies = new Set(showReplies)
-                      if (newShowReplies.has(review._id)) {
-                        newShowReplies.delete(review._id)
-                      } else {
-                        newShowReplies.add(review._id)
-                      }
-                      setShowReplies(newShowReplies)
-                    }}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>{review.replyCount == 1 ? review.replyCount + ' Reply' : review.replyCount + ' Replies'}</span>
-                  </button>
-                  
-                  {user && (
-                    <button
-                      onClick={() => setReplyingTo(replyingTo === review._id ? null : review._id)}
-                      className="w-5 h-5 rounded-full border border-muted-foreground flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-                      title={replyingTo === review._id ? 'Cancel Reply' : 'Write Reply'}
-                    >
-                      {replyingTo === review._id ? (
-                        <Minus className="w-3 h-3" />
-                      ) : (
-                        <Plus className="w-3 h-3" />
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Reply Form */}
-              {replyingTo === review._id && (
-                <div className="mt-4 pl-16">
-                  {mentionUser && (
-                    <div className="mb-2 text-xs text-muted-foreground">
-                      Replying to <span className="text-primary font-semibold">@{mentionUser}</span>
-                      <button
-                        onClick={() => {
-                          setMentionUser(null)
-                          setReplyContent('')
-                        }}
-                        className="ml-2 text-destructive hover:underline"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                  <div className="flex gap-2">
-                    <Textarea
-                      placeholder={mentionUser ? `Reply to @${mentionUser}...` : "Write a reply..."}
-                      value={replyContent}
-                      onChange={(e) => setReplyContent(e.target.value)}
-                      rows={3}
-                      className="flex-1"
-                      style={{
-                        borderColor: 'var(--border)',
-                      }}
-                    />
-                    <Button
-                      onClick={() => handleSubmitReply(review._id)}
-                      size="sm"
-                      disabled={!replyContent.trim()}
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Replies */}
-              {review.replies && review.replies.length > 0 && showReplies.has(review._id) && (
-                <div className="mt-4 pl-16 space-y-4">
-                  {review.replies.map((reply) => (
-                    <div key={reply._id} className="flex gap-3">
-                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                        {reply.user?.avatar ? (
-                          <img src={reply.user.avatar} alt={reply.user.username} className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                          <span className="text-sm font-bold text-foreground">
-                            {reply.user?.username?.[0]?.toUpperCase()}
-                          </span>
-                        )}
+                {/* Reply Form */}
+                {replyingTo === review._id && (
+                  <div className="mt-4 pl-16">
+                    {mentionUser && (
+                      <div className="mb-2 text-xs text-muted-foreground">
+                        Replying to <span className="text-primary font-semibold">@{mentionUser}</span>
+                        <button
+                          onClick={() => {
+                            setMentionUser(null)
+                            setReplyContent('')
+                          }}
+                          className="ml-2 text-destructive hover:underline"
+                        >
+                          Cancel
+                        </button>
                       </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Textarea
+                        placeholder={mentionUser ? `Reply to @${mentionUser}...` : "Write a reply..."}
+                        value={replyContent}
+                        onChange={(e) => setReplyContent(e.target.value)}
+                        rows={3}
+                        className="flex-1"
+                        style={{
+                          borderColor: 'var(--border)',
+                        }}
+                      />
+                      <Button
+                        onClick={() => handleSubmitReply(review._id)}
+                        size="sm"
+                        disabled={!replyContent.trim()}
+                      >
+                        <Send className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-sm text-foreground">{reply.user?.username}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(reply.createdAt).toLocaleDateString()}
-                          </span>
+                {/* Replies */}
+                {review.replies && review.replies.length > 0 && showReplies.has(review._id) && (
+                  <div className="mt-4 pl-16 space-y-4">
+                    {review.replies.map((reply) => (
+                      <div key={reply._id} className="flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                          {reply.user?.avatar ? (
+                            <img src={reply.user.avatar} alt={reply.user.username} className="w-full h-full rounded-full object-cover" />
+                          ) : (
+                            <span className="text-sm font-bold text-foreground">
+                              {reply.user?.username?.[0]?.toUpperCase()}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-sm text-foreground">{reply.content}</p>
-                        <div className="flex items-center gap-3 mt-2">
-                          <button
-                            onClick={() => handleLikeReply(review._id, reply._id)}
-                            className={`flex items-center gap-1 text-xs transition-colors ${
-                              reply.likes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
+
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-sm text-foreground">{reply.user?.username}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(reply.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-foreground">{reply.content}</p>
+                          <div className="flex items-center gap-3 mt-2">
+                            <button
+                              onClick={() => handleLikeReply(review._id, reply._id)}
+                              className={`flex items-center gap-1 text-xs transition-colors ${reply.likes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
                                 ? 'text-primary'
                                 : 'text-muted-foreground hover:text-primary'
-                            }`}
-                          >
-                            <ThumbsUp
-                              className={`w-3 h-3 transition-all ${
-                                reply.likes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
+                                }`}
+                            >
+                              <ThumbsUp
+                                className={`w-3 h-3 transition-all ${reply.likes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
                                   ? 'fill-current text-primary'
                                   : 'fill-none'
-                              }`}
-                            />
-                            {reply.likes?.length || 0}
-                          </button>
-                          <button
-                            onClick={() => handleDislikeReply(review._id, reply._id)}
-                            className={`flex items-center gap-1 text-xs transition-colors ${
-                              reply.dislikes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
+                                  }`}
+                              />
+                              {reply.likes?.length || 0}
+                            </button>
+                            <button
+                              onClick={() => handleDislikeReply(review._id, reply._id)}
+                              className={`flex items-center gap-1 text-xs transition-colors ${reply.dislikes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
                                 ? 'text-destructive'
                                 : 'text-muted-foreground hover:text-destructive'
-                            }`}
-                          >
-                            <ThumbsDown
-                              className={`w-3 h-3 transition-all ${
-                                reply.dislikes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
+                                }`}
+                            >
+                              <ThumbsDown
+                                className={`w-3 h-3 transition-all ${reply.dislikes?.some(id => id && user?._id && id?.toString() === user._id?.toString())
                                   ? 'fill-current text-destructive'
                                   : 'fill-none'
-                              }`}
-                            />
-                            {reply.dislikes?.length || 0}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setReplyingTo(review._id)
-                              setMentionUser(reply.user?.username)
-                              setReplyContent(`@${reply.user?.username} `)
-                            }}
-                            className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                          >
-                            Reply
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Edit/Delete Buttons for replies (only for own replies) */}
-                      {user && reply.user?._id === user._id && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="cursor-pointer p-1">
-                              <MoreVertical className="w-3.5 h-3.5" />
+                                  }`}
+                              />
+                              {reply.dislikes?.length || 0}
                             </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
+                            <button
                               onClick={() => {
-                                // TODO: Implement edit reply
-                                console.log('Edit reply:', reply._id)
+                                setReplyingTo(review._id)
+                                setMentionUser(reply.user?.username)
+                                setReplyContent(`@${reply.user?.username} `)
                               }}
+                              className="text-xs text-muted-foreground hover:text-primary transition-colors"
                             >
-                              <Pencil className="w-3.5 h-3.5" />
-                              Edit Reply
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setDeleteConfirmation({ type: 'reply', id: reply._id, reviewId: review._id })}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              Delete Reply
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )})}
+                              Reply
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Edit/Delete Buttons for replies (only for own replies) */}
+                        {user && reply.user?._id === user._id && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="cursor-pointer p-1">
+                                <MoreVertical className="w-3.5 h-3.5" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  // TODO: Implement edit reply
+                                  console.log('Edit reply:', reply._id)
+                                }}
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                                Edit Reply
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setDeleteConfirmation({ type: 'reply', id: reply._id, reviewId: review._id })}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Delete Reply
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
 
         {/* Load More Indicator */}
@@ -989,7 +1029,7 @@ export default function ReviewsPage({ params }) {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 justify-end">
               <Button
                 variant="outline"

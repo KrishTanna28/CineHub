@@ -3,6 +3,7 @@ import Post from '@/lib/models/Post.js'
 import { withAuth } from '@/lib/middleware/withAuth.js'
 import connectDB from '@/lib/config/database.js'
 import { deleteMultipleImagesFromCloudinary } from '@/lib/utils/cloudinaryHelper.js'
+import Community from '@/lib/models/Community'
 
 await connectDB()
 

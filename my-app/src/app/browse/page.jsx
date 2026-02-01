@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { X, Filter, ChevronDown, ChevronUp} from "lucide-react"
+import { X, Filter, ChevronDown, ChevronUp, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as movieAPI from "@/lib/movies"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
@@ -88,7 +88,7 @@ export default function BrowsePage() {
         setIsLoadingMore(true)
       }
       setError(null)
-      
+
       try {
         // Build filters
         const filters = {
@@ -182,8 +182,8 @@ export default function BrowsePage() {
           {/* Mobile Filter Toggle */}
           <div className="flex items-center justify-between mb-4">
             <span className="flex items-center gap-2 text-foreground font-semibold">
-            <Filter className="w-4 h-4" />
-            <h2 className="text-lg font-semibold text-foreground">Filters</h2>
+              <Filter className="w-4 h-4" />
+              <h2 className="text-lg font-semibold text-foreground">Filters</h2>
             </span>
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -196,7 +196,7 @@ export default function BrowsePage() {
               {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
           </div>
-          
+
           <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 transition-all duration-300 ${showFilters ? 'block' : 'hidden lg:grid'}`}>
             {/* Type Dropdown */}
             <div>
@@ -337,19 +337,20 @@ export default function BrowsePage() {
                           <span className="text-4xl text-muted-foreground">🎬</span>
                         </div>
                       )}
-                      
+
                       {/* Media Type Badge */}
-                      <div className="absolute top-2 left-2">
-                        <span className="px-2 py-1 bg-primary text-primary-foreground rounded text-xs font-bold uppercase">
-                          {item.mediaType === 'tv' ? 'TV' : 'Movie'}
+                      <div className="absolute top-1 left-1 sm:top-2 sm:left-2">
+                        <span className="px-1.5 py-0.5 sm:px-2 sm:py-1 bg-primary text-primary-foreground rounded text-[10px] sm:text-xs font-semibold uppercase">
+                          {item.mediaType === "tv" ? "TV" : "Movie"}
                         </span>
                       </div>
 
                       {/* Rating Badge */}
                       {item.rating > 0 && (
-                        <div className="absolute top-2 right-2">
-                          <span className="px-2 py-1 bg-black/70 text-white rounded text-xs font-medium">
-                           {item.rating.toFixed(1)}
+                        <div className="absolute top-1 right-1 sm:top-2 sm:right-2">
+                          <span className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-black/70 text-white rounded text-[10px] sm:text-xs font-medium">
+                            <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary" />
+                            {item.rating.toFixed(1)}
                           </span>
                         </div>
                       )}
