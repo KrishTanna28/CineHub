@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from "react"
 import { Play, Share2, Heart, Clock, Award, Calendar, Tv as TvIcon, Film, Newspaper, Star, Bookmark, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { toast } from "@/hooks/use-toast"
 import { getTVDetails } from "@/lib/movies"
 import ReviewSection from "@/components/review-section"
 import CastSection from "@/components/cast-section"
@@ -261,7 +262,11 @@ export default function TVDetailsPage({ params }) {
           setLiked(false)
           setLikeCount(Math.max(0, likeCount - 1))
         } else {
-          alert(data.message || 'Failed to remove from favorites')
+          toast({
+            title: "Error",
+            description: data.message || 'Failed to remove from favorites',
+            variant: "destructive"
+          })
         }
       } else {
         // Add to favorites
@@ -279,12 +284,20 @@ export default function TVDetailsPage({ params }) {
           setLiked(true)
           setLikeCount(likeCount + 1)
         } else {
-          alert(data.message || 'Failed to add to favorites')
+          toast({
+            title: "Error",
+            description: data.message || 'Failed to add to favorites',
+            variant: "destructive"
+          })
         }
       }
     } catch (error) {
       console.error('Error updating favorites:', error)
-      alert('Failed to update favorites. Please try again.')
+      toast({
+        title: "Error",
+        description: "Failed to update favorites. Please try again.",
+        variant: "destructive"
+      })
     }
   }
 
@@ -348,7 +361,11 @@ export default function TVDetailsPage({ params }) {
         if (data.success) {
           setInWatchlist(false)
         } else {
-          alert(data.message || 'Failed to remove from watchlist')
+          toast({
+            title: "Error",
+            description: data.message || 'Failed to remove from watchlist',
+            variant: "destructive"
+          })
         }
       } else {
         // Add to watchlist
@@ -365,18 +382,30 @@ export default function TVDetailsPage({ params }) {
         if (data.success) {
           setInWatchlist(true)
         } else {
-          alert(data.message || 'Failed to add to watchlist')
+          toast({
+            title: "Error",
+            description: data.message || 'Failed to add to watchlist',
+            variant: "destructive"
+          })
         }
       }
     } catch (error) {
       console.error('Error updating watchlist:', error)
-      alert('Failed to update watchlist. Please try again.')
+      toast({
+        title: "Error",
+        description: "Failed to update watchlist. Please try again.",
+        variant: "destructive"
+      })
     }
   }
 
   const handleWatchNow = () => {
     if (!tvShow?.watchProviders) {
-      alert('No streaming providers available for this TV show in your region.')
+      toast({
+        title: "Not Available",
+        description: "No streaming providers available for this TV show in your region.",
+        variant: "destructive"
+      })
       return
     }
 
@@ -394,7 +423,11 @@ export default function TVDetailsPage({ params }) {
     }
 
     if (!providerData) {
-      alert('No streaming providers available for this TV show in your region.')
+      toast({
+        title: "Not Available",
+        description: "No streaming providers available for this TV show in your region.",
+        variant: "destructive"
+      })
       return
     }
 
@@ -408,7 +441,11 @@ export default function TVDetailsPage({ params }) {
     const providers = providerData.flatrate || providerData.rent || providerData.buy
     if (providers && providers.length > 0) {
       const providerNames = providers.map(p => p.name).join(', ')
-      alert(`Available on: ${providerNames}\n\nOpening TMDB watch page...`)
+      toast({
+        title: "Available Streaming Providers",
+        description: `Available on: ${providerNames}. Opening TMDB watch page...`,
+        variant: "success"
+      })
       window.open(`https://www.themoviedb.org/tv/${tvShow.id}/watch`, '_blank')
     }
   }

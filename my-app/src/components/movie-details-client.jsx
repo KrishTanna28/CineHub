@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Play, Share2, Heart, Clock, Award, Calendar, DollarSign, Film, Star, Bookmark, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { toast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { useUser } from "@/contexts/UserContext"
 import { useRouter } from "next/navigation"
@@ -65,7 +66,11 @@ export default function MovieDetailsClient({
       // Revert on error
       setLiked(wasLiked)
       setLikeCount(prev => wasLiked ? prev + 1 : Math.max(0, prev - 1))
-      alert('Failed to update favorites. Please try again.')
+      toast({
+        title: "Error",
+        description: "Failed to update favorites. Please try again.",
+        variant: "destructive"
+      })
     }
   }
 
@@ -105,7 +110,11 @@ export default function MovieDetailsClient({
       console.error('Error updating watchlist:', error)
       // Revert on error
       setInWatchlist(wasInWatchlist)
-      alert('Failed to update watchlist. Please try again.')
+      toast({
+        title: "Error",
+        description: "Failed to update watchlist. Please try again.",
+        variant: "destructive"
+      })
     }
   }
 
@@ -121,7 +130,11 @@ export default function MovieDetailsClient({
         await navigator.share(shareData)
       } else {
         await navigator.clipboard.writeText(window.location.href)
-        alert('Link copied to clipboard!')
+        toast({
+          title: "Link Copied",
+          description: "Link has been copied to clipboard!",
+          variant: "success"
+        })
       }
     } catch (error) {
       console.error('Error sharing:', error)

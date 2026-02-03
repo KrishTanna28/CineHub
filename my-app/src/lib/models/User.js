@@ -342,6 +342,16 @@ const userSchema = new mongoose.Schema({
   },
   lockUntil: Date,
 
+  // Password Reset
+  resetPasswordToken: {
+    type: String,
+    select: false
+  },
+  resetPasswordExpires: {
+    type: Date,
+    select: false
+  },
+
   // AI Recommendation Data
   recommendationProfile: {
     genreScores: {

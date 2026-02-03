@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from "react"
 import { Play, Share2, Heart, Clock, Award, Calendar, DollarSign, Film, Newspaper, Star, Bookmark, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { toast } from "@/hooks/use-toast"
 import * as movieAPI from "@/lib/movies"
 import ReviewSection from "@/components/review-section"
 import CastSection from "@/components/cast-section"
@@ -268,7 +269,11 @@ export default function DetailsPage({ params }) {
       setLiked(!liked)
       setLikeCount(prev => Math.max(0, prev + (liked ? -1 : 1)))
     } else {
-      alert(data.message || 'Favorites update failed')
+      toast({
+        title: "Error",
+        description: data.message || 'Favorites update failed',
+        variant: "destructive"
+      })
     }
   } catch (err) {
     console.error('Favorites error:', err)
@@ -342,7 +347,11 @@ export default function DetailsPage({ params }) {
     if (data.success) {
       setInWatchlist(!inWatchlist)
     } else {
-      alert(data.message || 'Watchlist update failed')
+      toast({
+        title: "Error",
+        description: data.message || 'Watchlist update failed',
+        variant: "destructive"
+      })
     }
   } catch (err) {
     console.error('Watchlist error:', err)
@@ -353,7 +362,11 @@ export default function DetailsPage({ params }) {
 
   const handleWatchNow = () => {
     if (!movie?.watchProviders) {
-      alert('No streaming providers available for this movie in your region.')
+      toast({
+        title: "Not Available",
+        description: "No streaming providers available for this movie in your region.",
+        variant: "destructive"
+      })
       return
     }
 
@@ -371,7 +384,11 @@ export default function DetailsPage({ params }) {
     }
 
     if (!providerData) {
-      alert('No streaming providers available for this movie in your region.')
+      toast({
+        title: "Not Available",
+        description: "No streaming providers available for this movie in your region.",
+        variant: "destructive"
+      })
       return
     }
 
@@ -385,7 +402,11 @@ export default function DetailsPage({ params }) {
     const providers = providerData.flatrate || providerData.rent || providerData.buy
     if (providers && providers.length > 0) {
       const providerNames = providers.map(p => p.name).join(', ')
-      alert(`Available on: ${providerNames}\n\nOpening TMDB watch page...`)
+      toast({
+        title: "Available Streaming Providers",
+        description: `Available on: ${providerNames}. Opening TMDB watch page...`,
+        variant: "success"
+      })
       window.open(`https://www.themoviedb.org/movie/${movie.id}/watch`, '_blank')
     }
   }
