@@ -19,6 +19,7 @@ import { useUser } from "@/contexts/UserContext"
 const searchCategories = [
   { id: 'all', label: 'All' },
   { id: 'movies', label: 'Movies & TV' },
+  { id: 'celebrity', label: 'Celebrity' },
   { id: 'communities', label: 'Communities' },
   { id: 'posts', label: 'Posts' },
   { id: 'people', label: 'People' },
@@ -33,6 +34,7 @@ export default function Navigation() {
   const [activeSearchCategory, setActiveSearchCategory] = useState('all')
   const [searchResults, setSearchResults] = useState({
     movies: [],
+    celebrities: [],
     communities: [],
     posts: [],
     people: []
@@ -51,7 +53,7 @@ export default function Navigation() {
   // Perform search across all categories
   const performSearch = useCallback(async (query) => {
     if (!query.trim()) {
-      setSearchResults({ movies: [], communities: [], posts: [], people: [] })
+      setSearchResults({ movies: [], celebrities: [], communities: [], posts: [], people: [] })
       return
     }
 
@@ -68,8 +70,14 @@ export default function Navigation() {
         fetch(`/api/users/search?q=${encodeURIComponent(query)}&limit=5`).then(r => r.json())
       ])
 
+      // Separate celebrities (persons) from movies/TV
+      const allMediaResults = moviesRes.status === 'fulfilled' ? (moviesRes.value.data?.results || []) : []
+      const moviesAndTV = allMediaResults.filter(item => item.mediaType !== 'person').slice(0, 5)
+      const celebrities = allMediaResults.filter(item => item.mediaType === 'person').slice(0, 5)
+
       setSearchResults({
-        movies: moviesRes.status === 'fulfilled' ? (moviesRes.value.data?.results?.slice(0, 5) || []) : [],
+        movies: moviesAndTV,
+        celebrities: celebrities,
         communities: communitiesRes.status === 'fulfilled' ? (communitiesRes.value.communities || []) : [],
         posts: postsRes.status === 'fulfilled' ? (postsRes.value.data?.slice(0, 5) || []) : [],
         people: peopleRes.status === 'fulfilled' ? (peopleRes.value.users || []) : []
@@ -87,6 +95,8 @@ export default function Navigation() {
       setShowSearchDropdown(false)
       if (activeSearchCategory === 'all' || activeSearchCategory === 'movies') {
         router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+      } else if (activeSearchCategory === 'celebrity') {
+        router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}&tab=celebrities`)
       } else if (activeSearchCategory === 'communities') {
         router.push(`/communities?search=${encodeURIComponent(searchQuery.trim())}`)
       } else if (activeSearchCategory === 'posts') {
@@ -101,7 +111,7 @@ export default function Navigation() {
   // Debounced search for live results
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setSearchResults({ movies: [], communities: [], posts: [], people: [] })
+      setSearchResults({ movies: [], celebrities: [], communities: [], posts: [], people: [] })
       setShowSearchDropdown(false)
       return
     }
@@ -384,7 +394,7 @@ export default function Navigation() {
                                 {searchResults.movies.map((item) => (
                                   <Link
                                     key={`${item.mediaType}-${item.id}`}
-                                    href={item.mediaType === 'person' ? `/actor/${item.id}` : item.mediaType === 'tv' ? `/tv/${item.id}` : `/details/${item.id}`}
+                                    href={item.mediaType === 'tv' ? `/tv/${item.id}` : `/details/${item.id}`}
                                     onClick={() => { setShowSearchDropdown(false); setSearchQuery(''); }}
                                     className="flex items-center gap-3 p-2 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
                                   >
@@ -392,17 +402,50 @@ export default function Navigation() {
                                       <img src={item.poster} alt="" className="w-10 h-14 object-cover rounded" />
                                     ) : (
                                       <div className="w-10 h-14 bg-secondary rounded flex items-center justify-center">
-                                        {item.mediaType === 'person' ? <User className="w-5 h-5 text-muted-foreground" /> :
-                                         item.mediaType === 'tv' ? <Tv className="w-5 h-5 text-muted-foreground" /> :
+                                        {item.mediaType === 'tv' ? <Tv className="w-5 h-5 text-muted-foreground" /> :
                                          <Film className="w-5 h-5 text-muted-foreground" />}
                                       </div>
                                     )}
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
                                       <p className="text-xs text-muted-foreground">
-                                        {item.mediaType === 'person' ? 'Actor' : item.mediaType === 'tv' ? 'TV Show' : 'Movie'}
+                                        {item.mediaType === 'tv' ? 'TV Show' : 'Movie'}
                                         {item.releaseDate && ` • ${item.releaseDate.split('-')[0]}`}
                                       </p>
+                                    </div>
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Celebrity Results */}
+                          {(activeSearchCategory === 'all' || activeSearchCategory === 'celebrity') && searchResults.celebrities.length > 0 && (
+                            <div className="mb-4">
+                              <h4 className="text-xs font-semibold text-muted-foreground uppercase px-2 mb-2">Celebrities</h4>
+                              <div className="space-y-1">
+                                {searchResults.celebrities.map((person) => (
+                                  <Link
+                                    key={`celebrity-${person.id}`}
+                                    href={`/actor/${person.id}`}
+                                    onClick={() => { setShowSearchDropdown(false); setSearchQuery(''); }}
+                                    className="flex items-center gap-3 p-2 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
+                                  >
+                                    {person.poster ? (
+                                      <img src={person.poster} alt="" className="w-10 h-10 object-cover rounded-full" />
+                                    ) : (
+                                      <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center">
+                                        <User className="w-5 h-5 text-white" />
+                                      </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-foreground truncate">{person.title}</p>
+                                      <p className="text-xs text-muted-foreground truncate">
+                                        {person.knownFor || 'Actor / Actress'}
+                                      </p>
+                                    </div>
+                                    <div className="flex-shrink-0">
+                                      <span className="text-xs px-2 py-1 bg-amber-500/20 text-amber-500 rounded-full">Celebrity</span>
                                     </div>
                                   </Link>
                                 ))}
@@ -469,12 +512,12 @@ export default function Navigation() {
                           {/* People Results */}
                           {(activeSearchCategory === 'all' || activeSearchCategory === 'people') && searchResults.people.length > 0 && (
                             <div className="mb-4">
-                              <h4 className="text-xs font-semibold text-muted-foreground uppercase px-2 mb-2">People</h4>
+                              <h4 className="text-xs font-semibold text-muted-foreground uppercase px-2 mb-2">Users</h4>
                               <div className="space-y-1">
                                 {searchResults.people.map((person) => (
                                   <Link
                                     key={person._id}
-                                    href={`/profile?userId=${person._id}`}
+                                    href={`/profile/${person._id}`}
                                     onClick={() => { setShowSearchDropdown(false); setSearchQuery(''); }}
                                     className="flex items-center gap-3 p-2 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
                                   >
@@ -498,6 +541,7 @@ export default function Navigation() {
                           {/* No Results */}
                           {!isSearching && 
                            searchResults.movies.length === 0 && 
+                           searchResults.celebrities.length === 0 &&
                            searchResults.communities.length === 0 && 
                            searchResults.posts.length === 0 && 
                            searchResults.people.length === 0 && (
@@ -508,7 +552,7 @@ export default function Navigation() {
                           )}
 
                           {/* View All Results */}
-                          {(searchResults.movies.length > 0 || searchResults.communities.length > 0 || searchResults.posts.length > 0 || searchResults.people.length > 0) && (
+                          {(searchResults.movies.length > 0 || searchResults.celebrities.length > 0 || searchResults.communities.length > 0 || searchResults.posts.length > 0 || searchResults.people.length > 0) && (
                             <button
                               onClick={handleSearch}
                               className="w-full mt-2 p-2 text-sm text-primary hover:bg-secondary rounded-lg transition-colors cursor-pointer text-center"

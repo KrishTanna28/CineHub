@@ -24,7 +24,7 @@ export async function GET(request) {
         { fullName: { $regex: search, $options: 'i' } }
       ]
     })
-      .select('username fullName avatar')
+      .select('username fullName avatar points level bio')
       .limit(limit)
       .lean()
 
