@@ -178,7 +178,7 @@ export default function BrowsePage() {
   return (
     <main className="min-h-screen bg-background">
       <div className="bg-background border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Mobile Filter Toggle */}
           <div className="flex items-center justify-between mb-4">
             <span className="flex items-center gap-2 text-foreground font-semibold">
@@ -288,8 +288,8 @@ export default function BrowsePage() {
       </div>
 
       {/* Results */}
-      <div className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+      <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between sm:mb-8">
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
