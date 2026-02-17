@@ -16,9 +16,9 @@ const connectDB = async () => {
 
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URL, {
-      // Mongoose 6+ no longer needs these options, but keeping for compatibility
-      // useNewUrlParser: true,
-      // useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      family: 4, // Force IPv4 — avoids DNS resolution issues
     });
 
     console.log(`✅ MongoDB Connected`);

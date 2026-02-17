@@ -692,11 +692,9 @@ export default function PostDetailPage() {
                 {/* Stacked text */}
                 <span className="flex flex-col leading-tight">
                   <div>
-                    r/<span className="font-bold text-primary">
+                    c/<span className="font-bold text-primary">
                       {post.community?.name || 'Unknown'}
                     </span>
-                    {' • '}
-                    {formatTimeAgo(post.createdAt)}
                   </div>
 
                   <div className="text-sm text-muted-foreground">

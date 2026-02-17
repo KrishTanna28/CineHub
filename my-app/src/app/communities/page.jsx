@@ -229,7 +229,7 @@ export default function CommunitiesPage() {
               <Link href="/communities/new">
                 <Button className="gap-2 whitespace-nowrap cursor-pointer" aria-label="Create Community">
                   <Plus className="w-5 h-5" />
-                  <span className="hidden sm:inline">Create Community</span>
+                  <span>Create Community</span>
                 </Button>
               </Link>
             )}
@@ -523,7 +523,7 @@ export default function CommunitiesPage() {
                                   </div>
                                 )}
                                 <span className="text-xs text-muted-foreground truncate">
-                                  r/{post.community?.name || 'Unknown'}
+                                  c/{post.community?.name || 'Unknown'}
                                 </span>
                                 <span className="text-xs text-muted-foreground">•</span>
                                 <span className="text-xs text-muted-foreground whitespace-nowrap">

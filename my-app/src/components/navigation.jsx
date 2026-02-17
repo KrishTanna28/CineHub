@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { Search, Menu, X, User, LogOut, Settings, Home, Compass, Users, Film, Tv, MessageCircle, Loader2 } from "lucide-react"
+import { Search, X, User, LogOut, Settings, Home, Compass, Users, Film, Tv, MessageCircle, Loader2, Bot } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -26,7 +26,6 @@ const searchCategories = [
 ]
 
 export default function Navigation() {
-  const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [isVisible, setIsVisible] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
@@ -45,6 +44,19 @@ export default function Navigation() {
   const router = useRouter()
   const pathname = usePathname()
   const { user, isLoading, logout } = useUser()
+  const [showProfilePopup, setShowProfilePopup] = useState(false)
+  const profilePopupRef = useRef(null)
+
+  // Close profile popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profilePopupRef.current && !profilePopupRef.current.contains(event.target)) {
+        setShowProfilePopup(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Check if we're on a specific community page (slug page - transparent navbar at top)
   // Match /communities/[slug] but not /communities, /communities/[slug]/new-post, /communities/[slug]/edit, /communities/[slug]/posts/[id]
@@ -104,7 +116,6 @@ export default function Navigation() {
       } else if (activeSearchCategory === 'people') {
         router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}&tab=people`)
       }
-      setIsOpen(false)
     }
   }
 
@@ -165,166 +176,18 @@ export default function Navigation() {
     logout()
   }
 
+  // Toggle AI assistant - find and click the floating button
+  const toggleAIAssistant = () => {
+    // The AI assistant has its own toggle button; we simulate a click on it
+    const aiButton = document.querySelector('[data-ai-toggle]')
+    if (aiButton) {
+      aiButton.click()
+    }
+  }
+
   return (
     <>
-      {/* Mobile Sidebar Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity cursor-pointer"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-      {/* Mobile Sidebar */}
-      <div className={`fixed top-0 left-0 h-full w-64 bg-background border-r border-border z-50 md:hidden transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}>
-        <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border">
-            <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary cursor-pointer" onClick={() => setIsOpen(false)}>
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground">
-                C
-              </div>
-              <span>CineHub</span>
-            </Link>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="p-2 cursor-pointer"
-            >
-              <X className="w-5 h-5 text-muted-foreground hover:text-primary" />
-            </button>
-          </div>
-
-          {/* Sidebar Content */}
-          <div className="flex-1 overflow-y-auto py-4">
-            {/* User Profile Section */}
-            {!isLoading && user && (
-              <div className="px-4 py-3 mb-4 bg-secondary/30 mx-4 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-12 h-12 border-2 border-primary">
-                    <AvatarImage src={user.avatar} alt={user.username} />
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {user.username?.charAt(0).toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{user.fullName || user.username}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Navigation Links */}
-            <nav className="space-y-1 px-2">
-              {!isLoading && user && (
-                <>
-                  <Link
-                    href="/"
-                    className="flex items-center gap-3 px-4 py-3 text-foreground hover:transition-colors cursor-pointer"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <Home className="w-5 h-5" />
-                    <span>Home</span>
-                  </Link>
-                  <Link
-                    href="/browse"
-                    className="flex items-center gap-3 px-4 py-3 text-foreground hover:transition-colors cursor-pointer"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <Compass className="w-5 h-5" />
-                    <span>Browse</span>
-                  </Link>
-                  <Link
-                    href="/communities"
-                    className="flex items-center gap-3 px-4 py-3 text-foreground hover:transition-colors cursor-pointer"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <Users className="w-5 h-5" />
-                    <span>Communities</span>
-                  </Link>
-                </>
-              )}
-            </nav>
-
-            {/* Search */}
-            {user &&
-              <div className="px-4 py-4 mt-4">
-                <form onSubmit={handleSearch} className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search everything..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch(e)}
-                    className="w-full pl-10 pr-4 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </form>
-              </div>
-            }
-          </div>
-
-          {/* Sidebar Footer */}
-          <div className="border-t border-border p-4 space-y-2">
-            {!isLoading && (
-              user ? (
-                <>
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-3 px-4 py-2 text-foreground hover:bg-secondary rounded-lg transition-colors w-full cursor-pointer"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <User className="w-4 h-4" />
-                    <span>Profile</span>
-                  </Link>
-                  <Link
-                    href="/settings"
-                    className="flex items-center gap-3 px-4 py-2 text-foreground hover:bg-secondary rounded-lg transition-colors w-full cursor-pointer"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <Settings className="w-4 h-4" />
-                    <span>Settings</span>
-                  </Link>
-                  <button
-                    onClick={() => {
-                      handleLogout()
-                      setIsOpen(false)
-                    }}
-                    className="flex items-center gap-3 w-full px-4 py-2 text-destructive hover:bg-secondary rounded-lg transition-colors cursor-pointer"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>Logout</span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      router.push('/login')
-                      setIsOpen(false)
-                    }}
-                  >
-                    Login
-                  </Button>
-                  <Button
-                    className="w-full"
-                    onClick={() => {
-                      router.push('/signup')
-                      setIsOpen(false)
-                    }}
-                  >
-                    Sign Up
-                  </Button>
-                </>
-              )
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Navbar */}
+      {/* Main Navbar (desktop only) */}
       <nav
         className={`fixed top-0 left-0 right-0 z-30 transition-all duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'
           } ${hasBackground ? 'bg-background/95 backdrop-blur border-b border-border' : 'bg-transparent border-none'}`}
@@ -473,7 +336,7 @@ export default function Navigation() {
                                       </div>
                                     )}
                                     <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-foreground truncate">r/{community.name}</p>
+                                      <p className="text-sm font-medium text-foreground truncate">c/{community.name}</p>
                                       <p className="text-xs text-muted-foreground truncate">{community.memberCount == 1 ? "1 member" : `${community.memberCount || 0} members`}</p>
                                     </div>
                                   </Link>
@@ -500,7 +363,7 @@ export default function Navigation() {
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium text-foreground truncate">{post.title}</p>
                                       <p className="text-xs text-muted-foreground truncate">
-                                        in r/{post.community?.name} • by u/{post.user?.username}
+                                        in c/{post.community?.name} • by u/{post.user?.username}
                                       </p>
                                     </div>
                                   </Link>
@@ -637,17 +500,132 @@ export default function Navigation() {
               )}
             </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="md:hidden p-2 cursor-pointer"
-            >
-              {isOpen ? <></> : <Menu className="w-6 h-6 text-muted-foreground hover:text-primary" />}
-            </button>
           </div>
 
         </div>
       </nav>
+
+      {/* Mobile Bottom Navigation Bar - Instagram style */}
+      {!isLoading && user && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-background/95 backdrop-blur border-t border-border">
+          <div className="flex items-center justify-around h-14">
+            {/* Home */}
+            <Link
+              href="/"
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
+                pathname === '/' ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <Home className="w-6 h-6" strokeWidth={pathname === '/' ? 2.5 : 1.5} />
+            </Link>
+
+            {/* Browse */}
+            <Link
+              href="/browse"
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
+                pathname === '/browse' ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <Compass className="w-6 h-6" strokeWidth={pathname === '/browse' ? 2.5 : 1.5} />
+            </Link>
+
+            {/* Communities */}
+            <Link
+              href="/communities"
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
+                pathname?.startsWith('/communities') ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <Users className="w-6 h-6" strokeWidth={pathname?.startsWith('/communities') ? 2.5 : 1.5} />
+            </Link>
+
+            {/* AI Chatbot */}
+            <button
+              onClick={toggleAIAssistant}
+              className="flex flex-col items-center justify-center flex-1 h-full text-muted-foreground transition-colors cursor-pointer"
+            >
+              <Bot className="w-6 h-6" strokeWidth={1.5} />
+            </button>
+
+            {/* Profile (avatar with popup) */}
+            <div className="relative flex flex-col items-center justify-center flex-1 h-full" ref={profilePopupRef}>
+              <button
+                onClick={() => setShowProfilePopup(!showProfilePopup)}
+                className="flex items-center justify-center cursor-pointer"
+              >
+                <Avatar className={`w-7 h-7 ${
+                  pathname === '/profile' ? 'ring-2 ring-primary' : 'ring-1 ring-border'
+                }`}>
+                  <AvatarImage src={user.avatar} alt={user.username} />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                    {user.username?.charAt(0).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+
+              {/* Profile Popup (opens above) */}
+              {showProfilePopup && (
+                <div className="absolute bottom-full right-0 mb-3 w-52 bg-background border border-border rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  {/* User info header */}
+                  <div className="px-4 py-3 border-b border-border bg-secondary/30">
+                    <p className="text-sm font-semibold text-foreground truncate">{user.fullName || user.username}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                  <div className="py-1">
+                    <Link
+                      href="/profile"
+                      onClick={() => setShowProfilePopup(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+                    >
+                      <User className="w-4 h-4" />
+                      Profile
+                    </Link>
+                    <Link
+                      href="/settings"
+                      onClick={() => setShowProfilePopup(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Settings
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setShowProfilePopup(false)
+                        handleLogout()
+                      }}
+                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-destructive hover:bg-secondary transition-colors cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile bottom nav: show login/signup if not authenticated */}
+      {!isLoading && !user && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-background/95 backdrop-blur border-t border-border">
+          <div className="flex items-center gap-2 p-3">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => router.push('/login')}
+            >
+              Login
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={() => router.push('/signup')}
+            >
+              Sign Up
+            </Button>
+          </div>
+        </div>
+      )}
     </>
   )
 }

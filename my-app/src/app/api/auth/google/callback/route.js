@@ -90,7 +90,7 @@ export async function GET(request) {
 
     if (user) {
       // Link Google account to existing user
-      user.googleId = googleuser._id;
+      user.googleId = googleUser.id;
       user.authProvider = 'google';
       user.emailVerified = true;
       
@@ -119,7 +119,7 @@ export async function GET(request) {
     const username = googleUser.email.split('@')[0] + Math.floor(Math.random() * 1000);
     
     user = await User.create({
-      googleId: googleuser._id,
+      googleId: googleUser.id,
       email: googleUser.email,
       username: username,
       fullName: googleUser.name,

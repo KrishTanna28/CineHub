@@ -25,7 +25,7 @@ export default function RootLayout({ children }) {
       <body className={`font-sans antialiased`}>
         <Providers>
           <Navigation />
-          <div className="pt-16">
+          <div className="pt-16 pb-16 md:pb-0">
             {children}
           </div>
           <Toaster />

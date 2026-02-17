@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { X, Filter, ChevronDown, ChevronUp, Star } from "lucide-react"
+import { X, Filter, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as movieAPI from "@/lib/movies"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
@@ -177,27 +177,150 @@ export default function BrowsePage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <div className="bg-background border-b border-border">
+      {/* Mobile Filter Sidebar Overlay */}
+      {showFilters && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setShowFilters(false)}
+        />
+      )}
+
+      {/* Mobile Filter Sidebar */}
+      <div className={`fixed top-0 left-0 h-full w-80 bg-background border-r border-border z-50 lg:hidden transition-transform duration-300 ease-in-out overflow-y-auto ${showFilters ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-foreground">Filters</h2>
+            <button
+              onClick={() => setShowFilters(false)}
+              className="p-2 hover:bg-secondary/50 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {/* Type Dropdown */}
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">Type</label>
+              <select
+                value={selectedType}
+                onChange={(e) => {
+                  setSelectedType(e.target.value)
+                  setPage(1)
+                }}
+                className="w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all cursor-pointer hover:bg-secondary/70"
+              >
+                {TYPES.map((type) => (
+                  <option key={type} value={type} className="bg-background text-foreground">{type}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Genre Dropdown */}
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">Genre</label>
+              <select
+                value={selectedGenre}
+                onChange={(e) => {
+                  setSelectedGenre(e.target.value)
+                  setPage(1)
+                }}
+                className="w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all cursor-pointer hover:bg-secondary/70"
+              >
+                <option value="All" className="bg-background text-foreground">All</option>
+                {genres.map((genre) => (
+                  <option key={genre.id} value={genre.name} className="bg-background text-foreground">{genre.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Language Dropdown */}
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">Language</label>
+              <select
+                value={selectedLanguage}
+                onChange={(e) => {
+                  setSelectedLanguage(e.target.value)
+                  setPage(1)
+                }}
+                className="w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all cursor-pointer hover:bg-secondary/70"
+              >
+                {LANGUAGES.map((lang) => (
+                  <option key={lang.value} value={lang.value} className="bg-background text-foreground">{lang.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Rating Dropdown */}
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">Rating</label>
+              <select
+                value={selectedRating}
+                onChange={(e) => {
+                  setSelectedRating(e.target.value)
+                  setPage(1)
+                }}
+                className="w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all cursor-pointer hover:bg-secondary/70"
+              >
+                {RATINGS.map((rating) => (
+                  <option key={rating} value={rating} className="bg-background text-foreground">{rating}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sort By Dropdown */}
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">Sort By</label>
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value)
+                  setPage(1)
+                }}
+                className="w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all cursor-pointer hover:bg-secondary/70"
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value} className="bg-background text-foreground">{option.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Clear Filters Button */}
+            {hasActiveFilters && (
+              <button
+                onClick={() => {
+                  clearFilters()
+                  setShowFilters(false)
+                }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                <X className="w-4 h-4" />
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-background border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Mobile Filter Toggle */}
           <div className="flex items-center justify-between mb-4">
-            <span className="flex items-center gap-2 text-foreground font-semibold">
-              <Filter className="w-4 h-4" />
-              <h2 className="text-lg font-semibold text-foreground">Filters</h2>
-            </span>
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="lg:hidden flex items-center gap-2 px-3 py-2 bg-secondary/50 border border-border rounded-lg text-foreground hover:bg-secondary/70 transition-all"
             >
               <Filter className="w-4 h-4" />
-              <span className="text-sm">
-                {showFilters ? 'Hide' : 'Show'}
-              </span>
-              {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              <span className="text-sm font-medium">Filters</span>
             </button>
+            <span className="hidden lg:flex items-center gap-2 text-foreground font-semibold">
+              <Filter className="w-4 h-4" />
+              <h2 className="text-lg font-semibold text-foreground">Filters</h2>
+            </span>
           </div>
 
-          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 transition-all duration-300 ${showFilters ? 'block' : 'hidden lg:grid'}`}>
+          {/* Desktop Filters */}
+          <div className="hidden lg:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Type Dropdown */}
             <div>
               <label className="text-sm font-medium text-muted-foreground mb-2 block">Type</label>
@@ -288,12 +411,12 @@ export default function BrowsePage() {
       </div>
 
       {/* Results */}
-      <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="flex items-center justify-between sm:mb-8">
+      <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mt-4">
+        <div className="flex items-center justify-between mb-4 sm:mb-8">
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors cursor-pointer"
+              className="hidden lg:flex items-center gap-2 text-primary hover:text-primary/80 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
               Clear Filters
