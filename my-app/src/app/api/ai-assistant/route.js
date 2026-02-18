@@ -3,6 +3,11 @@ import { NextResponse } from "next/server";
 import * as tmdbService from "@/lib/services/tmdb.service";
 import { searchCommunitiesByTopic, getTrendingPosts, searchPostsByTopic } from "@/lib/services/chatTools.service";
 import { retrieveRAGContext } from "@/lib/services/rag.service";
+import connectDB from "@/lib/config/database";
+import Community from "@/lib/models/Community";
+import Post from "@/lib/models/Post";
+import Review from "@/lib/models/Review";
+import User from "@/lib/models/User";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -45,19 +50,75 @@ If a user asks something unrelated to cinema/entertainment, politely decline and
 - If you don't know something specific, be honest about it
 - Keep responses focused on entertainment topics only
 
-**INTENT ROUTING — How you should handle different types of questions:**
+**TOOL USAGE — When to call which tool:**
+
+You have access to real-time platform data via tools. Always prefer tools over your own knowledge for platform-specific data.
 
 1. **Platform help / how-to questions** (e.g. "How do I create a post?", "How do I join a community?")
    → Answer directly using the Platform Help Knowledge below. Do NOT call any tools.
 
-2. **Community or post search / recommendation questions** (e.g. "Find Marvel communities", "Show trending posts", "Recommend a discussion")
-   → Call the appropriate tool: searchCommunitiesByTopic, getTrendingPosts, or searchPostsByTopic.
+2. **Trending content** (e.g. "What's trending?", "What's hot this week?")
+   → Call \`getTrendingContent\` with mediaType="all" or "movie" or "tv".
 
-3. **Opinion or discussion-based questions** (e.g. "What do people think about Interstellar?", "What are fans saying about Loki?")
-   → Call the searchReviewsAndPosts tool to retrieve real user reviews and community discussions via RAG.
+3. **Popular movies** (e.g. "Show me popular movies", "What movies are everyone watching?")
+   → Call \`getPopularMovies\`.
 
-4. **General movie/TV questions** (e.g. "Tell me about Inception", "Suggest sci-fi movies")
-   → Answer directly using your knowledge and any provided TMDB context. Use getMovieDetails if specific data is needed.
+4. **Top-rated movies** (e.g. "Best movies of all time", "Highest rated movies")
+   → Call \`getTopRatedMovies\`.
+
+5. **Popular TV shows** (e.g. "Popular TV shows", "What shows are people watching?")
+   → Call \`getPopularTVShows\`.
+
+6. **Top-rated TV shows** (e.g. "Best TV shows ever", "Highest rated series")
+   → Call \`getTopRatedTVShows\`.
+
+7. **Search for a specific movie** (e.g. "Find Inception", "Search for The Dark Knight")
+   → Call \`searchMovies\` with the title.
+
+8. **Search for a specific TV show** (e.g. "Find Breaking Bad", "Search for Stranger Things")
+   → Call \`searchTVShows\` with the title.
+
+9. **Search movies AND TV together, or search for a person** (e.g. "Search for Tom Hanks", "Find anything about Dune")
+   → Call \`searchMultiContent\`.
+
+10. **Discover/filter movies** (e.g. "Show me sci-fi movies from 2022", "Action movies with rating above 7")
+    → Call \`discoverMovies\` with the appropriate filters.
+
+11. **Movie details by TMDB ID** (e.g. user provides a specific ID)
+    → Call \`getMovieById\`.
+
+12. **TV show details by TMDB ID**
+    → Call \`getTVShowById\`.
+
+13. **Actor/director details** (e.g. "Tell me about Christopher Nolan", "Who is Cillian Murphy?")
+    → Call \`searchMultiContent\` first to find the person ID, then \`getPersonById\` if needed.
+
+14. **Community search** (e.g. "Find Marvel communities", "Any anime groups on Cinnect?")
+    → Call \`searchCommunitiesByTopic\`.
+
+15. **Browse all communities** (e.g. "Show me popular communities", "List communities")
+    → Call \`getCommunities\`.
+
+16. **Community posts** (e.g. "What are people posting in the Marvel community?")
+    → Call \`getCommunityPosts\` with the community slug.
+
+17. **Trending posts / hot discussions** (e.g. "What are people talking about?", "Show trending discussions")
+    → Call \`getTrendingPosts\`.
+
+18. **Search posts by topic** (e.g. "Find posts about Oppenheimer")
+    → Call \`searchPostsByTopic\`.
+
+19. **Reviews for a movie/show** (e.g. "What do Cinnect users think about Interstellar?", "Show reviews for Breaking Bad")
+    → Call \`searchReviewsAndPosts\` (RAG) OR \`getReviews\` with mediaId if known.
+
+20. **Leaderboard / top users** (e.g. "Who are the top users on Cinnect?", "Show the leaderboard")
+    → Call \`getLeaderboard\`.
+
+21. **Search for a user** (e.g. "Find user john_doe", "Is there a user named Alex?")
+    → Call \`searchUsers\`.
+
+22. **Opinion/discussion questions** (e.g. "What do fans think about Loki?")
+    → Call \`searchReviewsAndPosts\` for RAG-based community context.
 
 **PLATFORM HELP KNOWLEDGE — Cinnect Features Guide:**
 
@@ -172,7 +233,6 @@ async function fetchContextData(query) {
 
 // Extract potential search terms from query
 function extractSearchTerms(query) {
-  // Remove common words and extract potential titles/names
   const stopWords = ["what", "who", "when", "where", "how", "is", "are", "the", "a", "an", "about", "tell", "me", "show", "movie", "tv", "series", "film", "actor", "actress", "director", "recommend", "suggest", "like", "similar", "to", "best", "top", "good", "great", "watch", "should", "i", "can", "you", "please", "trending", "popular", "new", "latest", "upcoming"];
   
   const words = query.toLowerCase().split(/\s+/);
@@ -246,6 +306,7 @@ function formatContextForAI(context) {
 const tools = [
   {
     functionDeclarations: [
+      // ── Existing tools (unchanged) ──────────────────────────────────────
       {
         name: "searchCommunitiesByTopic",
         description:
@@ -323,6 +384,319 @@ const tools = [
           required: ["topic"],
         },
       },
+
+      // ── New tools ────────────────────────────────────────────────────────
+      {
+        name: "getTrendingContent",
+        description:
+          "Get trending movies and/or TV shows from TMDB. Use when the user asks what is trending, hot, or popular right now. Prefer this over getPopularMovies when the user says 'trending'.",
+        parameters: {
+          type: "object",
+          properties: {
+            mediaType: {
+              type: "string",
+              description: "Type of content: 'movie', 'tv', or 'all'. Defaults to 'all'.",
+            },
+            timeWindow: {
+              type: "string",
+              description: "Time window: 'day' or 'week'. Defaults to 'week'.",
+            },
+          },
+        },
+      },
+      {
+        name: "getPopularMovies",
+        description:
+          "Get currently popular movies from TMDB. Use when the user asks for popular movies, what movies everyone is watching, or wants a general list of movies to watch.",
+        parameters: {
+          type: "object",
+          properties: {
+            page: {
+              type: "number",
+              description: "Page number (default 1).",
+            },
+          },
+        },
+      },
+      {
+        name: "getTopRatedMovies",
+        description:
+          "Get the highest-rated movies of all time from TMDB. Use when the user asks for the best movies, all-time classics, or top-rated films.",
+        parameters: {
+          type: "object",
+          properties: {
+            page: {
+              type: "number",
+              description: "Page number (default 1).",
+            },
+          },
+        },
+      },
+      {
+        name: "searchMovies",
+        description:
+          "Search for movies by title on TMDB. Use when the user asks to find or search for a specific movie by name.",
+        parameters: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "The movie title or keywords to search for.",
+            },
+            page: {
+              type: "number",
+              description: "Page number (default 1).",
+            },
+          },
+          required: ["query"],
+        },
+      },
+      {
+        name: "getMovieById",
+        description:
+          "Get full details of a specific movie by its TMDB ID. Use when you already know the TMDB movie ID.",
+        parameters: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              description: "The TMDB movie ID.",
+            },
+          },
+          required: ["id"],
+        },
+      },
+      {
+        name: "discoverMovies",
+        description:
+          "Discover and filter movies by genre, year, language, rating, or sort order. Use when the user wants to find movies matching specific criteria like 'sci-fi movies from 2023' or 'action movies rated above 7'.",
+        parameters: {
+          type: "object",
+          properties: {
+            genres: {
+              type: "string",
+              description: "Comma-separated genre IDs (e.g. '28,12' for Action, Adventure). Common IDs: Action=28, Comedy=35, Drama=18, Horror=27, Sci-Fi=878, Romance=10749, Thriller=53, Animation=16, Documentary=99.",
+            },
+            year: {
+              type: "string",
+              description: "Release year to filter by (e.g. '2023').",
+            },
+            minRating: {
+              type: "string",
+              description: "Minimum vote average (e.g. '7' for 7+).",
+            },
+            maxRating: {
+              type: "string",
+              description: "Maximum vote average (e.g. '10').",
+            },
+            sortBy: {
+              type: "string",
+              description: "Sort order: 'popularity.desc', 'vote_average.desc', 'release_date.desc', 'revenue.desc'. Defaults to 'popularity.desc'.",
+            },
+            language: {
+              type: "string",
+              description: "Language code (e.g. 'hi' for Hindi, 'en' for English, 'ko' for Korean).",
+            },
+            page: {
+              type: "number",
+              description: "Page number (default 1).",
+            },
+          },
+        },
+      },
+      {
+        name: "getPopularTVShows",
+        description:
+          "Get currently popular TV shows from TMDB. Use when the user asks for popular series, what shows everyone is watching, or wants a list of TV shows.",
+        parameters: {
+          type: "object",
+          properties: {
+            page: {
+              type: "number",
+              description: "Page number (default 1).",
+            },
+          },
+        },
+      },
+      {
+        name: "getTopRatedTVShows",
+        description:
+          "Get the highest-rated TV shows of all time from TMDB. Use when the user asks for the best TV series, top-rated shows, or all-time great television.",
+        parameters: {
+          type: "object",
+          properties: {
+            page: {
+              type: "number",
+              description: "Page number (default 1).",
+            },
+          },
+        },
+      },
+      {
+        name: "searchTVShows",
+        description:
+          "Search for TV shows by title on TMDB. Use when the user asks to find or search for a specific TV series by name.",
+        parameters: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "The TV show title or keywords to search for.",
+            },
+            page: {
+              type: "number",
+              description: "Page number (default 1).",
+            },
+          },
+          required: ["query"],
+        },
+      },
+      {
+        name: "getTVShowById",
+        description:
+          "Get full details of a specific TV show by its TMDB ID. Use when you already know the TMDB TV show ID.",
+        parameters: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              description: "The TMDB TV show ID.",
+            },
+          },
+          required: ["id"],
+        },
+      },
+      {
+        name: "searchMultiContent",
+        description:
+          "Search across movies, TV shows, and people simultaneously on TMDB. Use when the user searches for a person (actor, director) by name, or when you're unsure if they mean a movie or TV show.",
+        parameters: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "The search query (person name, movie/show title, or general term).",
+            },
+          },
+          required: ["query"],
+        },
+      },
+      {
+        name: "getPersonById",
+        description:
+          "Get detailed information about an actor, director, or other film industry person by their TMDB ID. Use after searchMultiContent to get full details about a specific person.",
+        parameters: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              description: "The TMDB person ID.",
+            },
+          },
+          required: ["id"],
+        },
+      },
+      {
+        name: "getCommunities",
+        description:
+          "Browse all public communities on Cinnect. Use when the user wants to see a list of communities, browse by category, or find popular communities.",
+        parameters: {
+          type: "object",
+          properties: {
+            category: {
+              type: "string",
+              description: "Filter by category (e.g. 'movies', 'tv', 'anime', 'general').",
+            },
+            sort: {
+              type: "string",
+              description: "Sort order: 'popular', 'recent', or 'members'. Defaults to 'popular'.",
+            },
+            limit: {
+              type: "number",
+              description: "Number of communities to return (default 10).",
+            },
+          },
+        },
+      },
+      {
+        name: "getCommunityPosts",
+        description:
+          "Get posts from a specific Cinnect community by its slug. Use when the user asks what people are posting in a specific community.",
+        parameters: {
+          type: "object",
+          properties: {
+            slug: {
+              type: "string",
+              description: "The community slug (URL-friendly name, e.g. 'marvel-fans').",
+            },
+            sort: {
+              type: "string",
+              description: "Sort order: 'recent', 'popular', or 'hot'. Defaults to 'hot'.",
+            },
+            limit: {
+              type: "number",
+              description: "Number of posts to return (default 5).",
+            },
+          },
+          required: ["slug"],
+        },
+      },
+      {
+        name: "getReviews",
+        description:
+          "Get Cinnect user reviews for a specific movie or TV show by its TMDB media ID. Use when the user asks for reviews or ratings of a specific title on the platform.",
+        parameters: {
+          type: "object",
+          properties: {
+            mediaId: {
+              type: "string",
+              description: "The TMDB ID of the movie or TV show.",
+            },
+            mediaType: {
+              type: "string",
+              description: "Type of media: 'movie' or 'tv'.",
+            },
+            limit: {
+              type: "number",
+              description: "Number of reviews to return (default 5).",
+            },
+          },
+          required: ["mediaId", "mediaType"],
+        },
+      },
+      {
+        name: "getLeaderboard",
+        description:
+          "Get the top users on Cinnect ranked by points. Use when the user asks about the leaderboard, top contributors, most active users, or who has the most points.",
+        parameters: {
+          type: "object",
+          properties: {
+            limit: {
+              type: "number",
+              description: "Number of users to return (default 10).",
+            },
+          },
+        },
+      },
+      {
+        name: "searchUsers",
+        description:
+          "Search for Cinnect users by username or display name. Use when the user asks to find a specific user on the platform. Only returns public profile information.",
+        parameters: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "The username or display name to search for.",
+            },
+            limit: {
+              type: "number",
+              description: "Number of results to return (default 5).",
+            },
+          },
+          required: ["query"],
+        },
+      },
     ],
   },
 ];
@@ -332,6 +706,7 @@ const tools = [
 // ────────────────────────────────────────────────────────────────────────────
 async function executeTool(name, args) {
   switch (name) {
+    // ── Existing tools ──────────────────────────────────────────────────────
     case "searchCommunitiesByTopic": {
       const communities = await searchCommunitiesByTopic(args.topic);
       return JSON.stringify(communities);
@@ -362,6 +737,290 @@ async function executeTool(name, args) {
     case "searchPostsByTopic": {
       const posts = await searchPostsByTopic(args.topic);
       return JSON.stringify(posts);
+    }
+
+    // ── New tools ────────────────────────────────────────────────────────────
+    case "getTrendingContent": {
+      const mediaType = args.mediaType || "all";
+      const timeWindow = args.timeWindow || "week";
+      // getTrending returns a formatted array directly
+      const results = await tmdbService.getTrending(mediaType, timeWindow).catch(() => []);
+      const list = Array.isArray(results) ? results : [];
+      return JSON.stringify(list.slice(0, 10).map(m => ({
+        id: m.id,
+        type: m.mediaType,
+        title: m.title,
+        year: m.releaseDate?.split("-")[0],
+        rating: m.rating?.toFixed ? m.rating.toFixed(1) : m.rating,
+        overview: m.overview?.slice(0, 150),
+      })));
+    }
+
+    case "getPopularMovies": {
+      // getPopular returns { results: formattedArray } with releaseDate, rating already set
+      const data = await tmdbService.getPopular(args.page || 1).catch(() => ({ results: [] }));
+      const movies = (data?.results || []).slice(0, 10).map(m => ({
+        id: m.id,
+        title: m.title,
+        year: m.releaseDate?.split("-")[0],
+        rating: m.rating?.toFixed ? m.rating.toFixed(1) : m.rating,
+        overview: m.overview?.slice(0, 150),
+      }));
+      return JSON.stringify(movies);
+    }
+
+    case "getTopRatedMovies": {
+      const data = await tmdbService.getTopRated(args.page || 1).catch(() => ({ results: [] }));
+      const movies = (data?.results || []).slice(0, 10).map(m => ({
+        id: m.id,
+        title: m.title,
+        year: m.releaseDate?.split("-")[0],
+        rating: m.rating?.toFixed ? m.rating.toFixed(1) : m.rating,
+        overview: m.overview?.slice(0, 150),
+      }));
+      return JSON.stringify(movies);
+    }
+
+    case "searchMovies": {
+      const data = await tmdbService.searchMovies(args.query, args.page || 1).catch(() => ({ results: [] }));
+      const movies = (data?.results || []).slice(0, 8).map(m => ({
+        id: m.id,
+        title: m.title,
+        year: m.releaseDate?.split("-")[0],
+        rating: m.rating?.toFixed ? m.rating.toFixed(1) : m.rating,
+        overview: m.overview?.slice(0, 150),
+      }));
+      return JSON.stringify(movies);
+    }
+
+    case "getMovieById": {
+      // getMovieDetails returns formatMovieDetails output: releaseDate, rating, cast[], crew[]
+      const movie = await tmdbService.getMovieDetails(args.id).catch(() => null);
+      if (!movie) return JSON.stringify({ error: "Movie not found" });
+      return JSON.stringify({
+        id: movie.id,
+        title: movie.title,
+        year: movie.releaseDate?.split("-")[0],
+        rating: movie.rating?.toFixed ? movie.rating.toFixed(1) : movie.rating,
+        overview: movie.overview,
+        genres: movie.genres?.map(g => g.name),
+        runtime: movie.runtime,
+        director: movie.crew?.find(c => c.job === "Director")?.name,
+        cast: movie.cast?.slice(0, 5).map(c => c.name),
+        tagline: movie.tagline,
+        status: movie.status,
+      });
+    }
+
+    case "discoverMovies": {
+      const filters = {
+        page: args.page || 1,
+        genres: args.genres || null,
+        year: args.year || null,
+        language: args.language || null,
+        sortBy: args.sortBy || "popularity.desc",
+        minRating: args.minRating || null,
+        maxRating: args.maxRating || null,
+      };
+      const data = await tmdbService.discoverMovies(filters).catch(() => ({ results: [] }));
+      const movies = (data?.results || []).slice(0, 10).map(m => ({
+        id: m.id,
+        title: m.title,
+        year: m.releaseDate?.split("-")[0],
+        rating: m.rating?.toFixed ? m.rating.toFixed(1) : m.rating,
+        overview: m.overview?.slice(0, 150),
+      }));
+      return JSON.stringify(movies);
+    }
+
+    case "getPopularTVShows": {
+      // getPopularTV returns { results: formattedArray } with releaseDate (= first_air_date), rating
+      const data = await tmdbService.getPopularTV(args.page || 1).catch(() => ({ results: [] }));
+      const shows = (data?.results || []).slice(0, 10).map(s => ({
+        id: s.id,
+        title: s.title,
+        year: s.releaseDate?.split("-")[0],
+        rating: s.rating?.toFixed ? s.rating.toFixed(1) : s.rating,
+        overview: s.overview?.slice(0, 150),
+      }));
+      return JSON.stringify(shows);
+    }
+
+    case "getTopRatedTVShows": {
+      const data = await tmdbService.getTopRatedTV(args.page || 1).catch(() => ({ results: [] }));
+      const shows = (data?.results || []).slice(0, 10).map(s => ({
+        id: s.id,
+        title: s.title,
+        year: s.releaseDate?.split("-")[0],
+        rating: s.rating?.toFixed ? s.rating.toFixed(1) : s.rating,
+        overview: s.overview?.slice(0, 150),
+      }));
+      return JSON.stringify(shows);
+    }
+
+    case "searchTVShows": {
+      const data = await tmdbService.searchTV(args.query, args.page || 1).catch(() => ({ results: [] }));
+      const shows = (data?.results || []).slice(0, 8).map(s => ({
+        id: s.id,
+        title: s.title,
+        year: s.releaseDate?.split("-")[0],
+        rating: s.rating?.toFixed ? s.rating.toFixed(1) : s.rating,
+        overview: s.overview?.slice(0, 150),
+      }));
+      return JSON.stringify(shows);
+    }
+
+    case "getTVShowById": {
+      // getTVDetails returns formatTVDetails: title, firstAirDate, numberOfSeasons, numberOfEpisodes, cast[]
+      const show = await tmdbService.getTVDetails(args.id).catch(() => null);
+      if (!show) return JSON.stringify({ error: "TV show not found" });
+      return JSON.stringify({
+        id: show.id,
+        title: show.title,
+        year: show.firstAirDate?.split("-")[0],
+        rating: show.rating?.toFixed ? show.rating.toFixed(1) : show.rating,
+        overview: show.overview,
+        genres: show.genres?.map(g => g.name),
+        seasons: show.numberOfSeasons,
+        episodes: show.numberOfEpisodes,
+        status: show.status,
+        cast: show.cast?.slice(0, 5).map(c => c.name),
+        tagline: show.tagline,
+      });
+    }
+
+    case "searchMultiContent": {
+      // searchMulti returns formatted results: mediaType, title, releaseDate, rating, knownFor
+      const data = await tmdbService.searchMulti(args.query).catch(() => ({ results: [] }));
+      const results = (data?.results || []).slice(0, 8).map(item => ({
+        id: item.id,
+        type: item.mediaType,
+        title: item.title,
+        year: item.releaseDate?.split("-")[0],
+        rating: item.rating?.toFixed ? item.rating.toFixed(1) : item.rating,
+        overview: item.overview?.slice(0, 120),
+        knownFor: item.knownFor, // for person results
+      }));
+      return JSON.stringify(results);
+    }
+
+    case "getPersonById": {
+      // getPersonDetails returns formatPersonDetails: knownForDepartment, movieCredits, tvCredits
+      const person = await tmdbService.getPersonDetails(args.id).catch(() => null);
+      if (!person) return JSON.stringify({ error: "Person not found" });
+      const topMovies = (person.movieCredits?.cast || []).slice(0, 5).map(c => ({
+        title: c.title,
+        year: c.releaseDate?.split("-")[0],
+        type: "movie",
+      }));
+      const topTV = (person.tvCredits?.cast || []).slice(0, 3).map(c => ({
+        title: c.title,
+        year: c.firstAirDate?.split("-")[0],
+        type: "tv",
+      }));
+      return JSON.stringify({
+        id: person.id,
+        name: person.name,
+        knownFor: person.knownForDepartment,
+        biography: person.biography?.slice(0, 400),
+        birthday: person.birthday,
+        placeOfBirth: person.placeOfBirth,
+        popularity: person.popularity?.toFixed ? person.popularity.toFixed(1) : person.popularity,
+        knownForWorks: [...topMovies, ...topTV],
+      });
+    }
+
+    case "getCommunities": {
+      await connectDB();
+      const query = { isActive: true };
+      if (args.category && args.category !== "all") query.category = args.category;
+      const limit = Math.min(args.limit || 10, 15);
+      let sort = { postCount: -1, memberCount: -1 };
+      if (args.sort === "recent") sort = { createdAt: -1 };
+      if (args.sort === "members") sort = { memberCount: -1 };
+      const communities = await Community.find(query)
+        .select("name slug description category memberCount postCount icon")
+        .sort(sort)
+        .limit(limit)
+        .lean();
+      return JSON.stringify(communities);
+    }
+
+    case "getCommunityPosts": {
+      await connectDB();
+      const community = await Community.findOne({ slug: args.slug }).lean();
+      if (!community) return JSON.stringify({ error: "Community not found" });
+      const limit = Math.min(args.limit || 5, 10);
+      const posts = await Post.find({ community: community._id, isApproved: true })
+        .populate("user", "username fullName")
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .select("title content createdAt likes comments")
+        .lean();
+      return JSON.stringify(posts.map(p => ({
+        title: p.title,
+        content: p.content?.slice(0, 200),
+        author: p.user?.username,
+        likes: p.likes?.length || 0,
+        comments: p.comments?.length || 0,
+        createdAt: p.createdAt,
+      })));
+    }
+
+    case "getReviews": {
+      await connectDB();
+      const query = { mediaId: args.mediaId, mediaType: args.mediaType };
+      const limit = Math.min(args.limit || 5, 10);
+      const reviews = await Review.find(query)
+        .populate("user", "username fullName")
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .select("title content rating spoiler createdAt mediaTitle")
+        .lean();
+      return JSON.stringify(reviews.map(r => ({
+        title: r.title,
+        content: r.content?.slice(0, 300),
+        rating: r.rating,
+        author: r.user?.username,
+        spoiler: r.spoiler,
+        createdAt: r.createdAt,
+      })));
+    }
+
+    case "getLeaderboard": {
+      await connectDB();
+      const limit = Math.min(args.limit || 10, 20);
+      const users = await User.find()
+        .select("username fullName avatar points level achievements")
+        .sort({ "points.total": -1, points: -1 })
+        .limit(limit)
+        .lean();
+      return JSON.stringify(users.map((u, i) => ({
+        rank: i + 1,
+        username: u.username,
+        fullName: u.fullName,
+        points: u.points?.total || u.points || 0,
+        level: u.level,
+      })));
+    }
+
+    case "searchUsers": {
+      await connectDB();
+      const limit = Math.min(args.limit || 5, 10);
+      const regex = { $regex: args.query, $options: "i" };
+      const users = await User.find({
+        $or: [{ username: regex }, { fullName: regex }],
+      })
+        .select("username fullName avatar bio points level")
+        .limit(limit)
+        .lean();
+      return JSON.stringify(users.map(u => ({
+        username: u.username,
+        fullName: u.fullName,
+        bio: u.bio?.slice(0, 100),
+        points: u.points?.total || u.points || 0,
+        level: u.level,
+      })));
     }
 
     default:
