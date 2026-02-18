@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Review from '@/lib/models/Review.js'
 import { withAuth } from '@/lib/middleware/withAuth.js'
+import { generateEmbedding } from '@/lib/services/embedding.service.js'
 
 // GET /api/reviews - Get reviews with optional filters
 export async function GET(request) {
@@ -89,6 +90,14 @@ export const POST = withAuth(async (request, { user }) => {
       content,
       spoiler: spoiler || false
     })
+
+    // Generate embedding for RAG (non-blocking — don't fail the request)
+    try {
+      const embeddingText = `${mediaTitle} — ${title}. ${content}`;
+      review.embedding = await generateEmbedding(embeddingText);
+    } catch (embErr) {
+      console.error('Embedding generation failed (review will be saved without it):', embErr);
+    }
 
     await review.save()
 

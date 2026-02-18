@@ -118,6 +118,12 @@ const postSchema = new mongoose.Schema({
   // Comments
   comments: [commentSchema],
   
+  // Embedding for RAG vector search
+  embedding: {
+    type: [Number],
+    select: false
+  },
+
   // Metadata
   isPinned: {
     type: Boolean,

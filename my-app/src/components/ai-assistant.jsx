@@ -311,9 +311,6 @@ export default function AIAssistant() {
                     )}
                   </Button>
                 </form>
-                <p className="text-[10px] text-muted-foreground text-center mt-2">
-                CineHub @2026
-                </p>
               </div>
             </>
           )}

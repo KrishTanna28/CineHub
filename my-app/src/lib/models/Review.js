@@ -95,6 +95,12 @@ const reviewSchema = new mongoose.Schema({
     default: false
   },
   
+  // Embedding for RAG vector search
+  embedding: {
+    type: [Number],
+    select: false
+  },
+
   // Moderation
   isFlagged: {
     type: Boolean,
