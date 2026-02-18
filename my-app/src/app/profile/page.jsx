@@ -352,8 +352,8 @@ export default function ProfilePage() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 font-semibold transition-colors border-b-2 cursor-pointer ${activeTab === tab
-                  ? "text-primary border-primary"
-                  : "text-muted-foreground border-transparent hover:text-foreground"
+                ? "text-primary border-primary"
+                : "text-muted-foreground border-transparent hover:text-foreground"
                 }`}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -414,7 +414,7 @@ export default function ProfilePage() {
                 {watchlist.map((movie, index) => {
                   const title = movie.title || movie.name
                   const mediaType = movie.media_type || (movie.title ? 'movie' : 'tv')
-                  const detailsUrl = mediaType === 'tv' ? `/tv/${movie.id}` : `/details/${movie.id}`
+                  const detailsUrl = mediaType === 'tv' ? `/tv/${movie.id}` : `/movies/${movie.id}`
 
                   return (
                     <div key={`watchlist-${movie.id}-${index}`} className="group relative">
@@ -478,7 +478,7 @@ export default function ProfilePage() {
                 {favorites.map((movie, index) => {
                   const title = movie.title || movie.name
                   const mediaType = movie.media_type || (movie.title ? 'movie' : 'tv')
-                  const detailsUrl = mediaType === 'tv' ? `/tv/${movie.id}` : `/details/${movie.id}`
+                  const detailsUrl = mediaType === 'tv' ? `/tv/${movie.id}` : `/movies/${movie.id}`
 
                   return (
                     <div key={`watchlist-${movie.id}-${index}`} className="group relative">
@@ -505,7 +505,7 @@ export default function ProfilePage() {
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => window.location.href = `/details/${movie.id}`}>
+                            <DropdownMenuItem onClick={() => window.location.href = `/movies/${movie.id}`}>
                               <Pencil className="w-4 h-4" />
                               Edit Favorite
                             </DropdownMenuItem>

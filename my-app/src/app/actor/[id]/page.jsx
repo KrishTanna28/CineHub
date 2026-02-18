@@ -539,7 +539,7 @@ export default function ActorDetailsPage({ params }) {
                 {activeTab === "movies" && movieCredits.slice(0, showAllMovies ? movieCredits.length : 14).map((credit) => (
                   <Link
                     key={`${credit.id}-${credit.role}`}
-                    href={`/details/${credit.id}`}
+                    href={`/movies/${credit.id}`}
                     className="group cursor-pointer"
                   >
                     <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-secondary">

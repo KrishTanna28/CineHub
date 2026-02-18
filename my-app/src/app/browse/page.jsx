@@ -382,7 +382,7 @@ export default function BrowsePage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Search movies, shows..."
+                  placeholder="Search anything..."
                   value={mobileSearchQuery}
                   onChange={(e) => setMobileSearchQuery(e.target.value)}
                   onFocus={() => mobileSearchQuery.trim() && setShowMobileSearchDropdown(true)}
@@ -422,7 +422,7 @@ export default function BrowsePage() {
                             {mobileSearchResults.movies.map((item) => (
                               <Link
                                 key={`${item.mediaType}-${item.id}`}
-                                href={item.mediaType === 'tv' ? `/tv/${item.id}` : `/details/${item.id}`}
+                                href={item.mediaType === 'tv' ? `/tv/${item.id}` : `/movies/${item.id}`}
                                 onClick={() => { setShowMobileSearchDropdown(false); setMobileSearchQuery('') }}
                                 className="flex items-center gap-2.5 p-2 hover:bg-secondary rounded-lg transition-colors"
                               >
@@ -618,7 +618,7 @@ export default function BrowsePage() {
           <>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4">
               {results.map((item) => {
-                const detailsPath = item.mediaType === 'tv' ? `/tv/${item.id}` : `/details/${item.id}`
+                const detailsPath = item.mediaType === 'tv' ? `/tv/${item.id}` : `/movies/${item.id}`
                 return (
                   <Link key={`${item.mediaType}-${item.id}`} href={detailsPath} className="group cursor-pointer">
                     <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-secondary">

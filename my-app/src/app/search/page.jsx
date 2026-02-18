@@ -128,7 +128,7 @@ export default function SearchPage() {
           <h1 className="text-2xl font-bold mb-2">
             Search Results for "<span className="text-primary">{query}</span>"
           </h1>
-          
+
           {/* Tabs */}
           <div className="flex items-center gap-2 mt-4 overflow-x-auto pb-2">
             {searchTabs.map((tab) => {
@@ -143,18 +143,16 @@ export default function SearchPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    activeTab === tab.id
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer ${activeTab === tab.id
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
                   {count > 0 && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                      activeTab === tab.id ? 'bg-primary-foreground/20' : 'bg-muted'
-                    }`}>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-primary-foreground/20' : 'bg-muted'
+                      }`}>
                       {count}
                     </span>
                   )}
@@ -201,7 +199,7 @@ export default function SearchPage() {
                   {(activeTab === 'all' ? moviesAndTV.slice(0, 7) : moviesAndTV).map(item => (
                     <Link
                       key={`${item.mediaType}-${item.id}`}
-                      href={item.mediaType === "tv" ? `/tv/${item.id}` : `/details/${item.id}`}
+                      href={item.mediaType === "tv" ? `/tv/${item.id}` : `/movies/${item.id}`}
                       className="group"
                     >
                       <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-secondary mb-2">

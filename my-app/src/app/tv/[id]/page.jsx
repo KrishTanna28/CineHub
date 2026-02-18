@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, use } from "react"
-import { Play, Share2, Heart, Clock, Award, Calendar, Tv as TvIcon, Film, Newspaper, Star, Bookmark, Check } from "lucide-react"
+import { Share2, Heart, Clock, Award, Calendar, Tv as TvIcon, Film, Newspaper, Star, Bookmark, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { getTVDetails } from "@/lib/movies"
@@ -11,6 +11,7 @@ import ClipsSection from "@/components/clips-section"
 import VideoPlayerModal from "@/components/video-player-modal"
 import Link from "next/link"
 import NewsCarousel from "@/components/news-carousel"
+import StreamingProviders from "@/components/streaming-providers"
 import ReviewPreview from "@/components/review-preview"
 import VideosGrid from "@/components/videos-grid"
 import { useUser } from "@/contexts/UserContext"
@@ -399,56 +400,6 @@ export default function TVDetailsPage({ params }) {
     }
   }
 
-  const handleWatchNow = () => {
-    if (!tvShow?.watchProviders) {
-      toast({
-        title: "Not Available",
-        description: "No streaming providers available for this TV show in your region.",
-        variant: "destructive"
-      })
-      return
-    }
-
-    // Try to get providers for India first, then US, then GB
-    const countries = ['IN', 'US', 'GB']
-    let providerData = null
-    let selectedCountry = null
-
-    for (const country of countries) {
-      if (tvShow.watchProviders[country]) {
-        providerData = tvShow.watchProviders[country]
-        selectedCountry = country
-        break
-      }
-    }
-
-    if (!providerData) {
-      toast({
-        title: "Not Available",
-        description: "No streaming providers available for this TV show in your region.",
-        variant: "destructive"
-      })
-      return
-    }
-
-    // If there's a direct link to TMDB watch page, use that
-    if (providerData.link) {
-      window.open(providerData.link, '_blank')
-      return
-    }
-
-    // Otherwise show available providers
-    const providers = providerData.flatrate || providerData.rent || providerData.buy
-    if (providers && providers.length > 0) {
-      const providerNames = providers.map(p => p.name).join(', ')
-      toast({
-        title: "Available Streaming Providers",
-        description: `Available on: ${providerNames}. Opening TMDB watch page...`,
-        variant: "success"
-      })
-      window.open(`https://www.themoviedb.org/tv/${tvShow.id}/watch`, '_blank')
-    }
-  }
 
   if (loading) {
     return (
@@ -586,12 +537,11 @@ export default function TVDetailsPage({ params }) {
               )}
             </div>
 
+            {/* Streaming Providers - desktop */}
+            <StreamingProviders type="tv" id={tvShow.id} />
+
             {/* Action Buttons - hidden on mobile, visible on desktop */}
             <div className="hidden md:flex flex-wrap gap-2 sm:gap-3 md:gap-4 mb-6 sm:mb-8">
-              <Button size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3" onClick={handleWatchNow}>
-                <Play className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                Watch Now
-              </Button>
               <Button
                 size="sm"
                 variant={inWatchlist ? "default" : "outline"}
@@ -658,10 +608,6 @@ export default function TVDetailsPage({ params }) {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
-            <Button size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3" onClick={handleWatchNow}>
-              <Play className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-              Watch Now
-            </Button>
             <Button
               size="sm"
               variant={inWatchlist ? "default" : "outline"}

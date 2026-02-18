@@ -58,8 +58,8 @@ export default function WatchlistPage() {
                 year: movieData.release_date
                   ? movieData.release_date.split("-")[0]
                   : movieData.first_air_date
-                  ? movieData.first_air_date.split("-")[0]
-                  : "N/A",
+                    ? movieData.first_air_date.split("-")[0]
+                    : "N/A",
                 genres: movieData.genres
                   ? movieData.genres.map((g) => g.name)
                   : [],
@@ -151,7 +151,7 @@ export default function WatchlistPage() {
                   </div>
                 )}
                 <div className="flex-1">
-                  <Link href={`/details/${movie.id}`} className="cursor-pointer">
+                  <Link href={`/movies/${movie.id}`} className="cursor-pointer">
                     <h3 className="text-xl font-bold text-foreground hover:text-primary transition-colors mb-2">
                       {movie.title}
                     </h3>

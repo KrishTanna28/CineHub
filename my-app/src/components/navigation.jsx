@@ -30,6 +30,9 @@ export default function Navigation() {
   const [isVisible, setIsVisible] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
   const [hasBackground, setHasBackground] = useState(false)
+  const [isAtTop, setIsAtTop] = useState(true)
+  const [isSearchHovered, setIsSearchHovered] = useState(false)
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [activeSearchCategory, setActiveSearchCategory] = useState('all')
   const [searchResults, setSearchResults] = useState({
     movies: [],
@@ -154,6 +157,9 @@ export default function Navigation() {
       // Add background when scrolled past 100px
       setHasBackground(currentScrollY > 100)
 
+      // Track whether we're at the very top
+      setIsAtTop(currentScrollY < 10)
+
       if (currentScrollY < 10) {
         // Always show navbar at top
         setIsVisible(true)
@@ -189,8 +195,8 @@ export default function Navigation() {
     <>
       {/* Main Navbar (desktop only) */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-30 transition-all duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'
-          } ${hasBackground ? 'bg-background/95 backdrop-blur border-b border-border' : 'bg-transparent border-none'}`}
+        className={`fixed top-0 left-0 right-0 z-30 transition-all duration-1000 ${isVisible ? 'translate-y-0' : '-translate-y-full'
+          } ${hasBackground ? 'bg-background backdrop-blur border-b border-border' : 'bg-transparent border-none'}`}
       >
         <div className="w-full px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
@@ -203,8 +209,22 @@ export default function Navigation() {
             </Link>
 
             {/* Center Search - Desktop Only - Always Open */}
-            {user && <div className="hidden md:flex flex-1 justify-center max-w-xl mx-8" ref={searchRef}>
-              <div className="relative w-full">
+            {user && <div
+              className="hidden md:flex flex-1 justify-center max-w-xl mx-8"
+              ref={searchRef}
+              onMouseEnter={() => setIsSearchHovered(true)}
+              onMouseLeave={() => setIsSearchHovered(false)}
+            >
+              <div
+                className="relative w-full"
+                style={{
+                  transformOrigin: 'center',
+                  transform: isAtTop && !isSearchHovered && !isSearchFocused && !searchQuery ? 'scaleX(0)' : 'scaleX(1)',
+                  opacity: isAtTop && !isSearchHovered && !isSearchFocused && !searchQuery ? 0 : 1,
+                  transition: 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.45s ease',
+                  pointerEvents: isAtTop && !isSearchHovered && !isSearchFocused && !searchQuery ? 'none' : 'auto',
+                }}
+              >
                 <form onSubmit={handleSearch} className="relative w-full">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
@@ -212,7 +232,8 @@ export default function Navigation() {
                     placeholder="Search anything..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => searchQuery.trim() && setShowSearchDropdown(true)}
+                    onFocus={() => { setIsSearchFocused(true); searchQuery.trim() && setShowSearchDropdown(true) }}
+                    onBlur={() => setIsSearchFocused(false)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch(e)}
                     className="w-full pl-10 pr-4 py-2 bg-input border border-border rounded-full text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all"
                   />
@@ -230,11 +251,10 @@ export default function Navigation() {
                         <button
                           key={cat.id}
                           onClick={() => setActiveSearchCategory(cat.id)}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors whitespace-nowrap cursor-pointer ${
-                            activeSearchCategory === cat.id
+                          className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors whitespace-nowrap cursor-pointer ${activeSearchCategory === cat.id
                               ? 'bg-primary text-primary-foreground'
                               : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-                          }`}
+                            }`}
                         >
                           {cat.label}
                         </button>
@@ -257,7 +277,7 @@ export default function Navigation() {
                                 {searchResults.movies.map((item) => (
                                   <Link
                                     key={`${item.mediaType}-${item.id}`}
-                                    href={item.mediaType === 'tv' ? `/tv/${item.id}` : `/details/${item.id}`}
+                                    href={item.mediaType === 'tv' ? `/tv/${item.id}` : `/movies/${item.id}`}
                                     onClick={() => { setShowSearchDropdown(false); setSearchQuery(''); }}
                                     className="flex items-center gap-3 p-2 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
                                   >
@@ -266,7 +286,7 @@ export default function Navigation() {
                                     ) : (
                                       <div className="w-10 h-14 bg-secondary rounded flex items-center justify-center">
                                         {item.mediaType === 'tv' ? <Tv className="w-5 h-5 text-muted-foreground" /> :
-                                         <Film className="w-5 h-5 text-muted-foreground" />}
+                                          <Film className="w-5 h-5 text-muted-foreground" />}
                                       </div>
                                     )}
                                     <div className="flex-1 min-w-0">
@@ -402,17 +422,17 @@ export default function Navigation() {
                           )}
 
                           {/* No Results */}
-                          {!isSearching && 
-                           searchResults.movies.length === 0 && 
-                           searchResults.celebrities.length === 0 &&
-                           searchResults.communities.length === 0 && 
-                           searchResults.posts.length === 0 && 
-                           searchResults.people.length === 0 && (
-                            <div className="text-center py-8">
-                              <Search className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                              <p className="text-sm text-muted-foreground">No results found for "{searchQuery}"</p>
-                            </div>
-                          )}
+                          {!isSearching &&
+                            searchResults.movies.length === 0 &&
+                            searchResults.celebrities.length === 0 &&
+                            searchResults.communities.length === 0 &&
+                            searchResults.posts.length === 0 &&
+                            searchResults.people.length === 0 && (
+                              <div className="text-center py-8">
+                                <Search className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                                <p className="text-sm text-muted-foreground">No results found for "{searchQuery}"</p>
+                              </div>
+                            )}
 
                           {/* View All Results */}
                           {(searchResults.movies.length > 0 || searchResults.celebrities.length > 0 || searchResults.communities.length > 0 || searchResults.posts.length > 0 || searchResults.people.length > 0) && (
@@ -446,7 +466,7 @@ export default function Navigation() {
                     <Users className="w-5 h-5" />
                   </Link>
 
-                  <div/>
+                  <div />
                 </>
               )}
 
@@ -512,9 +532,8 @@ export default function Navigation() {
             {/* Home */}
             <Link
               href="/"
-              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                pathname === '/' ? 'text-primary' : 'text-muted-foreground'
-              }`}
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${pathname === '/' ? 'text-primary' : 'text-muted-foreground'
+                }`}
             >
               <Home className="w-6 h-6" strokeWidth={pathname === '/' ? 2.5 : 1.5} />
             </Link>
@@ -522,9 +541,8 @@ export default function Navigation() {
             {/* Browse */}
             <Link
               href="/browse"
-              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                pathname === '/browse' ? 'text-primary' : 'text-muted-foreground'
-              }`}
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${pathname === '/browse' ? 'text-primary' : 'text-muted-foreground'
+                }`}
             >
               <Compass className="w-6 h-6" strokeWidth={pathname === '/browse' ? 2.5 : 1.5} />
             </Link>
@@ -532,9 +550,8 @@ export default function Navigation() {
             {/* Communities */}
             <Link
               href="/communities"
-              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                pathname?.startsWith('/communities') ? 'text-primary' : 'text-muted-foreground'
-              }`}
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${pathname?.startsWith('/communities') ? 'text-primary' : 'text-muted-foreground'
+                }`}
             >
               <Users className="w-6 h-6" strokeWidth={pathname?.startsWith('/communities') ? 2.5 : 1.5} />
             </Link>
@@ -553,9 +570,8 @@ export default function Navigation() {
                 onClick={() => setShowProfilePopup(!showProfilePopup)}
                 className="flex items-center justify-center cursor-pointer"
               >
-                <Avatar className={`w-7 h-7 ${
-                  pathname === '/profile' ? 'ring-2 ring-primary' : 'ring-1 ring-border'
-                }`}>
+                <Avatar className={`w-7 h-7 ${pathname === '/profile' ? 'ring-2 ring-primary' : 'ring-1 ring-border'
+                  }`}>
                   <AvatarImage src={user.avatar} alt={user.username} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                     {user.username?.charAt(0).toUpperCase() || 'U'}

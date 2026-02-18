@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, use } from "react"
-import { Play, Share2, Heart, Clock, Award, Calendar, DollarSign, Film, Newspaper, Star, Bookmark, Check } from "lucide-react"
+import { Share2, Heart, Clock, Award, Calendar, DollarSign, Film, Newspaper, Star, Bookmark, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import * as movieAPI from "@/lib/movies"
@@ -13,6 +13,7 @@ import Link from "next/link"
 import NewsCarousel from "@/components/news-carousel"
 import ReviewPreview from "@/components/review-preview"
 import VideosGrid from "@/components/videos-grid"
+import StreamingProviders from "@/components/streaming-providers"
 import { useUser } from "@/contexts/UserContext"
 import { useRouter } from "next/navigation"
 
@@ -360,56 +361,6 @@ export default function DetailsPage({ params }) {
   }
 }
 
-  const handleWatchNow = () => {
-    if (!movie?.watchProviders) {
-      toast({
-        title: "Not Available",
-        description: "No streaming providers available for this movie in your region.",
-        variant: "destructive"
-      })
-      return
-    }
-
-    // Try to get providers for India first, then US, then GB
-    const countries = ['IN', 'US', 'GB']
-    let providerData = null
-    let selectedCountry = null
-
-    for (const country of countries) {
-      if (movie.watchProviders[country]) {
-        providerData = movie.watchProviders[country]
-        selectedCountry = country
-        break
-      }
-    }
-
-    if (!providerData) {
-      toast({
-        title: "Not Available",
-        description: "No streaming providers available for this movie in your region.",
-        variant: "destructive"
-      })
-      return
-    }
-
-    // If there's a direct link to TMDB watch page, use that
-    if (providerData.link) {
-      window.open(providerData.link, '_blank')
-      return
-    }
-
-    // Otherwise show available providers
-    const providers = providerData.flatrate || providerData.rent || providerData.buy
-    if (providers && providers.length > 0) {
-      const providerNames = providers.map(p => p.name).join(', ')
-      toast({
-        title: "Available Streaming Providers",
-        description: `Available on: ${providerNames}. Opening TMDB watch page...`,
-        variant: "success"
-      })
-      window.open(`https://www.themoviedb.org/movie/${movie.id}/watch`, '_blank')
-    }
-  }
 
   if (loading) {
     return (
@@ -541,12 +492,11 @@ export default function DetailsPage({ params }) {
               )}
             </div>
 
+            {/* Streaming Providers - desktop */}
+            <StreamingProviders type="movie" id={movie.id} />
+
             {/* Action Buttons - hidden on mobile, visible on desktop */}
             <div className="hidden md:flex flex-wrap gap-2 sm:gap-3 md:gap-4 mb-6 sm:mb-8">
-              <Button size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3" onClick={handleWatchNow}>
-                <Play className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                Watch Now
-              </Button>
               <Button 
                 size="sm" 
                 variant={inWatchlist ? "default" : "outline"}
@@ -613,12 +563,11 @@ export default function DetailsPage({ params }) {
             )}
           </div>
 
+          {/* Streaming Providers - mobile */}
+          <StreamingProviders type="movie" id={movie.id} />
+
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
-            <Button size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm md:text-base sm:px-4 sm:py-2 md:px-6 md:py-3" onClick={handleWatchNow}>
-              <Play className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-              Watch Now
-            </Button>
             <Button 
               size="sm" 
               variant={inWatchlist ? "default" : "outline"}
@@ -726,7 +675,7 @@ export default function DetailsPage({ params }) {
                   [...(movie.recommendations || []), ...(movie.similar || [])]
                     .map(item => [item.id, item])
                 ).values()].slice(0, 14).map((item) => (
-                  <Link key={item.id} href={`/details/${item.id}`} className="group cursor-pointer">
+                  <Link key={item.id} href={`/movies/${item.id}`} className="group cursor-pointer">
                     <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-secondary">
                       {item.poster ? (
                         <img

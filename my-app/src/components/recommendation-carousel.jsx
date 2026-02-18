@@ -104,7 +104,7 @@ export default function RecommendationCarousel({
                 href={
                   movie.mediaType === "tv"
                     ? `/tv/${movie.id}`
-                    : `/details/${movie.id}`
+                    : `/movies/${movie.id}`
                 }
                 className="cursor-pointer"
               >
@@ -120,10 +120,10 @@ export default function RecommendationCarousel({
             >
               {isLoadingMore && (
                 <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        </div>
-      </div>
+                  <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  </div>
+                </div>
               )}
             </div>
           )}

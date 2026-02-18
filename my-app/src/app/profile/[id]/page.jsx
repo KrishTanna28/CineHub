@@ -3,12 +3,12 @@
 import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { 
-  User, 
-  Star, 
-  Trophy, 
-  Calendar, 
-  Flame, 
+import {
+  User,
+  Star,
+  Trophy,
+  Calendar,
+  Flame,
   Heart,
   Film,
   MessageSquare,
@@ -46,7 +46,7 @@ export default function PublicProfilePage({ params }) {
   const unwrappedParams = use(params)
   const userId = unwrappedParams.id
   const router = useRouter()
-  
+
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -111,7 +111,7 @@ export default function PublicProfilePage({ params }) {
 
   const levelInfo = getLevelInfo(profile.level)
   const nextLevelPoints = getNextLevelThreshold(profile.level)
-  const progressToNextLevel = nextLevelPoints 
+  const progressToNextLevel = nextLevelPoints
     ? ((profile.points - getLevelInfo(profile.level).points) / (nextLevelPoints - getLevelInfo(profile.level).points)) * 100
     : 100
 
@@ -119,7 +119,7 @@ export default function PublicProfilePage({ params }) {
     <main className="min-h-screen bg-background pt-24 pb-12">
       <div className="max-w-4xl mx-auto px-4">
         {/* Back Button */}
-        <button 
+        <button
           onClick={() => router.back()}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors cursor-pointer"
         >
@@ -150,7 +150,7 @@ export default function PublicProfilePage({ params }) {
                 {profile.fullName || profile.username}
               </h1>
               <p className="text-muted-foreground mb-2">@{profile.username}</p>
-              
+
               {/* Level Title */}
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/20 rounded-full text-sm mb-4">
                 <Trophy className="w-4 h-4 text-primary" />
@@ -177,7 +177,7 @@ export default function PublicProfilePage({ params }) {
               <span className="font-medium">{profile.points} XP</span>
             </div>
             <div className="h-3 bg-secondary rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(progressToNextLevel, 100)}%` }}
               />
@@ -245,7 +245,7 @@ export default function PublicProfilePage({ params }) {
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {profile.achievements.slice(0, 6).map((achievement, index) => (
-                <div 
+                <div
                   key={index}
                   className="bg-gradient-to-br from-amber-500/20 to-orange-500/10 rounded-xl p-4 flex items-center gap-3"
                 >
@@ -282,15 +282,15 @@ export default function PublicProfilePage({ params }) {
               {profile.recentReviews.map((review) => (
                 <Link
                   key={review._id}
-                  href={review.mediaType === 'tv' ? `/tv/${review.movieId}` : `/details/${review.movieId}`}
+                  href={review.mediaType === 'tv' ? `/tv/${review.movieId}` : `/movies/${review.movieId}`}
                   className="block bg-secondary/30 rounded-xl p-4 hover:bg-secondary/50 transition-colors group"
                 >
                   <div className="flex gap-4">
                     {/* Poster */}
                     <div className="w-16 h-24 bg-secondary rounded-lg overflow-hidden flex-shrink-0">
                       {review.poster ? (
-                        <img 
-                          src={review.poster} 
+                        <img
+                          src={review.poster}
                           alt={review.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                         />
@@ -300,7 +300,7 @@ export default function PublicProfilePage({ params }) {
                         </div>
                       )}
                     </div>
-                    
+
                     {/* Review Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2 mb-1">
@@ -332,7 +332,7 @@ export default function PublicProfilePage({ params }) {
             <h2 className="text-lg font-semibold mb-4">Favorite Genres</h2>
             <div className="flex flex-wrap gap-2">
               {profile.favoriteGenres.map((genre, index) => (
-                <span 
+                <span
                   key={index}
                   className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm"
                 >
