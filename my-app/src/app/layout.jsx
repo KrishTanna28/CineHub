@@ -14,8 +14,8 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "CineHub - Movies & TV Shows",
-  description: "Discover, watch, and discuss your favorite movies and TV shows",
+  title: "Cinnect",
+  description: "Cinnect - Where cinema connects people. Discover, watch, and discuss your favorite movies and TV shows.",
   generator: "v0.app",
 }
 

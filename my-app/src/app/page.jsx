@@ -29,8 +29,8 @@ import HomeClient from "@/components/home-client"
 
 // Metadata for SEO
 export const metadata = {
-  title: "Home - CineHub | Discover Movies & TV Shows",
-  description: "Discover and explore popular movies, top-rated TV shows, and trending content on CineHub. Your ultimate destination for entertainment.",
+  title: "Home - Cinnect | Discover Movies & TV Shows",
+  description: "Discover and explore popular movies, top-rated TV shows, and trending content on Cinnect. Where cinema connects people.",
 }
 // Enable ISR (Incremental Static Regeneration)
 export const revalidate = 3600 // Revalidate every hour

@@ -26,7 +26,7 @@ export async function GET() {
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const prompt = `You are CineBot, an AI assistant for CineHub - a movie and TV show discovery platform. 
+    const prompt = `You are C.A.S.T (Cinematic Assistant for Smart Tastes), an AI assistant for Cinnect - a movie and TV show discovery platform. 
     
 ${trendingContext}
 

@@ -58,7 +58,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <h1 className="text-3xl font-bold text-foreground">Welcome Back</h1>
-          <p className="text-muted-foreground mt-2">Sign in to continue to CineHub</p>
+          <p className="text-muted-foreground mt-2">Sign in to continue to Cinnect</p>
         </div>
 
         {/* Login Form */}
@@ -172,7 +172,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-8">
-          By continuing, you agree to CineHub's{" "}
+          By continuing, you agree to Cinnect's{" "}
           <Link href="/terms" className="underline hover:text-foreground cursor-pointer">
             Terms of Service
           </Link>{" "}

@@ -117,7 +117,7 @@ export default function TVDetailsClient({
   const handleShare = async () => {
     const shareData = {
       title: show.name,
-      text: `Check out ${show.name} on CineHub!`,
+      text: `Check out ${show.name} on Cinnect!`,
       url: window.location.href
     }
 

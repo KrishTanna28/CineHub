@@ -6,7 +6,7 @@
     "build": "next build",
     "dev": "next dev -H 0.0.0.0",
     "lint": "eslint .",
-    "start": "next start"
+    "start": "next start -H 0.0.0.0"
   },
   "dependencies": {
     "@google/genai": "^1.41.0",

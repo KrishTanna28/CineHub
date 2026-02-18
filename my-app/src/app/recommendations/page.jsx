@@ -1,14 +1,87 @@
 "use client"
 
-import { mockMovies } from "@/lib/mock-data"
+import { useState, useEffect } from "react"
 import RecommendationCarousel from "@/components/recommendation-carousel"
+import { Loader2 } from "lucide-react"
+import {
+  getTrendingMovies,
+  getMoviesByGenre,
+  getCriticallyAcclaimed,
+  getFeelGoodMovies,
+} from "@/lib/movies"
+
+// TMDB Genre IDs
+const GENRE_IDS = {
+  sciFi: 878,
+  thriller: 53,
+  drama: 18,
+  action: 28,
+}
+
+function normalizeTMDBMovies(results = []) {
+  return results.map((m) => ({
+    id: m.id,
+    title: m.title || m.name || "Unknown",
+    description: m.overview || "",
+    poster: m.poster_path
+      ? `https://image.tmdb.org/t/p/w300${m.poster_path}`
+      : null,
+    rating: m.vote_average ? m.vote_average.toFixed(1) : "N/A",
+    year: m.release_date
+      ? m.release_date.split("-")[0]
+      : m.first_air_date
+      ? m.first_air_date.split("-")[0]
+      : "N/A",
+    genres: m.genre_ids || [],
+  }))
+}
 
 export default function RecommendationsPage() {
-  // Simulate different recommendation categories
-  const sciFiMovies = mockMovies.filter((m) => m.genres.includes("Sci-Fi"))
-  const thrillers = mockMovies.filter((m) => m.genres.includes("Thriller"))
-  const dramas = mockMovies.filter((m) => m.genres.includes("Drama"))
-  const actionMovies = mockMovies.filter((m) => m.genres.includes("Action"))
+  const [categories, setCategories] = useState({
+    sciFi: [],
+    thrillers: [],
+    dramas: [],
+    action: [],
+    trending: [],
+    acclaimed: [],
+  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    fetchRecommendations()
+  }, [])
+
+  const fetchRecommendations = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const [sciFiData, thrillerData, dramaData, actionData, trendingData, acclaimedData] =
+        await Promise.allSettled([
+          getMoviesByGenre(GENRE_IDS.sciFi),
+          getMoviesByGenre(GENRE_IDS.thriller),
+          getMoviesByGenre(GENRE_IDS.drama),
+          getMoviesByGenre(GENRE_IDS.action),
+          getTrendingMovies("week"),
+          getCriticallyAcclaimed(),
+        ])
+
+      setCategories({
+        sciFi: sciFiData.status === "fulfilled" ? normalizeTMDBMovies(sciFiData.value?.results) : [],
+        thrillers: thrillerData.status === "fulfilled" ? normalizeTMDBMovies(thrillerData.value?.results) : [],
+        dramas: dramaData.status === "fulfilled" ? normalizeTMDBMovies(dramaData.value?.results) : [],
+        action: actionData.status === "fulfilled" ? normalizeTMDBMovies(actionData.value?.results) : [],
+        trending: trendingData.status === "fulfilled" ? normalizeTMDBMovies(trendingData.value?.results) : [],
+        acclaimed: acclaimedData.status === "fulfilled" ? normalizeTMDBMovies(acclaimedData.value?.results) : [],
+      })
+    } catch (err) {
+      console.error("Recommendations fetch error:", err)
+      setError("Failed to load recommendations. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <main className="min-h-screen bg-background">
@@ -24,29 +97,66 @@ export default function RecommendationsPage() {
 
       {/* Recommendations */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <RecommendationCarousel
-          title="Because You Watched Sci-Fi"
-          movies={sciFiMovies}
-          description="More great science fiction content"
-        />
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">Loading recommendations...</span>
+          </div>
+        ) : error ? (
+          <div className="text-center py-16">
+            <p className="text-destructive text-lg">{error}</p>
+          </div>
+        ) : (
+          <>
+            {categories.trending.length > 0 && (
+              <RecommendationCarousel
+                title="Trending This Week"
+                movies={categories.trending}
+                description="What everyone is watching right now"
+              />
+            )}
 
-        <RecommendationCarousel
-          title="Thrilling Mysteries"
-          movies={thrillers}
-          description="Edge-of-your-seat thriller experiences"
-        />
+            {categories.sciFi.length > 0 && (
+              <RecommendationCarousel
+                title="Sci-Fi Adventures"
+                movies={categories.sciFi}
+                description="More great science fiction content"
+              />
+            )}
 
-        <RecommendationCarousel
-          title="Award-Winning Dramas"
-          movies={dramas}
-          description="Critically acclaimed dramatic films"
-        />
+            {categories.thrillers.length > 0 && (
+              <RecommendationCarousel
+                title="Thrilling Mysteries"
+                movies={categories.thrillers}
+                description="Edge-of-your-seat thriller experiences"
+              />
+            )}
 
-        <RecommendationCarousel
-          title="Action-Packed Adventures"
-          movies={actionMovies}
-          description="High-octane action and adventure"
-        />
+            {categories.dramas.length > 0 && (
+              <RecommendationCarousel
+                title="Award-Winning Dramas"
+                movies={categories.dramas}
+                description="Critically acclaimed dramatic films"
+              />
+            )}
+
+            {categories.action.length > 0 && (
+              <RecommendationCarousel
+                title="Action-Packed Adventures"
+                movies={categories.action}
+                description="High-octane action and adventure"
+              />
+            )}
+
+            {categories.acclaimed.length > 0 && (
+              <RecommendationCarousel
+                title="Critically Acclaimed"
+                movies={categories.acclaimed}
+                description="Top-rated films loved by critics and audiences"
+              />
+            )}
+          </>
+        )}
       </div>
     </main>
   )

@@ -296,9 +296,9 @@ export const sendOTPEmail = async (email, otp, userName = 'User') => {
         });
 
         const mailOptions = {
-          from: `"CineHub" <${process.env.EMAIL_USER}>`,
+          from: `"Cinnect" <${process.env.EMAIL_USER}>`,
           to: email,
-          subject: '🎬 Your CineHub Verification Code',
+          subject: '🎬 Your Cinnect Verification Code',
           html: `
             <!DOCTYPE html>
             <html>
@@ -313,7 +313,7 @@ export const sendOTPEmail = async (email, otp, userName = 'User') => {
                 <div class="logo-section">
                   <div class="logo-icon"><span>🎬</span></div>
                   <div class="logo-title">Verification Code</div>
-                  <div class="logo-subtitle">Verify your email to continue to CineHub</div>
+                  <div class="logo-subtitle">Verify your email to continue to Cinnect</div>
                 </div>
 
                 <!-- Main Card -->
@@ -322,7 +322,7 @@ export const sendOTPEmail = async (email, otp, userName = 'User') => {
                     Hello <strong style="color: #f2f2f2;">${userName}</strong>,
                   </div>
                   <div class="text">
-                    Welcome to CineHub! Use the verification code below to complete your registration:
+                    Welcome to Cinnect! Use the verification code below to complete your registration:
                   </div>
 
                   <!-- OTP Display -->
@@ -337,7 +337,7 @@ export const sendOTPEmail = async (email, otp, userName = 'User') => {
                     <div class="alert-title">⚠️ Security Notice</div>
                     <ul>
                       <li>Never share this code with anyone</li>
-                      <li>CineHub will never ask for your code</li>
+                      <li>Cinnect will never ask for your code</li>
                       <li>This code expires in 10 minutes</li>
                     </ul>
                   </div>
@@ -349,13 +349,13 @@ export const sendOTPEmail = async (email, otp, userName = 'User') => {
                   <!-- Signature -->
                   <div class="signature">
                     <div class="signature-text">Happy watching! 🍿</div>
-                    <div class="signature-name">The CineHub Team</div>
+                    <div class="signature-name">The Cinnect Team</div>
                   </div>
                 </div>
 
                 <!-- Footer -->
                 <div class="footer">
-                  <div class="footer-text">© ${new Date().getFullYear()} CineHub. All rights reserved.</div>
+                  <div class="footer-text">© ${new Date().getFullYear()} Cinnect. All rights reserved.</div>
                   <div class="footer-text">This is an automated message, please do not reply.</div>
                 </div>
               </div>
@@ -406,9 +406,9 @@ export const sendWelcomeEmail = async (email, userName) => {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
 
     const mailOptions = {
-      from: `"CineHub" <${process.env.EMAIL_USER}>`,
+      from: `"Cinnect" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: '🎉 Welcome to CineHub - 50 Points Bonus!',
+      subject: '🎉 Welcome to Cinnect - 50 Points Bonus!',
       html: `
         <!DOCTYPE html>
         <html>
@@ -422,7 +422,7 @@ export const sendWelcomeEmail = async (email, userName) => {
             <!-- Logo Section -->
             <div class="logo-section">
               <div class="logo-icon"><span>🎬</span></div>
-              <div class="logo-title">Welcome to CineHub!</div>
+              <div class="logo-title">Welcome to Cinnect!</div>
               <div class="logo-subtitle">Your movie community awaits</div>
             </div>
 
@@ -432,7 +432,7 @@ export const sendWelcomeEmail = async (email, userName) => {
                 Hello <strong style="color: #f2f2f2;">${userName}</strong>,
               </div>
               <div class="text">
-                Your account has been successfully created. We're thrilled to have you join the CineHub community!
+                Your account has been successfully created. We're thrilled to have you join the Cinnect community!
               </div>
 
               <!-- Points Box -->
@@ -477,13 +477,13 @@ export const sendWelcomeEmail = async (email, userName) => {
               <!-- Signature -->
               <div class="signature">
                 <div class="signature-text">Happy watching!</div>
-                <div class="signature-name">The CineHub Team</div>
+                <div class="signature-name">The Cinnect Team</div>
               </div>
             </div>
 
             <!-- Footer -->
             <div class="footer">
-              <div class="footer-text">© ${new Date().getFullYear()} CineHub. All rights reserved.</div>
+              <div class="footer-text">© ${new Date().getFullYear()} Cinnect. All rights reserved.</div>
               <div class="footer-text">This is an automated message, please do not reply.</div>
             </div>
           </div>
@@ -524,9 +524,9 @@ export const sendPasswordResetEmail = async (email, resetToken, userName = 'User
         const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 
         const mailOptions = {
-          from: `"CineHub" <${process.env.EMAIL_USER}>`,
+          from: `"Cinnect" <${process.env.EMAIL_USER}>`,
           to: email,
-          subject: '🔐 Reset Your CineHub Password',
+          subject: '🔐 Reset Your Cinnect Password',
           html: `
             <!DOCTYPE html>
             <html>
@@ -541,7 +541,7 @@ export const sendPasswordResetEmail = async (email, resetToken, userName = 'User
                 <div class="logo-section">
                   <div class="logo-icon"><span>🔐</span></div>
                   <div class="logo-title" style="color: #141414;">Reset Password</div>
-                  <div class="logo-subtitle " style="color: #141414;">Create a new password for your CineHub account</div>
+                  <div class="logo-subtitle " style="color: #141414;">Create a new password for your Cinnect account</div>
                 </div>
 
                 <!-- Main Card -->
@@ -550,7 +550,7 @@ export const sendPasswordResetEmail = async (email, resetToken, userName = 'User
                     Hello <strong style="color: #f2f2f2;">${userName}</strong>,
                   </div>
                   <div class="text">
-                    We received a request to reset your CineHub password. Click the button below to create a new password:
+                    We received a request to reset your Cinnect password. Click the button below to create a new password:
                   </div>
 
                   <!-- CTA Button -->
@@ -572,7 +572,7 @@ export const sendPasswordResetEmail = async (email, resetToken, userName = 'User
                     <ul>
                       <li>If you didn't request this, ignore this email</li>
                       <li>Never share this link with anyone</li>
-                      <li>CineHub will never ask for your password</li>
+                      <li>Cinnect will never ask for your password</li>
                     </ul>
                   </div>
 
@@ -585,13 +585,13 @@ export const sendPasswordResetEmail = async (email, resetToken, userName = 'User
                   <!-- Signature -->
                   <div class="signature">
                     <div class="signature-text">Stay secure!</div>
-                    <div class="signature-name">The CineHub Team</div>
+                    <div class="signature-name">The Cinnect Team</div>
                   </div>
                 </div>
 
                 <!-- Footer -->
                 <div class="footer">
-                  <div class="footer-text">© ${new Date().getFullYear()} CineHub. All rights reserved.</div>
+                  <div class="footer-text">© ${new Date().getFullYear()} Cinnect. All rights reserved.</div>
                   <div class="footer-text">This is an automated message, please do not reply.</div>
                 </div>
               </div>

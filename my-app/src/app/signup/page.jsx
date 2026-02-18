@@ -97,7 +97,7 @@ export default function SignupPage() {
           toast({
             variant: "success",
             title: "✅ Registration Complete!",
-            description: "Welcome to CineHub! Check your email for more details.",
+            description: "Welcome to Cinnect! Check your email for more details.",
             duration: 5000,
           })
         }, 3000)
@@ -176,7 +176,7 @@ export default function SignupPage() {
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <h1 className="text-3xl font-bold text-foreground">Create Account</h1>
-          <p className="text-muted-foreground mt-2">Join CineHub and start your journey</p>
+          <p className="text-muted-foreground mt-2">Join Cinnect and start your journey</p>
         </div>
 
         {/* Signup Form or OTP Verification */}

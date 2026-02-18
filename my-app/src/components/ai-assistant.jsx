@@ -26,7 +26,7 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: "Hey there! 👋 I'm CineBot, your personal movie & TV guide. Ask me anything about movies, shows, actors, or what's trending! 🎬",
+      content: "Hey there! 👋 I'm C.A.S.T — your Cinematic Assistant for Smart Tastes. Ask me anything about movies, shows, actors, or what's trending! 🎬",
     },
   ])
   const [input, setInput] = useState("")
@@ -40,7 +40,7 @@ export default function AIAssistant() {
     const fetchSuggestions = async () => {
       try {
         // Check localStorage for cached suggestions
-        const cached = localStorage.getItem("cinebot_suggestions")
+        const cached = localStorage.getItem("cast_suggestions")
         if (cached) {
           const { suggestions, generatedAt } = JSON.parse(cached)
           if (isSameDay(generatedAt) && suggestions?.length === 4) {
@@ -56,7 +56,7 @@ export default function AIAssistant() {
           if (data.suggestions?.length === 4) {
             setSuggestedQuestions(data.suggestions)
             // Cache the suggestions
-            localStorage.setItem("cinebot_suggestions", JSON.stringify({
+            localStorage.setItem("cast_suggestions", JSON.stringify({
               suggestions: data.suggestions,
               generatedAt: data.generatedAt,
             }))
@@ -190,7 +190,8 @@ export default function AIAssistant() {
                 <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-card" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground text-sm">CineBot</h3>
+                <h3 className="font-semibold text-foreground text-sm">C.A.S.T</h3>
+                <p className="text-[10px] text-muted-foreground">Cinematic Assistant for Smart Tastes</p>
               </div>
             </div>
             <div className="flex items-center gap-1">

@@ -228,7 +228,7 @@ function ResetPasswordForm() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-8">
-          By continuing, you agree to CineHub's{" "}
+          By continuing, you agree to Cinnect's{" "}
           <Link href="/terms" className="underline hover:text-foreground cursor-pointer">
             Terms of Service
           </Link>{" "}

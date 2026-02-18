@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
-import { X, Filter, Star } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { X, Filter, Star, Search, Loader2, Film, Tv } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as movieAPI from "@/lib/movies"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
@@ -36,6 +37,7 @@ const SORT_OPTIONS = [
 ]
 
 export default function BrowsePage() {
+  const router = useRouter()
   const [genres, setGenres] = useState([])
   const [selectedGenre, setSelectedGenre] = useState("All")
   const [selectedType, setSelectedType] = useState("All")
@@ -50,6 +52,13 @@ export default function BrowsePage() {
   const [totalResults, setTotalResults] = useState(0)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+
+  // Mobile search state
+  const [mobileSearchQuery, setMobileSearchQuery] = useState("")
+  const [mobileSearchResults, setMobileSearchResults] = useState({ movies: [], people: [] })
+  const [isMobileSearching, setIsMobileSearching] = useState(false)
+  const [showMobileSearchDropdown, setShowMobileSearchDropdown] = useState(false)
+  const mobileSearchRef = useRef(null)
 
   // Infinite scroll
   const loadMoreRef = useInfiniteScroll(
@@ -174,6 +183,58 @@ export default function BrowsePage() {
   }
 
   const hasActiveFilters = selectedGenre !== "All" || selectedType !== "All" || selectedLanguage !== "All" || selectedRating !== "All" || sortBy !== "popularity.desc"
+
+  // Mobile search logic
+  const performMobileSearch = useCallback(async (query) => {
+    if (!query.trim()) {
+      setMobileSearchResults({ movies: [], people: [] })
+      return
+    }
+    setIsMobileSearching(true)
+    try {
+      const res = await fetch(`/api/movies/search/multi?q=${encodeURIComponent(query)}&page=1`)
+      const data = await res.json()
+      const allResults = data.data?.results || []
+      setMobileSearchResults({
+        movies: allResults.filter(r => r.mediaType !== 'person').slice(0, 6),
+        people: allResults.filter(r => r.mediaType === 'person').slice(0, 3),
+      })
+    } catch (err) {
+      console.error('Mobile search error:', err)
+    } finally {
+      setIsMobileSearching(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!mobileSearchQuery.trim()) {
+      setMobileSearchResults({ movies: [], people: [] })
+      setShowMobileSearchDropdown(false)
+      return
+    }
+    setShowMobileSearchDropdown(true)
+    const timer = setTimeout(() => performMobileSearch(mobileSearchQuery), 300)
+    return () => clearTimeout(timer)
+  }, [mobileSearchQuery, performMobileSearch])
+
+  // Close mobile search dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (mobileSearchRef.current && !mobileSearchRef.current.contains(e.target)) {
+        setShowMobileSearchDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleMobileSearch = (e) => {
+    if (e) e.preventDefault()
+    if (mobileSearchQuery.trim()) {
+      setShowMobileSearchDropdown(false)
+      router.push(`/search?q=${encodeURIComponent(mobileSearchQuery.trim())}`)
+    }
+  }
 
   return (
     <main className="min-h-screen bg-background">
@@ -304,15 +365,127 @@ export default function BrowsePage() {
 
       <div className="bg-background border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Mobile Filter Toggle */}
-          <div className="flex items-center justify-between mb-4">
+          {/* Mobile Filter Toggle + Search Bar */}
+          <div className="flex items-center gap-2 mb-4">
+            {/* Filters button — mobile only */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="lg:hidden flex items-center gap-2 px-3 py-2 bg-secondary/50 border border-border rounded-lg text-foreground hover:bg-secondary/70 transition-all"
+              className="lg:hidden flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-secondary/50 border border-border rounded-lg text-foreground hover:bg-secondary/70 transition-all"
             >
               <Filter className="w-4 h-4" />
-              <span className="text-sm font-medium">Filters</span>
+              <span className="text-sm hidden sm:block font-medium">Filters</span>
             </button>
+
+            {/* Mobile Search Bar — always open, beside Filters button */}
+            <div className="lg:hidden flex-1 relative" ref={mobileSearchRef}>
+              <form onSubmit={handleMobileSearch} className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search movies, shows..."
+                  value={mobileSearchQuery}
+                  onChange={(e) => setMobileSearchQuery(e.target.value)}
+                  onFocus={() => mobileSearchQuery.trim() && setShowMobileSearchDropdown(true)}
+                  className="w-full pl-9 pr-8 py-2 bg-secondary/50 border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all text-sm"
+                />
+                {mobileSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setMobileSearchQuery(''); setShowMobileSearchDropdown(false) }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {isMobileSearching
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <X className="w-3.5 h-3.5" />}
+                  </button>
+                )}
+              </form>
+
+              {/* Mobile Search Dropdown */}
+              {showMobileSearchDropdown && mobileSearchQuery.trim() && (
+                <div className="absolute top-full left-0 right-0 mt-1.5 bg-background border border-border rounded-lg shadow-xl z-50 max-h-[60vh] overflow-y-auto">
+                  {isMobileSearching ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                    </div>
+                  ) : mobileSearchResults.movies.length === 0 && mobileSearchResults.people.length === 0 ? (
+                    <div className="text-center py-6">
+                      <Search className="w-6 h-6 text-muted-foreground mx-auto mb-1" />
+                      <p className="text-sm text-muted-foreground">No results for "{mobileSearchQuery}"</p>
+                    </div>
+                  ) : (
+                    <div className="p-2">
+                      {mobileSearchResults.movies.length > 0 && (
+                        <div className="mb-2">
+                          <h4 className="text-[10px] font-semibold text-muted-foreground uppercase px-2 mb-1">Movies &amp; TV</h4>
+                          <div className="space-y-0.5">
+                            {mobileSearchResults.movies.map((item) => (
+                              <Link
+                                key={`${item.mediaType}-${item.id}`}
+                                href={item.mediaType === 'tv' ? `/tv/${item.id}` : `/details/${item.id}`}
+                                onClick={() => { setShowMobileSearchDropdown(false); setMobileSearchQuery('') }}
+                                className="flex items-center gap-2.5 p-2 hover:bg-secondary rounded-lg transition-colors"
+                              >
+                                {item.poster ? (
+                                  <img src={item.poster} alt="" className="w-8 h-11 object-cover rounded flex-shrink-0" />
+                                ) : (
+                                  <div className="w-8 h-11 bg-secondary rounded flex items-center justify-center flex-shrink-0">
+                                    {item.mediaType === 'tv' ? <Tv className="w-4 h-4 text-muted-foreground" /> : <Film className="w-4 h-4 text-muted-foreground" />}
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {item.mediaType === 'tv' ? 'TV Show' : 'Movie'}
+                                    {item.releaseDate && ` • ${item.releaseDate.split('-')[0]}`}
+                                  </p>
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {mobileSearchResults.people.length > 0 && (
+                        <div>
+                          <h4 className="text-[10px] font-semibold text-muted-foreground uppercase px-2 mb-1">Celebrities</h4>
+                          <div className="space-y-0.5">
+                            {mobileSearchResults.people.map((person) => (
+                              <Link
+                                key={`person-${person.id}`}
+                                href={`/actor/${person.id}`}
+                                onClick={() => { setShowMobileSearchDropdown(false); setMobileSearchQuery('') }}
+                                className="flex items-center gap-2.5 p-2 hover:bg-secondary rounded-lg transition-colors"
+                              >
+                                {person.poster ? (
+                                  <img src={person.poster} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
+                                ) : (
+                                  <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span className="text-xs font-bold text-primary">{person.title?.charAt(0)}</span>
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-foreground truncate">{person.title}</p>
+                                  <p className="text-xs text-muted-foreground">Celebrity</p>
+
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        onClick={handleMobileSearch}
+                        className="w-full mt-1.5 p-2 text-xs text-primary hover:bg-secondary rounded-lg transition-colors text-center"
+                      >
+                        View all results for "{mobileSearchQuery}"
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Filters label */}
             <span className="hidden lg:flex items-center gap-2 text-foreground font-semibold">
               <Filter className="w-4 h-4" />
               <h2 className="text-lg font-semibold text-foreground">Filters</h2>

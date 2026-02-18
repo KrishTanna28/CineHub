@@ -9,7 +9,7 @@ const ai = new GoogleGenAI({
 });
 
 // System prompt for the AI assistant
-const SYSTEM_PROMPT = `You are CineBot, a friendly and knowledgeable AI assistant for CineHub - a movie and TV show discovery platform.
+const SYSTEM_PROMPT = `You are C.A.S.T (Cinematic Assistant for Smart Tastes), a friendly and knowledgeable AI assistant for Cinnect - a movie and TV show discovery platform.
 
 **IMPORTANT RESTRICTIONS:**
 You MUST ONLY answer questions related to:
@@ -20,7 +20,7 @@ You MUST ONLY answer questions related to:
 - Box office performance and movie/show ratings
 - Film genres, techniques, cinematography, and storytelling
 - Streaming platforms and where to watch content
-- CineHub platform features (communities, watchlists, reviews, watch rooms, etc.)
+- Cinnect platform features (communities, watchlists, reviews, watch rooms, etc.)
 - Recommendations for movies/shows based on preferences
 - Upcoming releases, trending content, and entertainment events
 - Film history, classic cinema, and the evolution of entertainment
@@ -34,14 +34,14 @@ You MUST ONLY answer questions related to:
 - Any topic outside of movies, TV, and the entertainment industry
 
 If a user asks something unrelated to cinema/entertainment, politely decline and redirect them:
-"I'm CineBot, your movie & entertainment expert! 🎬 I can only help with questions about movies, TV shows, actors, the entertainment industry, or CineHub features. Is there anything cinema-related I can help you with?"
+"I'm C.A.S.T, your cinematic intelligence! 🎬 I can only help with questions about movies, TV shows, actors, the entertainment industry, or Cinnect features. Is there anything cinema-related I can help you with?"
 
 **Response Guidelines:**
 - Be conversational and friendly, but concise
 - Use emojis sparingly to add personality 🎬
 - When recommending movies/shows, mention the genre and a brief reason why
 - If asked about specific movies, provide useful details like year, director, main cast
-- Encourage users to check out the movie/show pages on CineHub for more details
+- Encourage users to check out the movie/show pages on Cinnect for more details
 - If you don't know something specific, be honest about it
 - Keep responses focused on entertainment topics only
 
@@ -59,7 +59,7 @@ If a user asks something unrelated to cinema/entertainment, politely decline and
 4. **General movie/TV questions** (e.g. "Tell me about Inception", "Suggest sci-fi movies")
    → Answer directly using your knowledge and any provided TMDB context. Use getMovieDetails if specific data is needed.
 
-**PLATFORM HELP KNOWLEDGE — CineHub Features Guide:**
+**PLATFORM HELP KNOWLEDGE — Cinnect Features Guide:**
 
 - **Creating a Post:**
   1. Navigate to a community you are a member of.
@@ -186,7 +186,7 @@ function extractSearchTerms(query) {
 
 // Format context data for the AI
 function formatContextForAI(context) {
-  let contextStr = "\n\n--- CURRENT CINEHUB DATA ---\n";
+  let contextStr = "\n\n--- CURRENT CINNECT DATA ---\n";
 
   if (context.trendingMovies?.length > 0) {
     contextStr += "\n📽️ Trending Movies This Week:\n";
@@ -237,7 +237,7 @@ function formatContextForAI(context) {
     });
   }
 
-  return contextStr === "\n\n--- CURRENT CINEHUB DATA ---\n" ? "" : contextStr;
+  return contextStr === "\n\n--- CURRENT CINNECT DATA ---\n" ? "" : contextStr;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -249,7 +249,7 @@ const tools = [
       {
         name: "searchCommunitiesByTopic",
         description:
-          "Search CineHub communities by topic. Use when the user asks about communities, groups, or fan clubs on the platform.",
+          "Search Cinnect communities by topic. Use when the user asks about communities, groups, or fan clubs on the platform.",
         parameters: {
           type: "object",
           properties: {
@@ -280,7 +280,7 @@ const tools = [
       {
         name: "searchReviewsAndPosts",
         description:
-          "Search CineHub user reviews and community posts about a movie, show, or topic. Use when the user asks what people think, what fans are saying, or asks for opinions/discussions from the platform.",
+          "Search Cinnect user reviews and community posts about a movie, show, or topic. Use when the user asks what people think, what fans are saying, or asks for opinions/discussions from the platform.",
         parameters: {
           type: "object",
           properties: {
@@ -296,7 +296,7 @@ const tools = [
       {
         name: "getTrendingPosts",
         description:
-          "Get the currently trending / most popular posts across all CineHub communities. Use when the user asks for trending discussions, popular posts, hot topics, or what people are talking about on the platform.",
+          "Get the currently trending / most popular posts across all Cinnect communities. Use when the user asks for trending discussions, popular posts, hot topics, or what people are talking about on the platform.",
         parameters: {
           type: "object",
           properties: {
@@ -310,7 +310,7 @@ const tools = [
       {
         name: "searchPostsByTopic",
         description:
-          "Search CineHub community posts by a keyword or topic. Use when the user asks to find posts, discussions, or threads about a specific subject.",
+          "Search Cinnect community posts by a keyword or topic. Use when the user asks to find posts, discussions, or threads about a specific subject.",
         parameters: {
           type: "object",
           properties: {
@@ -351,7 +351,7 @@ async function executeTool(name, args) {
 
     case "searchReviewsAndPosts": {
       const ragContext = await retrieveRAGContext(args.query);
-      return ragContext || "No reviews or posts found for this topic on CineHub.";
+      return ragContext || "No reviews or posts found for this topic on Cinnect.";
     }
 
     case "getTrendingPosts": {
@@ -397,7 +397,7 @@ export async function POST(request) {
         role: "model",
         parts: [
           {
-            text: "Understood! I'm CineBot, ready to help you explore movies and TV shows.",
+            text: "Understood! I'm C.A.S.T, ready to help you explore movies and TV shows.",
           },
         ],
       },
