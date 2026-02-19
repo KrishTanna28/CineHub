@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
+import { InlineLoadingSkeleton } from "@/components/skeletons"
 
 export default function RecommendationCarousel({
   title,
@@ -137,11 +138,7 @@ export default function RecommendationCarousel({
               className="flex-shrink-0 w-36 h-54 flex items-center justify-center"
             >
               {isLoadingMore && (
-                <div className="min-h-screen bg-background flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  </div>
-                </div>
+                <InlineLoadingSkeleton count={2} />
               )}
             </div>
           )}

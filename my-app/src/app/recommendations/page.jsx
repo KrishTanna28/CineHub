@@ -9,6 +9,7 @@ import {
   getCriticallyAcclaimed,
   getFeelGoodMovies,
 } from "@/lib/movies"
+import { RecommendationsSkeleton } from "@/components/skeletons"
 
 // TMDB Genre IDs
 const GENRE_IDS = {
@@ -98,10 +99,7 @@ export default function RecommendationsPage() {
       {/* Recommendations */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <span className="ml-3 text-muted-foreground">Loading recommendations...</span>
-          </div>
+          <RecommendationsSkeleton />
         ) : error ? (
           <div className="text-center py-16">
             <p className="text-destructive text-lg">{error}</p>

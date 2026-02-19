@@ -9,6 +9,7 @@ import ClipsSection from "@/components/clips-section"
 import VideoPlayerModal from "@/components/video-player-modal"
 import NewsCarousel from "@/components/news-carousel"
 import VideosGrid from "@/components/videos-grid"
+import { ActorDetailSkeleton } from "@/components/skeletons"
 
 export default function ActorDetailsPage({ params }) {
   const unwrappedParams = use(params)
@@ -238,14 +239,7 @@ export default function ActorDetailsPage({ params }) {
   }
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading actor details...</p>
-        </div>
-      </main>
-    )
+    return <ActorDetailSkeleton />
   }
 
   if (error || !person) {

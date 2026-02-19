@@ -9,6 +9,7 @@ import { useUser } from "@/contexts/UserContext"
 import { useToast } from "@/hooks/use-toast"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 import PostMediaPreview from "@/components/post-media-preview"
+import { CommunitiesFeedSkeleton } from "@/components/skeletons"
 
 const categories = [
   { id: 'all', label: 'All Posts' },
@@ -354,12 +355,7 @@ export default function CommunitiesPage() {
           <div className="flex-1 min-w-0">
             {/* Posts Feed */}
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Loading posts...</p>
-                </div>
-              </div>
+              <CommunitiesFeedSkeleton />
             ) : allPosts.length === 0 ? (
               <div className="text-center py-12">
                 <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />

@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Trash2, Share2, MoreVertical, Loader2, Film } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
+import { WatchlistSkeleton } from "@/components/skeletons"
 
 export default function WatchlistPage() {
   const [watchlist, setWatchlist] = useState([])
@@ -121,10 +122,7 @@ export default function WatchlistPage() {
       {/* Watchlist Items */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <span className="ml-3 text-muted-foreground">Loading your watchlist...</span>
-          </div>
+          <WatchlistSkeleton />
         ) : error ? (
           <div className="text-center py-16">
             <p className="text-destructive text-lg mb-4">{error}</p>

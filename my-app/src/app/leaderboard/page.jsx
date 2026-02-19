@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Trophy, Medal, Award, Loader2 } from "lucide-react"
+import { LeaderboardSkeleton } from "@/components/skeletons"
 
 export default function LeaderboardPage() {
   const [leaderboard, setLeaderboard] = useState([])
@@ -70,10 +71,7 @@ export default function LeaderboardPage() {
       {/* Leaderboard */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <span className="ml-3 text-muted-foreground">Loading leaderboard...</span>
-          </div>
+          <LeaderboardSkeleton />
         ) : error ? (
           <div className="text-center py-16">
             <p className="text-destructive text-lg">{error}</p>

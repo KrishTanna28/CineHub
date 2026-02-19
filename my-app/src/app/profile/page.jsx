@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useUser } from "@/contexts/UserContext"
 import * as movieAPI from "@/lib/movies"
+import { ProfileSkeleton, CardGridSkeleton, ReviewListSkeleton } from "@/components/skeletons"
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -227,14 +228,7 @@ export default function ProfilePage() {
   }
 
   if (isLoading || statsLoading || !user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading profile...</p>
-        </div>
-      </div>
-    )
+    return <ProfileSkeleton />
   }
 
   return (
@@ -398,9 +392,7 @@ export default function ProfilePage() {
           <div>
             <h3 className="text-xl font-bold text-foreground mb-6">Your Watchlist ({watchlist.length})</h3>
             {watchlistLoading ? (
-              <div className="flex justify-center py-12">
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-              </div>
+              <CardGridSkeleton count={5} />
             ) : watchlist.length === 0 ? (
               <div className="text-center py-12">
                 <Film className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
@@ -462,9 +454,7 @@ export default function ProfilePage() {
           <div>
             <h3 className="text-xl font-bold text-foreground mb-6">Your Favorites ({favorites.length})</h3>
             {favoritesLoading ? (
-              <div className="flex justify-center py-12">
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-              </div>
+              <CardGridSkeleton count={5} />
             ) : favorites.length === 0 ? (
               <div className="text-center py-12">
                 <Heart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
@@ -530,9 +520,7 @@ export default function ProfilePage() {
           <div>
             <h3 className="text-xl font-bold text-foreground mb-6">Your Reviews ({reviews.length})</h3>
             {reviewsLoading ? (
-              <div className="flex justify-center py-12">
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-              </div>
+              <ReviewListSkeleton count={3} />
             ) : reviews.length === 0 ? (
               <div className="text-center py-12">
                 <Star className="w-16 h-16 text-muted-foreground mx-auto mb-4" />

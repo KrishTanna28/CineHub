@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 import { useUser } from "@/contexts/UserContext"
 import { getReviews, updateReview, createReview, likeReview, dislikeReview, addReply, likeReply, dislikeReply, deleteReview, } from "@/lib/reviews"
+import { ReviewsPageSkeleton, InlineLoadingSkeleton } from "@/components/skeletons"
 
 export default function ReviewsPage({ params }) {
   const unwrappedParams = use(params)
@@ -473,14 +474,7 @@ export default function ReviewsPage({ params }) {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading reviews...</p>
-        </div>
-      </div>
-    )
+    return <ReviewsPageSkeleton />
   }
 
   return (
@@ -992,11 +986,10 @@ export default function ReviewsPage({ params }) {
           })}
         </div>
 
-        {/* Load More Indicator */}
         {hasMore && (
           <div ref={loadMoreRef} className="flex justify-center py-8">
             {isLoadingMore && (
-              <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <InlineLoadingSkeleton count={2} />
             )}
           </div>
         )}

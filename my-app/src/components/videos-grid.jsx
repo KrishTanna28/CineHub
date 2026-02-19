@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { ChevronLeft, ChevronRight, Film } from "lucide-react"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
+import { VideoRowSkeleton, InlineLoadingSkeleton } from "@/components/skeletons"
 
 export default function VideosGrid({
   videos = [],
@@ -47,11 +48,7 @@ export default function VideosGrid({
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-8">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    )
+    return <VideoRowSkeleton />
   }
 
   if (videos.length === 0) {
@@ -157,11 +154,10 @@ export default function VideosGrid({
           </div>
         )}
 
-        {/* Load More Trigger - placed inside carousel for horizontal scroll */}
         {hasMore && (
           <div ref={loadMoreRef} className="flex-shrink-0 w-80 flex items-center justify-center">
             {isLoadingMore && (
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <InlineLoadingSkeleton count={2} />
             )}
           </div>
         )}

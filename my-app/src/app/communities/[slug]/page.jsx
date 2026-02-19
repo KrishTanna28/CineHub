@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 import Link from "next/link"
 import PostMediaPreview from "@/components/post-media-preview"
+import { CommunityDetailSkeleton } from "@/components/skeletons"
 
 const categoryIcons = {
   general: Sparkles,
@@ -514,14 +515,7 @@ export default function CommunityPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading community...</p>
-        </div>
-      </div>
-    )
+    return <CommunityDetailSkeleton />
   }
 
   if (!community) {

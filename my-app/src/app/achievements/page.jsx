@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Star, Lock, Loader2 } from "lucide-react"
+import { AchievementsSkeleton } from "@/components/skeletons"
 
 // Achievement definitions — these are static definitions of what achievements exist,
 // but the unlocked state and progress come from real user data from the API.
@@ -134,10 +135,7 @@ export default function AchievementsPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <span className="ml-3 text-muted-foreground">Loading achievements...</span>
-        </div>
+        <AchievementsSkeleton />
       ) : error ? (
         <div className="text-center py-16">
           <p className="text-destructive text-lg">{error}</p>

@@ -5,6 +5,7 @@ import { Star, ThumbsUp, MessageCircle, ArrowRight, AlertTriangle } from "lucide
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { useUser } from "@/contexts/UserContext"
+import { ReviewListSkeleton } from "@/components/skeletons"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
 
@@ -47,11 +48,7 @@ export default function ReviewPreview({ mediaId, mediaType, mediaTitle }) {
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-8">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    )
+    return <ReviewListSkeleton count={2} />
   }
 
   if (reviews.length === 0) {

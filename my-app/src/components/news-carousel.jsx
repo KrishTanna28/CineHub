@@ -4,6 +4,7 @@ import { useState } from "react"
 import { ChevronLeft, ChevronRight, Newspaper } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
+import { NewsRowSkeleton, InlineLoadingSkeleton } from "@/components/skeletons"
 
 export default function NewsCarousel({
   news = [],
@@ -37,11 +38,7 @@ export default function NewsCarousel({
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-8">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    )
+    return <NewsRowSkeleton />
   }
 
   if (news.length === 0) {
@@ -106,12 +103,11 @@ export default function NewsCarousel({
           </a>
         ))}
 
-        {/* Infinite Scroll Trigger & Loading Indicator */}
         {hasMore && onLoadMore && (
           <div ref={loadMoreRef} className="flex-shrink-0 w-80 h-80 flex items-center justify-center">
             {isLoadingMore && (
               <div className="w-full h-full bg-secondary/30 rounded-lg flex flex-col items-center justify-center gap-3">
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <InlineLoadingSkeleton count={1} />
                 <span className="text-muted-foreground text-sm font-medium">Loading more news...</span>
               </div>
             )}

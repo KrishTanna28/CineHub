@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import {getTVSeasonDetails} from "@/lib/movies"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { SeasonDetailSkeleton, InlineLoadingSkeleton } from "@/components/skeletons"
 
 export default function SeasonDetailsPage({ params }) {
   const unwrappedParams = use(params)
@@ -74,14 +75,7 @@ export default function SeasonDetailsPage({ params }) {
   }, [loadMoreEpisodes])
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading season details...</p>
-        </div>
-      </main>
-    )
+    return <SeasonDetailSkeleton />
   }
 
   if (error || !season) {
@@ -240,14 +234,10 @@ export default function SeasonDetailsPage({ params }) {
               ))}
             </div>
 
-            {/* Infinite Scroll Trigger & Loading Indicator */}
             {displayedEpisodes < season.episodes.length && (
               <div ref={observerTarget} className="flex justify-center py-8">
                 {isLoadingMore &&
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-muted-foreground">Loading more episodes...</p>
-                  </div>
+                  <InlineLoadingSkeleton count={3} />
                 }
               </div>
             )}

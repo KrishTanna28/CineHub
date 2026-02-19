@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 import { fetchPosts } from "@/lib/communities/posts.js"
 import PostMediaGallery from "@/components/post-media-gallery"
+import { PostDetailSkeleton } from "@/components/skeletons"
 
 export default function PostDetailPage() {
   const [post, setPost] = useState(null)
@@ -643,14 +644,7 @@ export default function PostDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading post...</p>
-        </div>
-      </div>
-    )
+    return <PostDetailSkeleton />
   }
 
   if (!post) {

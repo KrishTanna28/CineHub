@@ -7,6 +7,7 @@ import { Search, Film, Tv, User, Star, Users, Trophy } from "lucide-react"
 import { searchMulti } from "@/lib/movies"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { SearchResultsSkeleton, InlineLoadingSkeleton } from "@/components/skeletons"
 
 const searchTabs = [
   { id: 'all', label: 'All', icon: Search },
@@ -164,12 +165,7 @@ export default function SearchPage() {
 
         {/* Initial Loading */}
         {isInitialLoading && results.length === 0 && (
-          <div className="min-h-[50vh] bg-background flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Searching...</p>
-            </div>
-          </div>
+          <SearchResultsSkeleton />
         )}
 
         {/* Results */}
@@ -359,18 +355,15 @@ export default function SearchPage() {
               </section>
             )}
 
-            {/* Loading Users */}
             {isLoadingUsers && activeTab === 'people' && (
-              <div className="flex justify-center py-10">
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-              </div>
+              <InlineLoadingSkeleton count={3} />
             )}
 
             {/* Infinite Scroll Loader for Movies/Celebrities */}
             {activeTab !== 'people' && currentPage < totalPages && (
               <div ref={loadMoreRef} className="flex justify-center py-10">
                 {isLoadingMore && (
-                  <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                  <InlineLoadingSkeleton count={2} />
                 )}
               </div>
             )}
