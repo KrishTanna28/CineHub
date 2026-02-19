@@ -1,4 +1,4 @@
-# CineHub
+# Cinnect
 
 A full-stack movie and TV show discovery platform built with Next.js. Users can browse content from TMDB, write reviews, participate in communities, track watchlists, earn achievements, and interact with an AI-powered movie assistant.
 
