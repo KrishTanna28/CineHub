@@ -13,6 +13,7 @@ import { Tv2, ExternalLink } from "lucide-react"
  */
 export default function StreamingProviders({ type, id }) {
   const [providers, setProviders] = useState([])
+  const [watchLink, setWatchLink] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
@@ -31,6 +32,7 @@ export default function StreamingProviders({ type, id }) {
       .then((data) => {
         if (!cancelled) {
           setProviders(Array.isArray(data.providers) ? data.providers : [])
+          setWatchLink(data.link || null)
           setLoading(false)
         }
       })
@@ -45,7 +47,6 @@ export default function StreamingProviders({ type, id }) {
       cancelled = true
     }
   }, [type, id])
-
 
   if (loading) {
     return (
@@ -83,7 +84,7 @@ export default function StreamingProviders({ type, id }) {
           {providers.map((provider) => (
             <a
               key={provider.id}
-              href={provider.url || "#"}
+              href={watchLink || "#"}
               target="_blank"
               rel="noopener noreferrer"
               title={`Watch on ${provider.name}`}

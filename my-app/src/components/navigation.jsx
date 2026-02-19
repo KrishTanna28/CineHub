@@ -581,7 +581,7 @@ export default function Navigation() {
 
               {/* Profile Popup (opens above) */}
               {showProfilePopup && (
-                <div className="absolute bottom-full right-0 mb-3 w-52 bg-background border border-border rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <div className="absolute bottom-full right-0 mb-3 w-52 bg-background border border-border rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-1000">
                   {/* User info header */}
                   <div className="px-4 py-3 border-b border-border bg-secondary/30">
                     <p className="text-sm font-semibold text-foreground truncate">{user.fullName || user.username}</p>

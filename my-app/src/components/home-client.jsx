@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import RecommendationCarousel from "@/components/recommendation-carousel"
@@ -53,9 +53,10 @@ export default function HomeClient({ initialData }) {
   const [crimeDramas, setCrimeDramas] = useState(initialData.crimeDramas || [])
   const [basedOnTrueStory, setBasedOnTrueStory] = useState(initialData.basedOnTrueStory || [])
 
-  // Touch handling for mobile swipe
-  const [touchStart, setTouchStart] = useState(null)
-  const [touchEnd, setTouchEnd] = useState(null)
+  // Touch handling for mobile swipe (use refs for reliable cross-event tracking)
+  const touchStartRef = useRef(null)
+  const touchEndRef = useRef(null)
+  const swipedRef = useRef(false)
 
   // Pagination states for all categories
   const [pages, setPages] = useState({
@@ -189,30 +190,31 @@ export default function HomeClient({ initialData }) {
 
   // Touch handlers for mobile swipe
   const handleTouchStart = (e) => {
-    setTouchEnd(null)
-    setTouchStart(e.targetTouches[0].clientX)
+    touchEndRef.current = null
+    swipedRef.current = false
+    touchStartRef.current = e.targetTouches[0].clientX
   }
 
   const handleTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX)
+    touchEndRef.current = e.targetTouches[0].clientX
   }
 
   const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return
+    if (touchStartRef.current === null || touchEndRef.current === null) return
 
-    const distance = touchStart - touchEnd
+    const distance = touchStartRef.current - touchEndRef.current
     const isLeftSwipe = distance > 50
     const isRightSwipe = distance < -50
 
     if (isLeftSwipe && featuredItems.length > 0) {
-      // Swipe left - next item
+      swipedRef.current = true
       setCurrentFeaturedIndex((prev) =>
         prev === featuredItems.length - 1 ? 0 : prev + 1
       )
     }
 
     if (isRightSwipe && featuredItems.length > 0) {
-      // Swipe right - previous item
+      swipedRef.current = true
       setCurrentFeaturedIndex((prev) =>
         prev === 0 ? featuredItems.length - 1 : prev - 1
       )
@@ -391,8 +393,9 @@ export default function HomeClient({ initialData }) {
             className="relative z-10 w-full cursor-pointer group"
             onClick={(e) => {
               // Prevent navigation if user was swiping
-              if (Math.abs((touchStart || 0) - (touchEnd || 0)) > 50) {
+              if (swipedRef.current) {
                 e.preventDefault()
+                swipedRef.current = false
               }
             }}
           >
