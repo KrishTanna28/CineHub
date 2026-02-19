@@ -94,7 +94,7 @@ export default function RecommendationCarousel({
                     </div>
                   </div>
                 </div>
-                <div className="mt-1.5 px-0.5">
+                {/* <div className="mt-1.5 px-0.5">
                   <h3 className="text-sm font-medium text-foreground line-clamp-1">
                     {movie.title}
                   </h3>
@@ -108,7 +108,7 @@ export default function RecommendationCarousel({
                       {movie.releaseDate?.split("-")[0] || movie.year}
                     </span>
                   </div>
-                </div>
+                </div> */}
               </div>
             )
 
