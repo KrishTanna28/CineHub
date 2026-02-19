@@ -94,21 +94,6 @@ export default function RecommendationCarousel({
                     </div>
                   </div>
                 </div>
-                {/* <div className="mt-1.5 px-0.5">
-                  <h3 className="text-sm font-medium text-foreground line-clamp-1">
-                    {movie.title}
-                  </h3>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    {movie.rating && (
-                      <span className="text-xs text-primary font-medium">
-                        {movie.rating.toFixed(1)}
-                      </span>
-                    )}
-                    <span className="text-xs text-muted-foreground">
-                      {movie.releaseDate?.split("-")[0] || movie.year}
-                    </span>
-                  </div>
-                </div> */}
               </div>
             )
 
