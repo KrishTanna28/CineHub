@@ -1,4 +1,4 @@
-# CineHub
+# Cinnect
 
 A full-stack movie and TV show discovery platform built with Next.js. Users can browse content from TMDB, write reviews, participate in communities, track watchlists, earn achievements, and interact with an AI-powered movie assistant.
 
@@ -10,7 +10,7 @@ A full-stack movie and TV show discovery platform built with Next.js. Users can 
 - **Communities** -- create and join topic-based groups (movie, TV, actor, general), post content with image/video uploads, comment threads, hot/popular/recent sorting
 - **Watchlist and favorites** management per user
 - **Gamification** -- points system, levels, badges, achievements, streaks, and a public leaderboard
-- **AI assistant (CineBot)** -- chat interface powered by Google Gemini for movie/TV recommendations and questions, with daily AI-generated conversation starters
+- **AI assistant (C.A.S.T)** -- chat interface powered by Google Gemini for movie/TV recommendations and questions, with daily AI-generated conversation starters
 - **AI content moderation** -- automated review moderation using Gemini Pro with spam and offensive content detection
 - **Authentication** -- local email/password registration with OTP verification, Google OAuth 2.0, JWT-based sessions, password reset via email
 - **Search** -- multi-search across movies, TV shows, and users
