@@ -3,9 +3,8 @@
 import { useRef, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
-import { InlineLoadingSkeleton } from "@/components/skeletons"
 
 export default function RecommendationCarousel({
   title,
@@ -120,10 +119,10 @@ export default function RecommendationCarousel({
           {hasMore && onLoadMore && (
             <div
               ref={loadMoreRef}
-              className="flex-shrink-0 w-36 h-54 flex items-center justify-center"
+              className="flex-shrink-0 w-16 flex items-center justify-center self-stretch"
             >
               {isLoadingMore && (
-                <InlineLoadingSkeleton count={2} />
+                <Loader2 className="w-6 h-6 text-primary animate-spin" />
               )}
             </div>
           )}

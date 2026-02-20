@@ -1,9 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronLeft, ChevronRight, Film } from "lucide-react"
+import { ChevronLeft, ChevronRight, Film, Loader2 } from "lucide-react"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
-import { VideoRowSkeleton, InlineLoadingSkeleton } from "@/components/skeletons"
+import { VideoRowSkeleton } from "@/components/skeletons"
 
 export default function VideosGrid({
   videos = [],
@@ -155,9 +155,9 @@ export default function VideosGrid({
         )}
 
         {hasMore && (
-          <div ref={loadMoreRef} className="flex-shrink-0 w-80 flex items-center justify-center">
+          <div ref={loadMoreRef} className="flex-shrink-0 w-16 flex items-center justify-center self-stretch">
             {isLoadingMore && (
-              <InlineLoadingSkeleton count={2} />
+              <Loader2 className="w-6 h-6 text-primary animate-spin" />
             )}
           </div>
         )}

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import User from '@/lib/models/User.js'
 import connectDB from '@/lib/config/database.js'
+import { buildFuzzyMongoQuery } from '@/lib/utils/fuzzySearch.js'
 
 await connectDB()
 
@@ -18,12 +19,10 @@ export async function GET(request) {
       })
     }
 
-    const users = await User.find({
-      $or: [
-        { username: { $regex: search, $options: 'i' } },
-        { fullName: { $regex: search, $options: 'i' } }
-      ]
-    })
+    // Use fuzzy matching to tolerate typos / misspellings
+    const fuzzyQuery = buildFuzzyMongoQuery(search, ['username', 'fullName'])
+
+    const users = await User.find(fuzzyQuery)
       .select('username fullName avatar points level bio')
       .limit(limit)
       .lean()

@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronLeft, ChevronRight, Newspaper } from "lucide-react"
+import { ChevronLeft, ChevronRight, Newspaper, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import useInfiniteScroll from "@/hooks/useInfiniteScroll"
-import { NewsRowSkeleton, InlineLoadingSkeleton } from "@/components/skeletons"
+import { NewsRowSkeleton } from "@/components/skeletons"
 
 export default function NewsCarousel({
   news = [],
@@ -104,12 +104,9 @@ export default function NewsCarousel({
         ))}
 
         {hasMore && onLoadMore && (
-          <div ref={loadMoreRef} className="flex-shrink-0 w-80 h-80 flex items-center justify-center">
+          <div ref={loadMoreRef} className="flex-shrink-0 w-16 flex items-center justify-center self-stretch">
             {isLoadingMore && (
-              <div className="w-full h-full bg-secondary/30 rounded-lg flex flex-col items-center justify-center gap-3">
-                <InlineLoadingSkeleton count={1} />
-                <span className="text-muted-foreground text-sm font-medium">Loading more news...</span>
-              </div>
+              <Loader2 className="w-6 h-6 text-primary animate-spin" />
             )}
           </div>
         )}

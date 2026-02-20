@@ -3,6 +3,7 @@ import Post from '@/lib/models/Post.js'
 import Community from '@/lib/models/Community.js'
 import User from '@/lib/models/User.js'
 import connectDB from '@/lib/config/database.js'
+import { buildFuzzyMongoQuery } from '@/lib/utils/fuzzySearch.js'
 
 await connectDB()
 
@@ -30,12 +31,12 @@ export async function GET(request) {
       isApproved: true 
     }
 
-    // If search is provided, search in title and content
+    // If search is provided, use fuzzy matching to tolerate typos
     if (search) {
-      postQuery.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { content: { $regex: search, $options: 'i' } }
-      ]
+      const fuzzyQuery = buildFuzzyMongoQuery(search, ['title', 'content'])
+      if (fuzzyQuery.$or) {
+        postQuery.$or = fuzzyQuery.$or
+      }
     }
 
     const skip = (page - 1) * limit

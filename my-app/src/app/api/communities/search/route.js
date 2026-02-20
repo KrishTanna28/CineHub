@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Community from '@/lib/models/Community.js'
 import connectDB from '@/lib/config/database.js'
+import { buildFuzzyMongoQuery } from '@/lib/utils/fuzzySearch.js'
 
 await connectDB()
 
@@ -18,14 +19,12 @@ export async function GET(request) {
       })
     }
 
-    const searchRegex = { $regex: query, $options: 'i' }
+    // Use fuzzy matching to tolerate typos / misspellings
+    const fuzzyQuery = buildFuzzyMongoQuery(query, ['name', 'description'])
 
     const communities = await Community.find({
       isActive: true,
-      $or: [
-        { name: searchRegex },
-        { description: searchRegex }
-      ]
+      ...fuzzyQuery
     })
       .select('name slug icon description memberCount category')
       .sort({ memberCount: -1 })
