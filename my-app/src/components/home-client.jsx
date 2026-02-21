@@ -168,6 +168,43 @@ export default function HomeClient({ initialData }) {
   const isAuthenticated = !!user
   const featuredItem = featuredItems[currentFeaturedIndex] || null
 
+  // Personalized recommendations state
+  const [personalizedRecs, setPersonalizedRecs] = useState({
+    recommended: [],
+    becauseYouLiked: null,
+    inspiredByActivity: [],
+    trendingInCircles: [],
+  })
+  const [personalizedLoaded, setPersonalizedLoaded] = useState(false)
+
+  // Fetch personalized recommendations when user is authenticated
+  useEffect(() => {
+    if (!isAuthenticated || personalizedLoaded) return
+
+    const token = localStorage.getItem("token")
+    if (!token) return
+
+    const fetchRecs = async () => {
+      try {
+        const res = await fetch("/api/recommendations/all", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const json = await res.json()
+          if (json.success && json.data) {
+            setPersonalizedRecs(json.data)
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch personalized recommendations:", err)
+      } finally {
+        setPersonalizedLoaded(true)
+      }
+    }
+
+    fetchRecs()
+  }, [isAuthenticated, personalizedLoaded])
+
   // Keyboard navigation for featured items
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -488,6 +525,43 @@ export default function HomeClient({ initialData }) {
           />
         )}
 
+        {/* Personalized Recommendation Carousels */}
+        {isAuthenticated && personalizedLoaded && (
+          <>
+            {personalizedRecs.recommended.length > 0 && (
+              <RecommendationCarousel
+                title="Recommended For You"
+                description="Handpicked based on what you watch and love"
+                movies={personalizedRecs.recommended}
+              />
+            )}
+
+            {personalizedRecs.becauseYouLiked && personalizedRecs.becauseYouLiked.items?.length > 0 && (
+              <RecommendationCarousel
+                title={`Because You Liked ${personalizedRecs.becauseYouLiked.anchorTitle}`}
+                description="Titles similar to one of your favorites"
+                movies={personalizedRecs.becauseYouLiked.items}
+              />
+            )}
+
+            {personalizedRecs.inspiredByActivity.length > 0 && (
+              <RecommendationCarousel
+                title="Inspired By Your Activity"
+                description="Matches the genres and themes you gravitate toward"
+                movies={personalizedRecs.inspiredByActivity}
+              />
+            )}
+
+            {personalizedRecs.trendingInCircles.length > 0 && (
+              <RecommendationCarousel
+                title="Trending In Your Circles"
+                description="Popular among communities you belong to"
+                movies={personalizedRecs.trendingInCircles}
+              />
+            )}
+          </>
+        )}
+
         {/* Authenticated user sections - Netflix style personalized rows */}
         {isAuthenticated && (
           <>
@@ -779,53 +853,6 @@ export default function HomeClient({ initialData }) {
               />
             )}
 
-            {/* Airing Today */}
-            {airingToday.length > 0 && (
-              <RecommendationCarousel
-                title="Airing Today"
-                movies={airingToday}
-                description="New episodes dropping today"
-                onLoadMore={loadMoreAiringToday}
-                hasMore={hasMore.airingToday}
-                isLoadingMore={loadingMore.airingToday}
-              />
-            )}
-
-            {/* On The Air */}
-            {onTheAir.length > 0 && (
-              <RecommendationCarousel
-                title="Currently Airing"
-                movies={onTheAir}
-                description="Shows currently on air"
-                onLoadMore={loadMoreOnTheAir}
-                hasMore={hasMore.onTheAir}
-                isLoadingMore={loadingMore.onTheAir}
-              />
-            )}
-
-            {/* Documentaries */}
-            {documentaries.length > 0 && (
-              <RecommendationCarousel
-                title="Documentaries"
-                movies={documentaries}
-                description="Real stories that inspire"
-                onLoadMore={loadMoreDocumentaries}
-                hasMore={hasMore.documentaries}
-                isLoadingMore={loadingMore.documentaries}
-              />
-            )}
-
-            {/* Based on True Story */}
-            {basedOnTrueStory.length > 0 && (
-              <RecommendationCarousel
-                title="Based on True Stories"
-                movies={basedOnTrueStory}
-                description="Incredible real-life tales"
-                onLoadMore={loadMoreBasedOnTrueStory}
-                hasMore={hasMore.basedOnTrueStory}
-                isLoadingMore={loadingMore.basedOnTrueStory}
-              />
-            )}
           </>
         )}
 

@@ -1,16 +1,4 @@
 /**
- * Fuzzy search utilities for tolerating typos, misspellings, and
- * approximate input in search queries.
- *
- * Covers three common typo categories:
- *  1. Missing characters   – "avngrs"    → "avengers"
- *  2. Extra characters      – "aveangers" → "avengers"
- *  3. Transposed characters – "aevngers"  → "avengers"
- */
-
-// ─── helpers ────────────────────────────────────────────────────────
-
-/**
  * Escape special regex meta-characters so the string can be safely
  * embedded inside a RegExp.
  */

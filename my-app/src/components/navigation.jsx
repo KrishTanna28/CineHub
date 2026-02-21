@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { Search, X, User, LogOut, Settings, Home, Compass, Users, Film, Tv, MessageCircle, Loader2, Bot } from "lucide-react"
+import { Search, X, User, LogOut, Settings, Home, Compass, Users, Film, Tv, MessageCircle, Loader2, Bot, Clock, Trash2 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -31,7 +31,6 @@ export default function Navigation() {
   const [lastScrollY, setLastScrollY] = useState(0)
   const [hasBackground, setHasBackground] = useState(false)
   const [isAtTop, setIsAtTop] = useState(true)
-  const [isSearchHovered, setIsSearchHovered] = useState(false)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [activeSearchCategory, setActiveSearchCategory] = useState('all')
   const [searchResults, setSearchResults] = useState({
@@ -49,6 +48,10 @@ export default function Navigation() {
   const { user, isLoading, logout } = useUser()
   const [showProfilePopup, setShowProfilePopup] = useState(false)
   const profilePopupRef = useRef(null)
+
+  // Search history state
+  const [searchHistory, setSearchHistory] = useState([])
+  const [searchHistoryLoaded, setSearchHistoryLoaded] = useState(false)
 
   // Close profile popup when clicking outside
   useEffect(() => {
@@ -108,6 +111,8 @@ export default function Navigation() {
     if (e) e.preventDefault()
     if (searchQuery.trim()) {
       setShowSearchDropdown(false)
+      // Save the search query to history
+      saveSearchQuery(searchQuery.trim())
       if (activeSearchCategory === 'all' || activeSearchCategory === 'movies') {
         router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
       } else if (activeSearchCategory === 'celebrity') {
@@ -126,7 +131,6 @@ export default function Navigation() {
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults({ movies: [], celebrities: [], communities: [], posts: [], people: [] })
-      setShowSearchDropdown(false)
       return
     }
 
@@ -137,6 +141,13 @@ export default function Navigation() {
 
     return () => clearTimeout(debounceTimer)
   }, [searchQuery, performSearch])
+
+  // Show search history when input is focused and query is empty
+  useEffect(() => {
+    if (!searchQuery.trim() && isSearchFocused && user && searchHistory.length > 0) {
+      setShowSearchDropdown(true)
+    }
+  }, [searchQuery, isSearchFocused, user, searchHistory.length])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -191,6 +202,95 @@ export default function Navigation() {
     }
   }
 
+  // Fetch search history from the API
+  const fetchSearchHistory = useCallback(async () => {
+    const token = localStorage.getItem("token")
+    if (!token) return
+    try {
+      const res = await fetch("/api/search/log", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success) {
+          const items = json.history || []
+          setSearchHistory(items)
+          setSearchHistoryLoaded(true)
+          if (items.length > 0) {
+            setShowSearchDropdown(true)
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  // Save a search query to history
+  const saveSearchQuery = useCallback(async (query) => {
+    const token = localStorage.getItem("token")
+    if (!token || !query) return
+    try {
+      await fetch("/api/search/log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ query }),
+      })
+      // Refresh the history cache
+      setSearchHistoryLoaded(false)
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  // Clear all search history
+  const clearSearchHistory = useCallback(async () => {
+    const token = localStorage.getItem("token")
+    if (!token) return
+    try {
+      await fetch("/api/search/log", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setSearchHistory([])
+      setShowSearchDropdown(false)
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  // Delete a single search history entry
+  const deleteSearchEntry = useCallback(async (entryId) => {
+    const token = localStorage.getItem("token")
+    if (!token) return
+    try {
+      await fetch(`/api/search/log?id=${entryId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setSearchHistory((prev) => prev.filter((e) => e._id !== entryId))
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  // When search input is focused with no query, show history
+  const handleSearchFocus = useCallback(() => {
+    setIsSearchFocused(true)
+    if (searchQuery.trim()) {
+      setShowSearchDropdown(true)
+    } else if (user) {
+      if (searchHistoryLoaded && searchHistory.length > 0) {
+        setShowSearchDropdown(true)
+      } else if (!searchHistoryLoaded) {
+        fetchSearchHistory()
+      }
+    }
+  }, [searchQuery, user, searchHistoryLoaded, searchHistory.length, fetchSearchHistory])
+
   return (
     <>
       {/* Main Navbar (desktop only) */}
@@ -208,31 +308,20 @@ export default function Navigation() {
               <span className="hidden sm:inline">Cinnect</span>
             </Link>
 
-            {/* Center Search - Desktop Only - Always Open */}
+            {/* Center Search - Desktop Only - Always Visible */}
             {user && <div
               className="hidden md:flex flex-1 justify-center max-w-xl mx-8"
               ref={searchRef}
-              onMouseEnter={() => setIsSearchHovered(true)}
-              onMouseLeave={() => setIsSearchHovered(false)}
             >
-              <div
-                className="relative w-full"
-                style={{
-                  transformOrigin: 'center',
-                  transform: isAtTop && !isSearchHovered && !isSearchFocused && !searchQuery ? 'scaleX(0)' : 'scaleX(1)',
-                  opacity: isAtTop && !isSearchHovered && !isSearchFocused && !searchQuery ? 0 : 1,
-                  transition: 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.45s ease',
-                  pointerEvents: isAtTop && !isSearchHovered && !isSearchFocused && !searchQuery ? 'none' : 'auto',
-                }}
-              >
+              <div className="relative w-full">
                 <form onSubmit={handleSearch} className="relative w-full">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Search anything..."
+                    placeholder="Search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => { setIsSearchFocused(true); searchQuery.trim() && setShowSearchDropdown(true) }}
+                    onFocus={handleSearchFocus}
                     onBlur={() => setIsSearchFocused(false)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch(e)}
                     className="w-full pl-10 pr-4 py-2 bg-input border border-border rounded-full text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all"
@@ -243,8 +332,54 @@ export default function Navigation() {
                 </form>
 
                 {/* Search Dropdown */}
-                {showSearchDropdown && searchQuery.trim() && (
+                {showSearchDropdown && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-lg shadow-xl overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
+
+                    {/* Search History (shown when query is empty) */}
+                    {!searchQuery.trim() && searchHistory.length > 0 && (
+                      <div className="py-1">
+                        {searchHistory.map((entry) => (
+                          <div
+                            key={entry._id}
+                            className="flex items-center gap-3 px-3 py-2.5 hover:bg-secondary transition-colors group cursor-pointer"
+                          >
+                            <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <button
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setSearchQuery(entry.query);
+                                setShowSearchDropdown(false);
+                                router.push(`/search?q=${encodeURIComponent(entry.query)}`);
+                              }}
+                              className="flex-1 text-left text-sm text-foreground truncate cursor-pointer"
+                            >
+                              {entry.query}
+                            </button>
+                            <button
+                              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); deleteSearchEntry(entry._id); }}
+                              className="flex-shrink-0 p-1 rounded-full text-muted-foreground hover:transition-colors hover:text-primary group-hover:opacity-100 cursor-pointer"
+                              aria-label="Remove from history"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                        {/* Clear all button */}
+                        <div className="border-t border-border mt-1 pt-1 px-3 pb-1">
+                          <button
+                            onMouseDown={(e) => { e.preventDefault(); clearSearchHistory(); }}
+                            className="w-full text-xs text-muted-foreground hover:text-destructive transition-colors flex items-center justify-center gap-1.5 py-2 cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Clear all search history
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Regular search results (shown when query is not empty) */}
+                    {searchQuery.trim() && (
+                      <>
                     {/* Category Tabs */}
                     <div className="flex items-center gap-1 p-2 border-b border-border bg-secondary/30 overflow-x-auto">
                       {searchCategories.map((cat) => (
@@ -278,7 +413,7 @@ export default function Navigation() {
                                   <Link
                                     key={`${item.mediaType}-${item.id}`}
                                     href={item.mediaType === 'tv' ? `/tv/${item.id}` : `/movies/${item.id}`}
-                                    onClick={() => { setShowSearchDropdown(false); setSearchQuery(''); }}
+                                    onClick={() => { saveSearchQuery(searchQuery.trim()); setShowSearchDropdown(false); setSearchQuery(''); }}
                                     className="flex items-center gap-3 p-2 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
                                   >
                                     {item.poster ? (
@@ -311,7 +446,7 @@ export default function Navigation() {
                                   <Link
                                     key={`celebrity-${person.id}`}
                                     href={`/actor/${person.id}`}
-                                    onClick={() => { setShowSearchDropdown(false); setSearchQuery(''); }}
+                                    onClick={() => { saveSearchQuery(searchQuery.trim()); setShowSearchDropdown(false); setSearchQuery(''); }}
                                     className="flex items-center gap-3 p-2 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
                                   >
                                     {person.poster ? (
@@ -446,6 +581,8 @@ export default function Navigation() {
                         </>
                       )}
                     </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
