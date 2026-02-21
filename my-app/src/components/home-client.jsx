@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import RecommendationCarousel from "@/components/recommendation-carousel"
+import Top10Carousel from "@/components/top10-carousel"
 import { useUser } from "@/contexts/UserContext"
 import * as movieAPI from "@/lib/movies"
 
@@ -172,8 +173,11 @@ export default function HomeClient({ initialData }) {
   const [personalizedRecs, setPersonalizedRecs] = useState({
     recommended: [],
     becauseYouLiked: null,
-    inspiredByActivity: [],
     trendingInCircles: [],
+    top10Movies: [],
+    top10TV: [],
+    country: 'US',
+    countryName: 'Your Country',
   })
   const [personalizedLoaded, setPersonalizedLoaded] = useState(false)
 
@@ -186,7 +190,21 @@ export default function HomeClient({ initialData }) {
 
     const fetchRecs = async () => {
       try {
-        const res = await fetch("/api/recommendations/all", {
+        // Detect user's country via IP geolocation
+        let country = 'US'
+        let countryName = 'Your Country'
+        try {
+          const geoRes = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3000) })
+          if (geoRes.ok) {
+            const geoData = await geoRes.json()
+            if (geoData.country_code) country = geoData.country_code
+            if (geoData.country_name) countryName = geoData.country_name
+          }
+        } catch {
+          // fallback to US
+        }
+
+        const res = await fetch(`/api/recommendations/all?country=${country}&countryName=${encodeURIComponent(countryName)}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (res.ok) {
@@ -475,12 +493,57 @@ export default function HomeClient({ initialData }) {
 
       {/* Content Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* ===== Personalized Carousels (Top of the list for authenticated users) ===== */}
+        {isAuthenticated && personalizedLoaded && (
+          <>
+            {/* 1. Recommendations For You */}
+            {personalizedRecs.recommended.length > 0 && (
+              <RecommendationCarousel
+                title="Recommendations For You"
+                movies={personalizedRecs.recommended}
+              />
+            )}
+
+            {/* 2. Because You Liked ... */}
+            {personalizedRecs.becauseYouLiked && personalizedRecs.becauseYouLiked.items?.length > 0 && (
+              <RecommendationCarousel
+                title={`Because You Liked ${personalizedRecs.becauseYouLiked.anchorTitle}`}
+                movies={personalizedRecs.becauseYouLiked.items}
+              />
+            )}
+
+            {/* 3. Trending In Your Circle */}
+            {personalizedRecs.trendingInCircles.length > 0 && (
+              <RecommendationCarousel
+                title="Trending In Your Circle"
+                movies={personalizedRecs.trendingInCircles}
+              />
+            )}
+
+            {/* 4. Top 10 Trending Movies in [Country] */}
+            {personalizedRecs.top10Movies.length > 0 && (
+              <Top10Carousel
+                title={`Top 10 Movies in ${personalizedRecs.countryName} Today`}
+                movies={personalizedRecs.top10Movies}
+              />
+            )}
+
+            {/* 5. Top 10 Trending Shows in [Country] */}
+            {personalizedRecs.top10TV.length > 0 && (
+              <Top10Carousel
+                title={`Top 10 Shows in ${personalizedRecs.countryName} Today`}
+                movies={personalizedRecs.top10TV}
+              />
+            )}
+          </>
+        )}
+
+        {/* ===== General Carousels ===== */}
         {/* Trending Today - Show to everyone */}
         {trendingMovies.length > 0 && (
           <RecommendationCarousel
             title="Trending Today"
             movies={trendingMovies}
-            description="What everyone's watching right now"
             requireAuth={!isAuthenticated}
             onLoadMore={loadMoreTrendingMovies}
             hasMore={hasMore.trendingMovies}
@@ -492,7 +555,6 @@ export default function HomeClient({ initialData }) {
           <RecommendationCarousel
             title="Popular Movies"
             movies={popularMovies}
-            description="Discover amazing movies"
             requireAuth={!isAuthenticated}
             onLoadMore={loadMorePopularMovies}
             hasMore={hasMore.popularMovies}
@@ -504,7 +566,6 @@ export default function HomeClient({ initialData }) {
           <RecommendationCarousel
             title="Popular TV Shows"
             movies={popularTV}
-            description="Binge-worthy TV series"
             requireAuth={!isAuthenticated}
             onLoadMore={loadMorePopularTV}
             hasMore={hasMore.popularTV}
@@ -517,49 +578,11 @@ export default function HomeClient({ initialData }) {
           <RecommendationCarousel
             title="New Releases"
             movies={newReleases}
-            description="Fresh out of theaters"
             requireAuth={!isAuthenticated}
             onLoadMore={loadMoreNewReleases}
             hasMore={hasMore.newReleases}
             isLoadingMore={loadingMore.newReleases}
           />
-        )}
-
-        {/* Personalized Recommendation Carousels */}
-        {isAuthenticated && personalizedLoaded && (
-          <>
-            {personalizedRecs.recommended.length > 0 && (
-              <RecommendationCarousel
-                title="Recommended For You"
-                description="Handpicked based on what you watch and love"
-                movies={personalizedRecs.recommended}
-              />
-            )}
-
-            {personalizedRecs.becauseYouLiked && personalizedRecs.becauseYouLiked.items?.length > 0 && (
-              <RecommendationCarousel
-                title={`Because You Liked ${personalizedRecs.becauseYouLiked.anchorTitle}`}
-                description="Titles similar to one of your favorites"
-                movies={personalizedRecs.becauseYouLiked.items}
-              />
-            )}
-
-            {personalizedRecs.inspiredByActivity.length > 0 && (
-              <RecommendationCarousel
-                title="Inspired By Your Activity"
-                description="Matches the genres and themes you gravitate toward"
-                movies={personalizedRecs.inspiredByActivity}
-              />
-            )}
-
-            {personalizedRecs.trendingInCircles.length > 0 && (
-              <RecommendationCarousel
-                title="Trending In Your Circles"
-                description="Popular among communities you belong to"
-                movies={personalizedRecs.trendingInCircles}
-              />
-            )}
-          </>
         )}
 
         {/* Authenticated user sections - Netflix style personalized rows */}
@@ -570,7 +593,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Now Playing in Theaters"
                 movies={nowPlaying}
-                description="Currently showing in cinemas near you"
                 onLoadMore={loadMoreNowPlaying}
                 hasMore={hasMore.nowPlaying}
                 isLoadingMore={loadingMore.nowPlaying}
@@ -582,7 +604,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Coming Soon"
                 movies={upcoming}
-                description="Mark your calendars for these upcoming releases"
                 onLoadMore={loadMoreUpcoming}
                 hasMore={hasMore.upcoming}
                 isLoadingMore={loadingMore.upcoming}
@@ -594,7 +615,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Trending TV Shows"
                 movies={trendingTV}
-                description="TV shows everyone's talking about"
                 onLoadMore={loadMoreTrendingTV}
                 hasMore={hasMore.trendingTV}
                 isLoadingMore={loadingMore.trendingTV}
@@ -606,7 +626,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Top Rated Movies"
                 movies={topRatedMovies}
-                description="Highest rated movies of all time"
                 onLoadMore={loadMoreTopRatedMovies}
                 hasMore={hasMore.topRatedMovies}
                 isLoadingMore={loadingMore.topRatedMovies}
@@ -618,7 +637,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Top Rated TV Shows"
                 movies={topRatedTV}
-                description="Critically acclaimed series"
                 onLoadMore={loadMoreTopRatedTV}
                 hasMore={hasMore.topRatedTV}
                 isLoadingMore={loadingMore.topRatedTV}
@@ -630,7 +648,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Critically Acclaimed"
                 movies={criticallyAcclaimed}
-                description="Award-worthy masterpieces"
                 onLoadMore={loadMoreCriticallyAcclaimed}
                 hasMore={hasMore.criticallyAcclaimed}
                 isLoadingMore={loadingMore.criticallyAcclaimed}
@@ -642,7 +659,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Hidden Gems"
                 movies={hiddenGems}
-                description="Underrated films you might have missed"
                 onLoadMore={loadMoreHiddenGems}
                 hasMore={hasMore.hiddenGems}
                 isLoadingMore={loadingMore.hiddenGems}
@@ -654,7 +670,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Action & Adventure"
                 movies={actionMovies}
-                description="High-octane thrills and excitement"
                 onLoadMore={loadMoreActionMovies}
                 hasMore={hasMore.actionMovies}
                 isLoadingMore={loadingMore.actionMovies}
@@ -666,7 +681,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Feel-Good Movies"
                 movies={feelGoodMovies}
-                description="Heartwarming stories to lift your spirits"
                 onLoadMore={loadMoreFeelGoodMovies}
                 hasMore={hasMore.feelGoodMovies}
                 isLoadingMore={loadingMore.feelGoodMovies}
@@ -678,7 +692,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Comedy"
                 movies={comedyMovies}
-                description="Laugh out loud entertainment"
                 onLoadMore={loadMoreComedyMovies}
                 hasMore={hasMore.comedyMovies}
                 isLoadingMore={loadingMore.comedyMovies}
@@ -690,7 +703,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Horror"
                 movies={horrorMovies}
-                description="Spine-chilling scares await"
                 onLoadMore={loadMoreHorrorMovies}
                 hasMore={hasMore.horrorMovies}
                 isLoadingMore={loadingMore.horrorMovies}
@@ -702,7 +714,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Thrillers"
                 movies={thrillerMovies}
-                description="Edge-of-your-seat suspense"
                 onLoadMore={loadMoreThrillerMovies}
                 hasMore={hasMore.thrillerMovies}
                 isLoadingMore={loadingMore.thrillerMovies}
@@ -714,7 +725,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Mind-Bending"
                 movies={mindBendingMovies}
-                description="Films that will make you think"
                 onLoadMore={loadMoreMindBendingMovies}
                 hasMore={hasMore.mindBendingMovies}
                 isLoadingMore={loadingMore.mindBendingMovies}
@@ -726,7 +736,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Sci-Fi"
                 movies={sciFiMovies}
-                description="Explore the unknown"
                 onLoadMore={loadMoreSciFiMovies}
                 hasMore={hasMore.sciFiMovies}
                 isLoadingMore={loadingMore.sciFiMovies}
@@ -738,7 +747,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Drama"
                 movies={dramaMovies}
-                description="Powerful storytelling"
                 onLoadMore={loadMoreDramaMovies}
                 hasMore={hasMore.dramaMovies}
                 isLoadingMore={loadingMore.dramaMovies}
@@ -750,7 +758,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Romance"
                 movies={romanceMovies}
-                description="Love stories to swoon over"
                 onLoadMore={loadMoreRomanceMovies}
                 hasMore={hasMore.romanceMovies}
                 isLoadingMore={loadingMore.romanceMovies}
@@ -762,7 +769,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Animation"
                 movies={animationMovies}
-                description="Animated adventures for all ages"
                 onLoadMore={loadMoreAnimationMovies}
                 hasMore={hasMore.animationMovies}
                 isLoadingMore={loadingMore.animationMovies}
@@ -774,7 +780,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Anime Movies"
                 movies={animeMovies}
-                description="Japanese animation at its finest"
                 onLoadMore={loadMoreAnimeMovies}
                 hasMore={hasMore.animeMovies}
                 isLoadingMore={loadingMore.animeMovies}
@@ -786,7 +791,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Anime Series"
                 movies={animeTV}
-                description="Binge-worthy anime shows"
                 onLoadMore={loadMoreAnimeTV}
                 hasMore={hasMore.animeTV}
                 isLoadingMore={loadingMore.animeTV}
@@ -798,7 +802,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Binge-Worthy TV"
                 movies={bingeWorthyTV}
-                description="Shows you can't stop watching"
                 onLoadMore={loadMoreBingeWorthyTV}
                 hasMore={hasMore.bingeWorthyTV}
                 isLoadingMore={loadingMore.bingeWorthyTV}
@@ -810,7 +813,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Crime Dramas"
                 movies={crimeDramas}
-                description="Mysteries and investigations"
                 onLoadMore={loadMoreCrimeDramas}
                 hasMore={hasMore.crimeDramas}
                 isLoadingMore={loadingMore.crimeDramas}
@@ -822,7 +824,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Drama TV Series"
                 movies={dramaTV}
-                description="Compelling drama series"
                 onLoadMore={loadMoreDramaTV}
                 hasMore={hasMore.dramaTV}
                 isLoadingMore={loadingMore.dramaTV}
@@ -834,7 +835,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Comedy TV Shows"
                 movies={comedyTV}
-                description="Sitcoms and comedy series"
                 onLoadMore={loadMoreComedyTV}
                 hasMore={hasMore.comedyTV}
                 isLoadingMore={loadingMore.comedyTV}
@@ -846,7 +846,6 @@ export default function HomeClient({ initialData }) {
               <RecommendationCarousel
                 title="Sci-Fi & Fantasy TV"
                 movies={sciFiTV}
-                description="Otherworldly adventures"
                 onLoadMore={loadMoreSciFiTV}
                 hasMore={hasMore.sciFiTV}
                 isLoadingMore={loadingMore.sciFiTV}

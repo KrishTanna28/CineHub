@@ -9,7 +9,6 @@ import useInfiniteScroll from "@/hooks/useInfiniteScroll"
 export default function RecommendationCarousel({
   title,
   movies = [],
-  description,
   requireAuth = false,
   onLoadMore = null,
   hasMore = false,
@@ -47,7 +46,6 @@ export default function RecommendationCarousel({
     <section className="py-8">
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-foreground mb-2">{title}</h2>
-        {description && <p className="text-muted-foreground">{description}</p>}
       </div>
 
       <div className="relative group">

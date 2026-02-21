@@ -1454,6 +1454,68 @@ export async function getBasedOnTrueStory(page = 1) {
   }
 }
 
+// Get trending movies in a specific region/country
+export async function getTrendingMoviesInRegion(region = 'US', page = 1) {
+  try {
+    const response = await api.get('/trending/movie/day', {
+      params: { page, region },
+    });
+    return {
+      results: formatMovieList(response.data.results).slice(0, 10),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getTrendingMoviesInRegion error:', error.message);
+    throw new Error('Failed to fetch trending movies in region');
+  }
+}
+
+// Get trending TV shows in a specific region/country
+export async function getTrendingTVInRegion(region = 'US', page = 1) {
+  try {
+    const response = await api.get('/trending/tv/day', {
+      params: { page, region },
+    });
+    return {
+      results: formatMediaList(response.data.results).slice(0, 10),
+      page: response.data.page,
+      totalPages: response.data.total_pages,
+      totalResults: response.data.total_results,
+    };
+  } catch (error) {
+    console.error('TMDB getTrendingTVInRegion error:', error.message);
+    throw new Error('Failed to fetch trending TV in region');
+  }
+}
+
+// Get TMDB recommendations for a specific movie
+export async function getMovieRecommendations(movieId, page = 1) {
+  try {
+    const response = await api.get(`/movie/${movieId}/recommendations`, {
+      params: { page },
+    });
+    return formatMovieList(response.data.results);
+  } catch (error) {
+    console.error('TMDB getMovieRecommendations error:', error.message);
+    return [];
+  }
+}
+
+// Get TMDB recommendations for a specific TV show
+export async function getTVRecommendations(tvId, page = 1) {
+  try {
+    const response = await api.get(`/tv/${tvId}/recommendations`, {
+      params: { page },
+    });
+    return formatMediaList(response.data.results);
+  } catch (error) {
+    console.error('TMDB getTVRecommendations error:', error.message);
+    return [];
+  }
+}
+
 // Get movies from specific production companies (Netflix, Marvel, etc)
 export async function getMoviesByCompany(companyId, page = 1) {
   try {
