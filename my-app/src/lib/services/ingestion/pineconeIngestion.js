@@ -14,6 +14,7 @@ const DEFAULT_LOOKBACK_HOURS = 24;
 const DEFAULT_BATCH_SIZE = 50;
 const DEFAULT_EMBEDDING_DIMENSIONS = 3072;
 const DEFAULT_EMBEDDING_BATCH_SIZE = 50;
+const APP_BASE_URL = (process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://cinnect.vercel.app').replace(/\/$/, '');
 
 class StrictGoogleGenAIEmbeddings extends Embeddings {
   constructor({ apiKey, model, dimensions, maxBatchSize }) {
@@ -185,6 +186,10 @@ function buildPostText(post) {
   return lines.join('\n');
 }
 
+function buildAppUrl(path) {
+  return `${APP_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 async function upsertNamespace({ namespace, documents, ids, embeddings, pineconeIndex }) {
   if (!documents.length) return { upserted: 0 };
 
@@ -295,7 +300,7 @@ async function ingestCommunities({ embeddings, pineconeIndex, since }) {
   };
 
   const communities = await Community.find(query)
-    .select('name description category relatedEntityId relatedEntityName relatedEntityType rules updatedAt')
+    .select('name slug description category relatedEntityId relatedEntityName relatedEntityType rules updatedAt')
     .lean();
 
   const docs = [];
@@ -311,6 +316,8 @@ async function ingestCommunities({ embeddings, pineconeIndex, since }) {
         type: 'community',
         communityId: String(community._id),
         name: community.name || null,
+        slug: community.slug || null,
+        url: community.slug ? buildAppUrl(`/communities/${community.slug}`) : null,
         category: community.category || null,
         relatedEntityType: community.relatedEntityType || null,
         relatedEntityId: community.relatedEntityId || null,
@@ -357,6 +364,8 @@ async function ingestPosts({ embeddings, pineconeIndex, since }) {
         postId: String(post._id),
         communityId: post.community?._id?.toString() || null,
         communityName: post.community?.name || null,
+        communitySlug: post.community?.slug || null,
+        url: post.community?.slug ? buildAppUrl(`/communities/${post.community.slug}/posts/${post._id}`) : null,
         category: post.category || null,
         updatedAt: post.updatedAt || null,
         source: 'cinnect'

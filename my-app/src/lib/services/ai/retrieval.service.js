@@ -81,6 +81,7 @@ function formatMatch(namespace, match) {
     type: cleanMetadata.type || namespace.slice(0, -1),
     score: match.score || 0,
     text,
+    url: cleanMetadata.url || null,
     metadata: cleanMetadata
   };
 }
@@ -119,8 +120,9 @@ export function formatRetrievedContextForLLM(matches) {
     const metadata = match.metadata || {};
     const label = metadata.name || metadata.title || metadata.communityName || match.id;
     const score = match.score.toFixed(3);
+    const link = match.url ? `\nLink: ${match.url}` : '';
     return `${index + 1}. [${match.namespace}/${match.type}] ${label} (score ${score})
-${match.text}`;
+${match.text}${link}`;
   });
 
   return `\n--- CINNECT VECTOR CONTEXT ---\n${lines.join('\n\n')}`;

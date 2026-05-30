@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { Send, Bot, User, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import ChatMessageContent from "@/components/chat-message-content"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/contexts/UserContext"
 
@@ -193,7 +194,7 @@ export default function CastPage() {
                   : "bg-secondary text-foreground rounded-tl-sm"
               )}
             >
-              <p className="whitespace-pre-wrap">{message.content}</p>
+              <ChatMessageContent content={message.content} />
             </div>
           </div>
         ))}
