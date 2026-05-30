@@ -60,6 +60,9 @@ function getGreetingResponse(username = null) {
 function buildSystemMessage(classification, context, spoilerMode, userContext) {
   let systemMessage = FULL_SYSTEM_PROMPT;
 
+  systemMessage += `\n\n## RETRIEVAL ROUTING
+Intent classification is LLM-based. Use TMDB tools for exact movie, TV, person, trending, popular, similar, recommendation, details, cast, and summary queries. Use the Cinnect vector context only for Cinnect communities, posts, discussions, reviews, fan opinions, and platform activity. If both are relevant, combine both, but do not treat vector context as authoritative TMDB catalog data.`;
+
   // Add user personalization context if available
   if (userContext) {
     systemMessage += `\n\n## CURRENT USER
@@ -147,7 +150,7 @@ async function handler(request, context) {
     }
 
     // Step 2: Classify intent
-    const classification = classifyIntent(message);
+    const classification = await classifyIntent(message, conversationHistory);
 
     // Step 3: Handle special cases without LLM
     if (classification.intent === INTENTS.OUT_OF_DOMAIN) {
@@ -307,8 +310,8 @@ async function handler(request, context) {
 
     // Step 11: Handle spoiler consent prompting if model didn't handle it
     if (spoilerMode.mode === 'ask_consent' &&
-        classification.intent === INTENTS.EXPLANATION &&
-        !responseText.toLowerCase().includes('spoiler')) {
+      classification.intent === INTENTS.EXPLANATION &&
+      !responseText.toLowerCase().includes('spoiler')) {
       const mediaTitle = classification.entities.mediaTitle;
       responseText = generateSpoilerWarning(mediaTitle);
     }

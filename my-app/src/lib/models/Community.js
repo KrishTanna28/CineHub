@@ -141,7 +141,6 @@ const communitySchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-communitySchema.index({ slug: 1 });
 communitySchema.index({ category: 1, memberCount: -1 });
 communitySchema.index({ creator: 1, createdAt: -1 });
 communitySchema.index({ name: 'text', description: 'text' });

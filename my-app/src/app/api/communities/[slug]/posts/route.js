@@ -4,7 +4,6 @@ import Community from '@/lib/models/Community.js'
 import { withAuth, withOptionalAuth } from '@/lib/middleware/withAuth.js'
 import connectDB from '@/lib/config/database.js'
 import { uploadPostImagesToCloudinary, uploadPostVideosToCloudinary } from '@/lib/utils/cloudinaryHelper.js'
-import { generateEmbedding } from '@/lib/services/embedding.service.js'
 import { runModerationPipeline } from '@/lib/services/moderation.service.js'
 import { checkAdultContentAccess, getAdultContentFilter } from '@/lib/middleware/ageGate.js'
 
@@ -222,16 +221,6 @@ export const POST = withAuth(async (request, { user, params }) => {
       videos: [],
       user: user._id
     })
-
-    // Generate embedding for RAG (non-blocking — don't fail the request)
-    try {
-      const catText = category === 'other' ? custom_category : category;
-      const embeddingText = `[Category: ${catText}] ${title}. ${content || ''}`;
-      post.embedding = await generateEmbedding(embeddingText);
-      await post.save();
-    } catch (embErr) {
-      console.error('Embedding generation failed (post saved without it):', embErr);
-    }
 
     // Upload images to Cloudinary if provided
     if (images && images.length > 0) {

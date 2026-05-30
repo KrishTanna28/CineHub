@@ -9,7 +9,6 @@ import Review from '@/lib/models/Review';
 import Community from '@/lib/models/Community';
 import Post from '@/lib/models/Post';
 import * as tmdbService from '@/lib/services/tmdb.service';
-import { retrieveRAGContext } from '@/lib/services/rag.service';
 import { searchCommunitiesByTopic, getTrendingPosts, searchPostsByTopic } from '@/lib/services/chatTools.service';
 
 // Tool declarations for Gemini function calling
@@ -229,21 +228,6 @@ export const toolDeclarations = [
         topic: { type: 'string', description: 'Topic to search' }
       },
       required: ['topic']
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // REVIEWS TOOLS
-  // ═══════════════════════════════════════════════════════════════════════════
-  {
-    name: 'searchReviewsAndPosts',
-    description: 'Search user reviews and discussions (RAG). Use for "what do people think about X".',
-    parameters: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'Search query for opinions/discussions' }
-      },
-      required: ['query']
     }
   },
   {
@@ -591,11 +575,6 @@ export async function executeTool(name, args, userId = null) {
       }
 
       // ─── Reviews ─────────────────────────────────────────────────────────────
-      case 'searchReviewsAndPosts': {
-        const ragContext = await retrieveRAGContext(args.query);
-        return ragContext || 'No reviews or discussions found for this topic.';
-      }
-
       case 'getReviews': {
         await connectDB();
         const limit = Math.min(args.limit || 5, 10);

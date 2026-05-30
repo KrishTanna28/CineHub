@@ -1,6 +1,5 @@
 import Review from '@/lib/models/Review.js'
 import { withAuth } from '@/lib/middleware/withAuth.js'
-import { generateEmbedding } from '@/lib/services/embedding.service.js'
 import { moderateText } from '@/lib/services/moderation.service.js'
 import { notifyFriendsAboutReview } from '@/lib/services/notification.service.js'
 import { checkAdultContentAccess, getAdultContentFilter } from '@/lib/middleware/ageGate.js'
@@ -304,14 +303,6 @@ export const POST = withAuth(async (request, { user }) => {
       }
     } catch (modErr) {
       console.error('Review moderation failed (saved without moderation):', modErr)
-    }
-
-    // Generate embedding for RAG (non-blocking — don't fail the request)
-    try {
-      const embeddingText = `${mediaTitle} — ${title}. ${content}`;
-      review.embedding = await generateEmbedding(embeddingText);
-    } catch (embErr) {
-      console.error('Embedding generation failed (review will be saved without it):', embErr);
     }
 
     await review.save()

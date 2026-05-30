@@ -135,6 +135,21 @@ export async function getMovieDetails(movieId) {
     }
   }
 
+  // Get movie keywords
+export async function getMovieKeywords(movieId) {
+    try {
+      const response = await cachedTmdbGet(
+        `/movie/${movieId}/keywords`,
+        {},
+        TMDB_CACHE_TTLS.details
+      );
+      return response.keywords || [];
+    } catch (error) {
+      console.error('TMDB getMovieKeywords error:', error.message);
+      return [];
+    }
+  }
+
   // Search movies
 export async function searchMovies(query, page = 1) {
     try {
@@ -271,6 +286,21 @@ export async function getTVDetails(tvId) {
     } catch (error) {
       console.error('TMDB getTVDetails error:', error.message);
       throw new Error('Failed to fetch TV show details');
+    }
+  }
+
+  // Get TV show keywords
+export async function getTVKeywords(tvId) {
+    try {
+      const response = await cachedTmdbGet(
+        `/tv/${tvId}/keywords`,
+        {},
+        TMDB_CACHE_TTLS.details
+      );
+      return response.results || [];
+    } catch (error) {
+      console.error('TMDB getTVKeywords error:', error.message);
+      return [];
     }
   }
 

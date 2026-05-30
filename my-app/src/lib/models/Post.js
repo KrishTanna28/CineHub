@@ -58,7 +58,6 @@ const replySchema = new mongoose.Schema({
 }, { _id: true });
 
 // Add indexes for nested replies
-replySchema.index({ parentReplyId: 1 });
 replySchema.index({ 'mentionedUsers.userId': 1 });
 
 const commentSchema = new mongoose.Schema({
@@ -174,12 +173,6 @@ const postSchema = new mongoose.Schema({
   // Comments
   comments: [commentSchema],
   
-  // Embedding for RAG vector search
-  embedding: {
-    type: [Number],
-    select: false
-  },
-
   // Spoiler flag
   spoiler: {
     type: Boolean,

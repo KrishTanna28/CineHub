@@ -11,8 +11,8 @@ import Post from '@/lib/models/Post';
 import UserActivity from '@/lib/models/UserActivity';
 import { INTENTS } from './intentClassifier';
 import * as tmdbService from '@/lib/services/tmdb.service';
-import { retrieveRAGContext } from '@/lib/services/rag.service';
 import { buildCacheKey, remember } from '@/lib/utils/cache.js';
+import { retrieveCinnectContext, formatRetrievedContextForLLM } from './retrieval.service.js';
 
 const CONTEXT_CACHE_TTL = 5 * 60;
 
@@ -25,7 +25,8 @@ export async function buildContext(classification, userId = null, message = '') 
     platform: getPlatformContext(),
     content: null,
     community: null,
-    trending: null
+    trending: null,
+    retrieval: null
   };
 
   const tasks = [];
@@ -39,6 +40,13 @@ export async function buildContext(classification, userId = null, message = '') 
   if (userId && classification.requiresUserContext) {
     tasks.push(
       fetchUserContext(userId).then(data => { context.user = data; })
+    );
+  }
+
+  if (classification.shouldUseVectorSearch) {
+    tasks.push(
+      fetchVectorContext(message, classification.vectorNamespaces)
+        .then(data => { context.retrieval = data; })
     );
   }
 
@@ -278,11 +286,8 @@ async function fetchMediaContext(entities) {
 /**
  * Fetch community/discussion context
  */
-async function fetchCommunityContext(message) {
+async function fetchCommunityContext(_message) {
   try {
-    // Use RAG to find relevant discussions
-    const ragContext = await retrieveRAGContext(message);
-
     // Also get trending posts
     await connectDB();
     const trendingPosts = await Post.aggregate([
@@ -318,10 +323,7 @@ async function fetchCommunityContext(message) {
       }
     ]);
 
-    return {
-      ragContext,
-      trendingPosts
-    };
+    return { trendingPosts };
   } catch (error) {
     console.error('Error fetching community context:', error);
     return null;
@@ -355,14 +357,23 @@ async function fetchTrendingContext() {
 }
 
 /**
- * Fetch explanation context (RAG-based)
+ * Fetch explanation context (RAG disabled)
  */
-async function fetchExplanationContext(message) {
+async function fetchExplanationContext(_message) {
   try {
-    return await retrieveRAGContext(message);
+    return null;
   } catch (error) {
     console.error('Error fetching explanation context:', error);
     return null;
+  }
+}
+
+async function fetchVectorContext(message, namespaces) {
+  try {
+    return await retrieveCinnectContext(message, { namespaces });
+  } catch (error) {
+    console.error('Error fetching vector context:', error);
+    return [];
   }
 }
 
@@ -534,16 +545,16 @@ Overview: ${context.content.overview?.slice(0, 300)}...`);
 
   // Community context
   if (context.community) {
-    if (typeof context.community === 'string') {
-      parts.push(context.community); // RAG context
-    } else if (context.community.ragContext) {
-      parts.push(context.community.ragContext);
-    }
     if (context.community.trendingPosts?.length) {
       parts.push(`\n--- TRENDING DISCUSSIONS ---\n${context.community.trendingPosts.map((p, i) =>
         `${i + 1}. "${p.title}" in ${p.communityName || 'Community'} (${p.likes} likes)`
       ).join('\n')}`);
     }
+  }
+
+  const retrievedContext = formatRetrievedContextForLLM(context.retrieval);
+  if (retrievedContext) {
+    parts.push(retrievedContext);
   }
 
   // Platform context for guidance
