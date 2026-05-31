@@ -63,7 +63,7 @@ function buildSystemMessage(classification, context, spoilerMode, userContext) {
   systemMessage += `\n\n## RETRIEVAL ROUTING
 Intent classification is LLM-based. Use TMDB tools for exact movie, TV, person, trending, popular, similar, recommendation, details, cast, and summary queries. Use the Cinnect vector context only for Cinnect communities, posts, discussions, reviews, fan opinions, and platform activity. If both are relevant, combine both, but do not treat vector context as authoritative TMDB catalog data.
 
-When Cinnect vector context includes a Link field for a relevant community or post, include that link in your response using Markdown link syntax. Only include links that appear in the provided context or tool results; never invent slugs or post URLs.`;
+When Cinnect vector context includes a Link field for a relevant community or post, or a tool result includes a url/link field, include that link in your response using Markdown link syntax. Only include links that appear in the provided context or tool results; never invent slugs or post URLs.`;
 
   // Add user personalization context if available
   if (userContext) {

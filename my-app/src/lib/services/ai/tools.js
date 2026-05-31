@@ -540,7 +540,10 @@ export async function executeTool(name, args, userId = null) {
           .sort(sort)
           .limit(limit)
           .lean();
-        return JSON.stringify(communities);
+        return JSON.stringify(communities.map(community => ({
+          ...community,
+          url: community.slug ? `/communities/${community.slug}` : null
+        })));
       }
 
       case 'getCommunityPosts': {
@@ -560,7 +563,8 @@ export async function executeTool(name, args, userId = null) {
           content: p.content?.slice(0, 200),
           author: p.user?.username,
           likes: p.likes?.length || 0,
-          comments: p.comments?.length || 0
+          comments: p.comments?.length || 0,
+          url: `/communities/${community.slug}/posts/${p._id}`
         })));
       }
 

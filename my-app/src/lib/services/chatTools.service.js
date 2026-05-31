@@ -31,6 +31,7 @@ export async function searchCommunitiesByTopic(topic) {
   return communities.map((c) => ({
     name: c.name,
     slug: c.slug,
+    url: c.slug ? `/communities/${c.slug}` : null,
     description: c.description,
     category: c.category,
     memberCount: c.memberCount,
@@ -116,7 +117,10 @@ export async function getTrendingPosts(limit = 5) {
     },
   ]);
 
-  return posts;
+  return posts.map((post) => ({
+    ...post,
+    url: post.communitySlug ? `/communities/${post.communitySlug}/posts/${post._id}` : null,
+  }));
 }
 
 /**
@@ -199,5 +203,8 @@ export async function searchPostsByTopic(topic, limit = 5) {
     },
   ]);
 
-  return posts;
+  return posts.map((post) => ({
+    ...post,
+    url: post.communitySlug ? `/communities/${post.communitySlug}/posts/${post._id}` : null,
+  }));
 }
