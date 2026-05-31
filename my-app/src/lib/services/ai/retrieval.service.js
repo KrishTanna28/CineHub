@@ -86,6 +86,23 @@ function formatMatch(namespace, match) {
   };
 }
 
+function canonicalizeAppLink(url) {
+  const APP_BASE_URL = (process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://cinnect.vercel.app').replace(/\/$/, '')
+  if (!url) return ''
+  if (url.startsWith('/')) return `${APP_BASE_URL}${url}`
+
+  try {
+    const u = new URL(url)
+    const host = u.hostname.toLowerCase()
+    if (host === 'cinnect.com' || host === 'www.cinnect.com' || host === 'cinnect.vercel.app' || host === 'www.cinnect.vercel.app') {
+      return `${APP_BASE_URL}${u.pathname}${u.search}${u.hash}`
+    }
+    return url
+  } catch {
+    return url
+  }
+}
+
 export async function retrieveCinnectContext(query, options = {}) {
   const topK = toPositiveInt(options.topK || process.env.RAG_TOP_K, DEFAULT_TOP_K);
   const minScore = toPositiveNumber(options.minScore || process.env.RAG_MIN_SCORE, DEFAULT_MIN_SCORE);
@@ -120,7 +137,7 @@ export function formatRetrievedContextForLLM(matches) {
     const metadata = match.metadata || {};
     const label = metadata.name || metadata.title || metadata.communityName || match.id;
     const score = match.score.toFixed(3);
-    const link = match.url ? `\nLink: ${match.url}` : '';
+    const link = match.url ? `\nLink: ${canonicalizeAppLink(match.url)}` : '';
     return `${index + 1}. [${match.namespace}/${match.type}] ${label} (score ${score})
 ${match.text}${link}`;
   });
