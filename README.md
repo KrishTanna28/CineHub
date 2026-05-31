@@ -4,12 +4,12 @@
 Cinnect
 
 ## 2. Overview
-Cinnect is a movie and TV community platform built with Next.js App Router and MongoDB. It combines content discovery (TMDB-backed), user-generated reviews, community discussions, social features, direct messaging, and real-time notifications.
+Cinnect is a movie and TV community platform built with Next.js App Router and MongoDB. It combines TMDB-backed content discovery, user-generated reviews, community discussions, social features, direct messaging, real-time notifications, a recommendation engine, and an LLM-powered assistant named C.A.S.T.
 
 ### What the project does
 - Serves a web application for browsing movies/TV content and related metadata.
 - Provides authenticated user features: profiles, follow/block controls, watchlist/favorites/history, reviews, and community participation.
-- Exposes API routes for content, social graph, messaging, notifications, moderation, and recommendations.
+- Exposes API routes for content, social graph, messaging, notifications, moderation, recommendations, and AI assistant workflows.
 - Supports real-time events through Socket.IO (custom in-process socket server in development and optional external socket server in production).
 
 ### Problem it solves
@@ -23,7 +23,8 @@ Cinnect is a movie and TV community platform built with Next.js App Router and M
 - Communities with public/private membership and moderation actions.
 - Direct messaging with conversation requests, read state, mute, and reactions.
 - Notification generation (including scheduled entertainment notifications).
-- Optional AI-assisted endpoints (Gemini + Hugging Face-backed moderation/suggestions).
+- Optional AI-assisted endpoints (Gemini-powered intent routing, tool calling, spoiler handling, moderation, and suggestions).
+- Optional retrieval-augmented Cinnect context over communities, posts, and reviews using Pinecone embeddings.
 
 ## 3. Features
 Based on implemented routes/models/services:
@@ -39,6 +40,10 @@ Based on implemented routes/models/services:
 - Content discovery
   - Popular/trending/top-rated/discover/search routes for movies and TV.
   - Movie/TV/actor detail fetch paths and provider lookup.
+- AI assistant
+  - C.A.S.T chat assistant with intent classification, tool-calling, context building, and fallback responses.
+  - Gemini-based query routing for TMDB facts, Cinnect platform guidance, and community/review context.
+  - Pinecone-backed vector retrieval over communities, posts, and reviews.
 - Reviews
   - Review creation/listing/detail.
   - Like/dislike on reviews and nested replies.
@@ -57,6 +62,9 @@ Based on implemented routes/models/services:
 - Recommendations and ranking
   - Recommendation aggregation route using TMDB metadata + user/history signals.
   - Leaderboard endpoints and gamification/xp utilities.
+- Moderation and safety
+  - Adult-content moderation for text, images, and video.
+  - Spoiler detection and safety checks for assistant responses.
 - Load testing
   - k6 suite with load/stress/spike/soak scenarios in `load-tests/`.
 
@@ -81,6 +89,7 @@ Derived from package/config files.
 - MongoDB + Mongoose
 - JWT (`jsonwebtoken`, `jose` in middleware path)
 - Optional Upstash Redis client (fallback behavior present)
+- Pinecone vector database for Cinnect retrieval context
 
 ### Realtime
 - Socket.IO server/client
@@ -92,6 +101,7 @@ Derived from package/config files.
 - Cloudinary (media uploads)
 - Nodemailer (email OTP/password reset/welcome)
 - Gemini (`@google/generative-ai`, `@google/genai`)
+- Pinecone vector search
 - Hugging Face inference endpoints (moderation/spoiler-related services)
 - Vercel analytics
 
@@ -106,6 +116,7 @@ Derived from package/config files.
 - A custom Node server (`server.js`) initializes Next and attaches Socket.IO at `/api/socketio`.
 - MongoDB is the primary datastore via Mongoose models (`User`, `Review`, `Community`, `Post`, `Conversation`, `Message`, `Notification`, etc.).
 - Middleware enforces public vs protected routes and validates JWT tokens.
+- C.A.S.T routes user messages through Gemini intent classification, tool execution, and optional Pinecone retrieval for Cinnect-specific context.
 
 ### Runtime components
 - Web UI: Server and client components under `src/app` and `src/components`.
@@ -113,6 +124,7 @@ Derived from package/config files.
 - Services: Integrations and domain logic under `src/lib/services`.
 - Auth/session: JWT generation/verification + cookie helpers.
 - Realtime: Socket context on client, emit helpers on server, optional external socket relay.
+- AI assistant: system prompt, intent classifier, context builder, tool definitions, retrieval service, spoiler handling, and content safety checks.
 
 ### Data flow (typical authenticated request)
 1. Client sends request with auth cookies.
@@ -128,6 +140,13 @@ Derived from package/config files.
    - directly through in-process `globalThis._io`, or
    - via HTTP bridge to external socket server using internal API key.
 3. Client `SocketContext` receives updates and syncs UI.
+
+### AI assistant flow
+1. User message hits `POST /api/ai-assistant`.
+2. Gemini classifies intent and decides whether to use TMDB tools, Cinnect vector search, or both.
+3. Context builder gathers relevant platform, media, and retrieval context.
+4. Gemini executes tools when needed and generates the final response.
+5. Safety checks apply spoiler handling and adult-content moderation before the response is returned.
 
 ## 6. Project Structure
 
@@ -211,6 +230,15 @@ Environment keys found in code and/or `.env`.
 - `TMDB_IMAGE_BASE_URL`
 - `NEXT_PUBLIC_YOUTUBE_API_KEY`
 - `NEXT_PUBLIC_NEWS_API_KEY`
+
+#### AI retrieval variables
+- `PINECONE_API_KEY`
+- `PINECONE_INDEX` (defaults to `cinnect-rag`)
+- `EMBEDDING_DIMENSIONS` (defaults to `3072`)
+- `GEMINI_EMBEDDING_BATCH_SIZE` (defaults to `50`)
+- `RAG_TOP_K` (defaults to `4`)
+- `RAG_MIN_SCORE` (defaults to `0.45`)
+- `NEXT_PUBLIC_FRONTEND_URL` (used for canonical links in retrieval context)
 
 #### AI/moderation variables
 - `GEMINI_API_KEY`
@@ -429,6 +457,7 @@ Observed from current code:
 - In-memory rate limiter (`src/lib/utils/rateLimit.js`) is process-local and not distributed.
 - Pending registrations are stored in memory (`src/lib/pendingRegistrations.js`); restart clears uncompleted signups.
 - TypeScript build errors are ignored (`next.config.mjs`), reducing type-safety at build time.
+- The AI retrieval layer is scoped to Cinnect community/post/review context and is not a full hybrid-search RAG stack.
 - k6 script currently targets `/api/auth/login` and `/api/auth/refresh`, while implemented login route is `/api/users/login`; this can cause invalid test calls without script adjustments.
 - Script portability for `npm run start` env assignment is not guaranteed across shells/OS without adaptation.
 - Formal API schema (OpenAPI/Swagger) and explicit Node engine version are Not specified in codebase.
