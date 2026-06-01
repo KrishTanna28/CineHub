@@ -1,50 +1,26 @@
 /**
  * Cinnect AI Assistant API Route
- * Enhanced domain-specialized movie & platform assistant with ML-based content safety
+ * LangChain-based assistant orchestration with retrieval, citations, tools, and memory.
  */
 
-import { GoogleGenAI } from '@google/genai';
 import { withOptionalAuth } from '@/lib/middleware/withAuth';
 import connectDB from '@/lib/config/database.js';
-import { success, error, handleError } from '@/lib/utils/apiResponse.js';
+import { success, error } from '@/lib/utils/apiResponse.js';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/utils/rateLimit.js';
 
-// Import AI modules
-import { SYSTEM_PROMPT } from '@/lib/services/ai/systemPrompt';
+import { buildAssistantSystemPrompt } from '@/lib/services/ai/systemPrompt';
 import { classifyIntent, INTENTS } from '@/lib/services/ai/intentClassifier';
 import { buildContext } from '@/lib/services/ai/contextBuilder';
-import { tools, executeTool } from '@/lib/services/ai/tools';
+import { runAssistantChain } from '@/lib/services/ai/assistantChain';
+import { runAssistantAgent } from '@/lib/services/ai/agentOrchestrator';
+import { createAssistantMemory, saveAssistantTurn } from '@/lib/services/ai/memoryStore';
 import { getSpoilerResponseMode, generateSpoilerWarning, SPOILER_INSTRUCTIONS } from '@/lib/services/ai/spoilerHandler';
 import { checkContentSafety, getUnsafeContentResponse, checkResponseSafety } from '@/lib/services/ai/contentSafety';
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY
-});
-
-// Full system prompt with spoiler handling
-const FULL_SYSTEM_PROMPT = `${SYSTEM_PROMPT}\n${SPOILER_INSTRUCTIONS}`;
-
-/**
- * Extract text from Gemini response parts
- */
-function extractText(result) {
-  const parts = result.candidates?.[0]?.content?.parts || [];
-  return parts
-    .filter(p => typeof p.text === 'string')
-    .map(p => p.text)
-    .join('');
-}
-
-/**
- * Handle out-of-domain queries
- */
 function getOutOfDomainResponse() {
   return "I'm C.A.S.T, your cinematic assistant! I specialize in movies, TV shows, and everything entertainment-related on Cinnect. Is there something about films, shows, or our platform I can help you with?";
 }
 
-/**
- * Handle greeting messages
- */
 function getGreetingResponse(username = null) {
   const greetings = [
     `Hey${username ? ` ${username}` : ''}! I'm C.A.S.T, your cinematic companion. What are we watching today?`,
@@ -54,83 +30,35 @@ function getGreetingResponse(username = null) {
   return greetings[Math.floor(Math.random() * greetings.length)];
 }
 
-/**
- * Build dynamic system message based on classification
- */
-function buildSystemMessage(classification, context, spoilerMode, userContext) {
-  let systemMessage = FULL_SYSTEM_PROMPT;
-
-  systemMessage += `\n\n## RETRIEVAL ROUTING
-Intent classification is LLM-based. Use TMDB tools for exact movie, TV, person, trending, popular, similar, recommendation, details, cast, and summary queries. Use the Cinnect vector context only for Cinnect communities, posts, discussions, reviews, fan opinions, and platform activity. If both are relevant, combine both, but do not treat vector context as authoritative TMDB catalog data.
-
-When Cinnect vector context includes a Link field for a relevant community or post, or a tool result includes a url/link field, include that link in your response using Markdown link syntax. Only include links that appear in the provided context or tool results; never invent slugs or post URLs. When including links, always use https://cinnect.vercel.app as the host — never use cinnect.com or any other domain. If a provided link uses a different host or is a relative path, convert it to the https://cinnect.vercel.app host before including it.`;
-
-  // Add user personalization context if available
-  if (userContext) {
-    systemMessage += `\n\n## CURRENT USER
-Username: ${userContext.username || 'Guest'}
-Level: ${userContext.level || 1}
-${userContext.favoriteGenres?.length ? `Favorite Genres: ${userContext.favoriteGenres.join(', ')}` : ''}
-Use this to personalize responses when relevant.`;
-  }
-
-  // Add intent-specific instructions
-  switch (classification.intent) {
-    case INTENTS.PERSONALIZATION:
-      systemMessage += '\n\n## ACTIVE MODE: PERSONALIZATION\nPrioritize recommendations based on the user context provided. Reference their preferences and history.';
-      break;
-    case INTENTS.ACTION:
-      systemMessage += '\n\n## ACTIVE MODE: ACTION\nThe user wants to perform an action. Use the appropriate tool and confirm the result clearly.';
-      break;
-    case INTENTS.GUIDANCE:
-      systemMessage += '\n\n## ACTIVE MODE: PLATFORM GUIDANCE\nProvide clear step-by-step instructions. Be specific about navigation and feature usage.';
-      break;
-    case INTENTS.EXPLANATION:
-      if (spoilerMode.mode === 'ask_consent') {
-        systemMessage += '\n\n## ACTIVE MODE: EXPLANATION (SPOILER CARE)\nUser is asking about plot/story. Offer both spoiler-free and detailed options before revealing anything.';
-      } else if (spoilerMode.mode === 'spoiler_allowed') {
-        systemMessage += '\n\n## ACTIVE MODE: EXPLANATION (SPOILERS OK)\nUser has consented to spoilers. Still prefix with [SPOILER WARNING] before revealing major plot points.';
-      }
-      break;
-    case INTENTS.SUMMARY:
-      systemMessage += '\n\n## ACTIVE MODE: SUMMARY\nProvide a concise, spoiler-safe summary by default. If the user asked for a specific season/episode, summarize that exact scope. Ask before revealing major spoilers.';
-      break;
-    case INTENTS.COMMUNITY:
-      systemMessage += '\n\n## ACTIVE MODE: COMMUNITY INSIGHTS\nFocus on what the community thinks. Cite reviews and discussions when available.';
-      break;
-    case INTENTS.TRENDING:
-      systemMessage += '\n\n## ACTIVE MODE: TRENDING\nShow what\'s popular right now. Include engagement metrics if available.';
-      break;
-  }
-
-  // Add context if available
-  if (context) {
-    systemMessage += `\n\n## CONTEXT DATA${context}`;
-  }
-
-  return systemMessage;
+function getUserContext(user) {
+  if (!user) return null;
+  return {
+    username: user.username,
+    level: user.level,
+    favoriteGenres: user.favoriteGenres
+  };
 }
 
-/**
- * Main POST handler
- */
+function shouldUseAgent(classification) {
+  return classification.intent === INTENTS.ACTION || classification.shouldUseTmdbTools;
+}
+
 async function handler(request, context) {
-  // Apply rate limiting for AI calls (expensive operation)
-  const rateLimitResult = checkRateLimit(request, 'ai-assistant', RATE_LIMITS.AI)
+  const rateLimitResult = checkRateLimit(request, 'ai-assistant', RATE_LIMITS.AI);
   if (!rateLimitResult.allowed) {
-    return rateLimitResult.response
+    return rateLimitResult.response;
   }
 
   try {
-    await connectDB()
-    const { message, conversationHistory = [] } = await request.json();
+    await connectDB();
+
+    const {
+      message,
+      conversationHistory = [],
+      conversationId = 'default'
+    } = await request.json();
     const user = context?.user || null;
     const userId = user?._id?.toString() || null;
-    const userContext = user ? {
-      username: user.username,
-      level: user.level,
-      favoriteGenres: user.favoriteGenres
-    } : null;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return error('Message is required', 400);
@@ -140,215 +68,101 @@ async function handler(request, context) {
       return error('Message is too long. Please keep it under 2000 characters.', 400);
     }
 
-    // Step 1: Content safety check on user message using ML models
     const safetyCheck = await checkContentSafety(message);
 
     if (!safetyCheck.isSafe) {
       return success({
         message: getUnsafeContentResponse(safetyCheck),
         blocked: true,
-        intent: 'safety_violation'
+        intent: 'safety_violation',
+        citations: []
       });
     }
 
-    // Step 2: Classify intent
     const classification = await classifyIntent(message, conversationHistory);
 
-    // Step 3: Handle special cases without LLM
     if (classification.intent === INTENTS.OUT_OF_DOMAIN) {
       return success({
         message: getOutOfDomainResponse(),
-        intent: classification.intent
+        intent: classification.intent,
+        citations: []
       });
     }
 
     if (classification.intent === INTENTS.GREETING) {
       return success({
         message: getGreetingResponse(user?.username),
-        intent: classification.intent
+        intent: classification.intent,
+        citations: []
       });
     }
 
-    // Step 4: Check spoiler handling mode
     const spoilerMode = getSpoilerResponseMode(message, conversationHistory);
+    const [contextData, memoryState] = await Promise.all([
+      buildContext(classification, userId, message),
+      createAssistantMemory({ userId, conversationId, conversationHistory })
+    ]);
+    const systemPrompt = `${buildAssistantSystemPrompt(classification, spoilerMode, getUserContext(user))}\n\n${SPOILER_INSTRUCTIONS}`;
 
-    // Step 5: Build context based on classification
-    const contextData = await buildContext(classification, userId, message);
+    let assistantResult;
 
-    // Step 6: Build system message
-    const systemMessage = buildSystemMessage(classification, contextData, spoilerMode, userContext);
-
-    // Step 7: Build conversation contents
-    const contents = [
-      {
-        role: 'user',
-        parts: [{ text: systemMessage }]
-      },
-      {
-        role: 'model',
-        parts: [{ text: "Understood! I'm C.A.S.T, ready to help with movies, shows, and Cinnect features." }]
-      },
-      // Add conversation history
-      ...conversationHistory
-        .filter(msg => msg.content?.trim())
-        .map(msg => ({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content }]
-        })),
-      // Add current message
-      {
-        role: 'user',
-        parts: [{ text: message }]
-      }
-    ];
-
-    // Step 8: Call LLM with tools
-    let result;
-    try {
-      result = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents,
-        config: {
-          tools,
-          temperature: 0.7,
-          maxOutputTokens: 1024
-        }
+    if (shouldUseAgent(classification)) {
+      assistantResult = await runAssistantAgent({
+        message,
+        userId,
+        systemPrompt,
+        contextData,
+        classification,
+        chatHistoryMessages: memoryState.chatHistoryMessages
       });
-    } catch (apiError) {
-      // Handle API errors gracefully
-      console.error('Gemini API error:', apiError);
-
-      // Return user-friendly error message
-      if (apiError.message?.includes('quota') || apiError.message?.includes('rate limit') || apiError.code === 429) {
-        return success({
-          message: "I'm experiencing high traffic right now. Please try again in a few moments!",
-          intent: 'error'
-        });
-      } else if (apiError.message?.includes('RESOURCE_EXHAUSTED')) {
-        return success({
-          message: "I'm currently at capacity. Please try again shortly!",
-          intent: 'error'
-        });
-      } else {
-        return success({
-          message: "I'm having trouble processing your request right now. Please try again!",
-          intent: 'error'
-        });
-      }
+    } else {
+      assistantResult = await runAssistantChain({
+        message,
+        systemPrompt,
+        contextData,
+        classification,
+        shouldUseVectorSearch: classification.shouldUseVectorSearch,
+        vectorNamespaces: classification.vectorNamespaces,
+        chatHistoryMessages: memoryState.chatHistoryMessages
+      });
     }
 
-    // Step 9: Agentic tool loop
-    const MAX_TOOL_ROUNDS = 5;
-    let round = 0;
+    let responseText = assistantResult.answer || '';
 
-    try {
-      while (round < MAX_TOOL_ROUNDS) {
-        round++;
-
-        const parts = result.candidates?.[0]?.content?.parts || [];
-        const functionCalls = parts.filter(p => p.functionCall);
-
-        if (functionCalls.length === 0) break;
-
-        // Execute all tool calls
-        const toolResultParts = [];
-        for (const fc of functionCalls) {
-          try {
-            const output = await executeTool(fc.functionCall.name, fc.functionCall.args, userId);
-            toolResultParts.push({
-              functionResponse: {
-                name: fc.functionCall.name,
-                response: { result: output }
-              }
-            });
-          } catch (toolError) {
-            console.error('Tool execution error:', toolError);
-            // Continue with other tools, provide error result
-            toolResultParts.push({
-              functionResponse: {
-                name: fc.functionCall.name,
-                response: { result: 'Tool unavailable at the moment.' }
-              }
-            });
-          }
-        }
-
-        // Append model's tool call turn
-        contents.push({
-          role: 'model',
-          parts: functionCalls.map(fc => ({ functionCall: fc.functionCall }))
-        });
-
-        // Append tool results
-        contents.push({
-          role: 'user',
-          parts: toolResultParts
-        });
-
-        // Call model again
-        try {
-          result = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents,
-            config: {
-              tools,
-              temperature: 0.7,
-              maxOutputTokens: 1024
-            }
-          });
-        } catch (apiError) {
-          console.error('Gemini API error in tool loop:', apiError);
-          // Break the loop if API fails
-          break;
-        }
-      }
-    } catch (loopError) {
-      console.error('Agentic loop error:', loopError);
-      // Continue to extract whatever response we have
-    }
-
-    // Step 10: Extract final response
-    let responseText = extractText(result);
-
-    // Step 11: Handle spoiler consent prompting if model didn't handle it
     if (spoilerMode.mode === 'ask_consent' &&
       classification.intent === INTENTS.EXPLANATION &&
       !responseText.toLowerCase().includes('spoiler')) {
-      const mediaTitle = classification.entities.mediaTitle;
-      responseText = generateSpoilerWarning(mediaTitle);
+      responseText = generateSpoilerWarning(classification.entities.mediaTitle);
     }
 
-    // Step 12: Response safety check using ML models
     const hasConsent = spoilerMode.mode === 'spoiler_allowed';
     const responseSafety = await checkResponseSafety(responseText, hasConsent);
 
-    // If response contains spoilers without consent, inject warning
     if (responseSafety.spoilerDetected && !hasConsent) {
-      const mediaTitle = classification.entities.mediaTitle;
-      responseText = generateSpoilerWarning(mediaTitle);
+      responseText = generateSpoilerWarning(classification.entities.mediaTitle);
     }
 
-    // If response failed safety checks (toxic content), use safe fallback
     if (!responseSafety.safe && !responseSafety.spoilerDetected) {
       responseText = "I apologize, but I couldn't generate an appropriate response. Could you rephrase your question?";
     }
 
+    await saveAssistantTurn(memoryState, message, responseText);
+
     return success({
       message: responseText,
       intent: classification.intent,
-      confidence: classification.confidence
+      confidence: classification.confidence,
+      citations: assistantResult.citations || []
     });
-
   } catch (err) {
     console.error('AI Assistant error:', err);
 
-    // Return user-friendly error message instead of technical details
     return success({
       message: "I'm having trouble processing your request. Please try again in a moment!",
-      intent: 'error'
+      intent: 'error',
+      citations: []
     });
   }
 }
 
-// Export with optional auth wrapper to get user context if available
 export const POST = withOptionalAuth(handler);

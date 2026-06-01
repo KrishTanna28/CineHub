@@ -1,4 +1,8 @@
-import { GoogleGenAI } from '@google/genai';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { PromptTemplate } from '@langchain/core/prompts';
+import { LLMChain } from 'langchain/chains';
+import { INTENT_CLASSIFIER_TEMPLATE } from './systemPrompt';
+import { initLangChainCache } from './langchainCache';
 
 export const INTENTS = {
   DISCOVERY: 'discovery',
@@ -30,48 +34,35 @@ const VALID_INTENTS = new Set(Object.values(INTENTS));
 const VALID_ACTION_TYPES = new Set([...Object.values(ACTION_TYPES), null]);
 const VALID_NAMESPACES = new Set(['communities', 'posts', 'reviews']);
 
-const CLASSIFIER_PROMPT = `You classify messages for C.A.S.T, a movie/TV and Cinnect platform assistant.
+export const intentPromptTemplate = PromptTemplate.fromTemplate(INTENT_CLASSIFIER_TEMPLATE);
 
-Use semantic reasoning only. Do not classify by keyword matching.
+let classifierChainPromise = null;
 
-Routing rules:
-- Movie/show/person facts, exact title searches, details, casts, summaries, trending, popular, similar movies/shows, and recommendations from the global entertainment catalog should use TMDB tools.
-- Cinnect community, post, discussion, fan opinion, user review, platform activity, and "what are people saying" questions should use vector search over Cinnect data.
-- A query can use both TMDB tools and Cinnect vector search when the user asks for both official facts and community/review opinions.
-- Out-of-domain means unrelated to movies, TV, entertainment, or Cinnect.
+function getClassifierChain() {
+  if (classifierChainPromise) return classifierChainPromise;
 
-Return JSON only with this shape:
-{
-  "intent": "discovery|personalization|information|summary|community|action|guidance|trending|explanation|greeting|out_of_domain",
-  "confidence": 0.0,
-  "entities": {
-    "mediaTitle": null,
-    "mediaType": "movie|tv|person|null",
-    "rating": null,
-    "year": null,
-    "seasonNumber": null,
-    "episodeNumber": null,
-    "topic": null
-  },
-  "actionType": "add_watchlist|remove_watchlist|add_favorite|remove_favorite|mark_watched|rate|write_review|join_community|follow_user|null",
-  "requiresSpoilerCare": false,
-  "requiresUserContext": false,
-  "shouldUseVectorSearch": false,
-  "vectorNamespaces": ["communities","posts","reviews"],
-  "shouldUseTmdbTools": false
-}`;
+  initLangChainCache();
 
-function extractText(result) {
-  const parts = result.candidates?.[0]?.content?.parts || [];
-  return parts
-    .filter(part => typeof part.text === 'string')
-    .map(part => part.text)
-    .join('')
-    .trim();
+  const llm = new ChatGoogleGenerativeAI({
+    model: 'gemini-2.5-flash',
+    apiKey: process.env.GEMINI_API_KEY,
+    temperature: 0,
+    maxOutputTokens: 512,
+    json: true
+  });
+
+  classifierChainPromise = Promise.resolve(new LLMChain({
+    llm,
+    prompt: intentPromptTemplate,
+    outputKey: 'text'
+  }));
+
+  return classifierChainPromise;
 }
 
 function parseJsonObject(text) {
-  const trimmed = text.trim();
+  const content = typeof text === 'string' ? text : String(text || '');
+  const trimmed = content.trim();
   const start = trimmed.indexOf('{');
   const end = trimmed.lastIndexOf('}');
 
@@ -87,7 +78,7 @@ function normalizeNumber(value) {
   return Number.isFinite(num) ? num : null;
 }
 
-function normalizeClassification(raw) {
+export function validateIntentClassification(raw) {
   const intent = VALID_INTENTS.has(raw?.intent) ? raw.intent : INTENTS.DISCOVERY;
   const actionType = VALID_ACTION_TYPES.has(raw?.actionType) ? raw.actionType : null;
   const rawEntities = raw?.entities || {};
@@ -138,48 +129,34 @@ function fallbackClassification() {
   };
 }
 
+function formatRecentHistory(conversationHistory = []) {
+  return conversationHistory
+    .slice(-4)
+    .filter(item => item?.content?.trim())
+    .map(item => `${item.role || 'user'}: ${item.content}`)
+    .join('\n') || 'None';
+}
+
 export async function classifyIntent(message, conversationHistory = []) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error('GEMINI_API_KEY is required');
+    if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is required');
 
-    const ai = new GoogleGenAI({ apiKey });
-    const recentHistory = conversationHistory
-      .slice(-4)
-      .map(item => `${item.role || 'user'}: ${item.content || ''}`)
-      .join('\n');
-
-    const result = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [{
-        role: 'user',
-        parts: [{
-          text: `${CLASSIFIER_PROMPT}
-
-Recent conversation:
-${recentHistory || 'None'}
-
-User message:
-${message}`
-        }]
-      }],
-      config: {
-        temperature: 0,
-        maxOutputTokens: 512,
-        responseMimeType: 'application/json'
-      }
+    const chain = await getClassifierChain();
+    const result = await chain.call({
+      recent_history: formatRecentHistory(conversationHistory),
+      message
     });
 
-    return normalizeClassification(parseJsonObject(extractText(result)));
+    return validateIntentClassification(parseJsonObject(result.text));
   } catch (error) {
-    console.error('LLM intent classification failed:', error);
+    console.error('LangChain intent classification failed:', error);
     return fallbackClassification();
   }
 }
 
-export function generateIntentPrompt(message) {
-  return `${CLASSIFIER_PROMPT}
-
-User message:
-${message}`;
+export function generateIntentPrompt(message, conversationHistory = []) {
+  return intentPromptTemplate.format({
+    recent_history: formatRecentHistory(conversationHistory),
+    message
+  });
 }

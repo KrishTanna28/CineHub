@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Send, Bot, User, Loader2 } from "lucide-react"
+import { Send, Bot, User, Loader2, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import ChatMessageContent from "@/components/chat-message-content"
@@ -17,6 +17,34 @@ const isSameDay = (dateString) => {
     savedDate.getDate() === today.getDate() &&
     savedDate.getMonth() === today.getMonth() &&
     savedDate.getFullYear() === today.getFullYear()
+  )
+}
+
+function CitationList({ citations }) {
+  if (!citations?.length) return null
+
+  return (
+    <div className="mt-2 pt-2 border-t border-border/60 space-y-1">
+      <p className="text-[10px] font-medium text-muted-foreground">Sources</p>
+      {citations.slice(0, 4).map((citation) => (
+        citation.url ? (
+          <a
+            key={citation.id}
+            href={citation.url}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1 text-[11px] text-primary hover:underline"
+          >
+            <span className="truncate">{citation.title}</span>
+            <ExternalLink className="h-3 w-3 flex-shrink-0" />
+          </a>
+        ) : (
+          <span key={citation.id} className="block truncate text-[11px] text-muted-foreground">
+            {citation.title}
+          </span>
+        )
+      ))}
+    </div>
   )
 }
 
@@ -106,9 +134,10 @@ export default function CastPage() {
 
       if (response.ok && data.success) {
         const assistantMessage = data.data?.message || data.message || "Sorry, I received an empty response."
+        const citations = data.data?.citations || []
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: assistantMessage },
+          { role: "assistant", content: assistantMessage, citations },
         ])
       } else {
         const errorMessage = data.message || "Sorry, I encountered an error. Please try again!"
@@ -195,6 +224,7 @@ export default function CastPage() {
               )}
             >
               <ChatMessageContent content={message.content} />
+              {message.role === "assistant" && <CitationList citations={message.citations} />}
             </div>
           </div>
         ))}

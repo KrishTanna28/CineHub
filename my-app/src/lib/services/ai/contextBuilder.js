@@ -6,91 +6,64 @@
 import connectDB from '@/lib/config/database';
 import User from '@/lib/models/User';
 import Review from '@/lib/models/Review';
-import Community from '@/lib/models/Community';
 import Post from '@/lib/models/Post';
 import UserActivity from '@/lib/models/UserActivity';
 import { INTENTS } from './intentClassifier';
 import * as tmdbService from '@/lib/services/tmdb.service';
 import { buildCacheKey, remember } from '@/lib/utils/cache.js';
-import { retrieveCinnectContext, formatRetrievedContextForLLM } from './retrieval.service.js';
+import { RunnableLambda, RunnableParallel } from '@langchain/core/runnables';
 
 const CONTEXT_CACHE_TTL = 5 * 60;
+
+const contextAssemblyChain = new RunnableParallel({
+  platform: new RunnableLambda(({ classification }) =>
+    classification.intent === INTENTS.GUIDANCE
+      ? getDetailedPlatformContext()
+      : getPlatformContext()
+  ),
+  user: new RunnableLambda(async ({ classification, userId }) => {
+    if (userId && classification.requiresUserContext) {
+      return fetchUserContext(userId);
+    } 
+    return null;
+  }),
+  content: new RunnableLambda(async ({ classification, userId }) => {
+    switch (classification.intent) {
+      case INTENTS.DISCOVERY:
+      case INTENTS.PERSONALIZATION:
+        return fetchDiscoveryContext(classification, userId);
+      case INTENTS.INFORMATION:
+      case INTENTS.SUMMARY:
+        if (classification.entities.mediaTitle) {
+          return fetchMediaContext(classification.entities);
+        }
+        return null;
+      default:
+        return null;
+    }
+  }),
+  community: new RunnableLambda(async ({ classification, message }) => {
+    if (classification.intent === INTENTS.COMMUNITY) {
+      return fetchCommunityContext(message);
+    }
+    if (classification.intent === INTENTS.EXPLANATION) {
+      return fetchExplanationContext(message);
+    }
+    return null;
+  }),
+  trending: new RunnableLambda(async ({ classification }) => {
+    if (classification.intent === INTENTS.TRENDING) {
+      return fetchTrendingContext();
+    }
+    return null;
+  })
+});
 
 /**
  * Build context based on classification and available user data
  */
 export async function buildContext(classification, userId = null, message = '') {
-  const context = {
-    user: null,
-    platform: getPlatformContext(),
-    content: null,
-    community: null,
-    trending: null,
-    retrieval: null
-  };
-
-  const tasks = [];
-
-  // Always include platform context for guidance
-  if (classification.intent === INTENTS.GUIDANCE) {
-    context.platform = getDetailedPlatformContext();
-  }
-
-  // Fetch user context if authenticated and relevant
-  if (userId && classification.requiresUserContext) {
-    tasks.push(
-      fetchUserContext(userId).then(data => { context.user = data; })
-    );
-  }
-
-  if (classification.shouldUseVectorSearch) {
-    tasks.push(
-      fetchVectorContext(message, classification.vectorNamespaces)
-        .then(data => { context.retrieval = data; })
-    );
-  }
-
-  // Fetch content context based on intent
-  switch (classification.intent) {
-    case INTENTS.DISCOVERY:
-    case INTENTS.PERSONALIZATION:
-      tasks.push(
-        fetchDiscoveryContext(classification, userId).then(data => { context.content = data; })
-      );
-      break;
-
-    case INTENTS.INFORMATION:
-    case INTENTS.SUMMARY:
-      if (classification.entities.mediaTitle) {
-        tasks.push(
-          fetchMediaContext(classification.entities).then(data => { context.content = data; })
-        );
-      }
-      break;
-
-    case INTENTS.COMMUNITY:
-      tasks.push(
-        fetchCommunityContext(message).then(data => { context.community = data; })
-      );
-      break;
-
-    case INTENTS.TRENDING:
-      tasks.push(
-        fetchTrendingContext().then(data => { context.trending = data; })
-      );
-      break;
-
-    case INTENTS.EXPLANATION:
-      // For explanations, we might need RAG context
-      tasks.push(
-        fetchExplanationContext(message).then(data => { context.community = data; })
-      );
-      break;
-  }
-
-  await Promise.all(tasks);
-
-  return formatContextForLLM(context, classification);
+  return contextAssemblyChain.invoke({ classification, userId, message });
 }
 
 /**
@@ -368,14 +341,6 @@ async function fetchExplanationContext(_message) {
   }
 }
 
-async function fetchVectorContext(message, namespaces) {
-  try {
-    return await retrieveCinnectContext(message, { namespaces });
-  } catch (error) {
-    console.error('Error fetching vector context:', error);
-    return [];
-  }
-}
 
 /**
  * Get basic platform context
@@ -482,90 +447,3 @@ function getGenreIds(genres) {
   return ids.length > 0 ? ids.join(',') : null;
 }
 
-/**
- * Format context for LLM consumption
- */
-function formatContextForLLM(context, classification) {
-  const parts = [];
-
-  // User context
-  if (context.user) {
-    parts.push(`\n--- USER PROFILE ---
-Username: ${context.user.username}
-Level: ${context.user.level} | Points: ${context.user.points}
-Current Streak: ${context.user.streak} days
-Watchlist: ${context.user.watchlistCount} items | Favorites: ${context.user.favoritesCount} items | Watched: ${context.user.watchedCount} items
-${context.user.favoriteGenres.length ? `Favorite Genres: ${context.user.favoriteGenres.join(', ')}` : ''}
-${context.user.genrePreferences.length ? `Most Watched Genres: ${context.user.genrePreferences.join(', ')}` : ''}
-${context.user.recentWatched.length ? `Recently Watched:\n${context.user.recentWatched.map(w => `  - ${w.title}${w.year ? ` (${w.year})` : ''}`).join('\n')}` : ''}
-${context.user.recentRatings.length ? `Recent Ratings:\n${context.user.recentRatings.map(r => `  - ${r.title}: ${r.rating}/10`).join('\n')}` : ''}`);
-  }
-
-  // Content context
-  if (context.content) {
-    if (context.content.trendingMovies?.length) {
-      parts.push(`\n--- TRENDING MOVIES ---\n${context.content.trendingMovies.map((m, i) =>
-        `${i + 1}. ${m.title} (${m.year}) - ${m.rating}`
-      ).join('\n')}`);
-    }
-    if (context.content.trendingTV?.length) {
-      parts.push(`\n--- TRENDING TV ---\n${context.content.trendingTV.map((s, i) =>
-        `${i + 1}. ${s.title} (${s.year}) - ${s.rating}`
-      ).join('\n')}`);
-    }
-    if (context.content.genreRecommendations?.length) {
-      parts.push(`\n--- BASED ON YOUR TASTE ---\n${context.content.genreRecommendations.map((m, i) =>
-        `${i + 1}. ${m.title} (${m.year}) - ${m.rating}`
-      ).join('\n')}`);
-    }
-    // Single media details
-    if (context.content.title && context.content.id) {
-      parts.push(`\n--- MEDIA DETAILS ---
-Title: ${context.content.title}
-Year: ${context.content.releaseDate?.split('-')[0] || context.content.firstAirDate?.split('-')[0]}
-Rating: ${context.content.rating?.toFixed?.(1) || context.content.rating}
-Genres: ${context.content.genres?.map(g => g.name).join(', ') || 'N/A'}
-Overview: ${context.content.overview?.slice(0, 300)}...`);
-    }
-  }
-
-  // Trending context
-  if (context.trending) {
-    if (context.trending.movies?.length) {
-      parts.push(`\n--- TODAY'S TRENDING MOVIES ---\n${context.trending.movies.slice(0, 5).map((m, i) =>
-        `${i + 1}. ${m.title} (${m.year}) - ${m.rating}`
-      ).join('\n')}`);
-    }
-    if (context.trending.tv?.length) {
-      parts.push(`\n--- TODAY'S TRENDING TV ---\n${context.trending.tv.slice(0, 5).map((s, i) =>
-        `${i + 1}. ${s.title} (${s.year}) - ${s.rating}`
-      ).join('\n')}`);
-    }
-  }
-
-  // Community context
-  if (context.community) {
-    if (context.community.trendingPosts?.length) {
-      parts.push(`\n--- TRENDING DISCUSSIONS ---\n${context.community.trendingPosts.map((p, i) =>
-        `${i + 1}. "${p.title}" in ${p.communityName || 'Community'} (${p.likes} likes)`
-      ).join('\n')}`);
-    }
-  }
-
-  const retrievedContext = formatRetrievedContextForLLM(context.retrieval);
-  if (retrievedContext) {
-    parts.push(retrievedContext);
-  }
-
-  // Platform context for guidance
-  if (classification.intent === INTENTS.GUIDANCE && context.platform?.howTo) {
-    parts.push(`\n--- PLATFORM GUIDE ---
-Navigation:
-${Object.entries(context.platform.navigation).map(([k, v]) => `  ${k}: ${v}`).join('\n')}
-
-How To:
-${Object.entries(context.platform.howTo).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`);
-  }
-
-  return parts.length > 0 ? parts.join('\n') : '';
-}

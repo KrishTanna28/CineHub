@@ -128,6 +128,110 @@ User: "I'm bored"
 → Treat as discovery → suggest movies/shows
 `;
 
+export const ROUTING_INSTRUCTIONS = `## RETRIEVAL ROUTING
+Intent classification is LLM-based. Use TMDB tools for exact movie, TV, person, trending, popular, similar, recommendation, details, cast, and summary queries. Use the Cinnect vector context only for Cinnect communities, posts, discussions, reviews, fan opinions, and platform activity. If both are relevant, combine both, but do not treat vector context as authoritative TMDB catalog data.`;
+
+export const CITATION_INSTRUCTIONS = `## CITATIONS AND LINKS
+When Cinnect vector context includes citation metadata, cite the relevant source inline using its citation id like [C1] and include the source link when it is useful.
+When a tool result includes a url or link field, include that link in Markdown only when it directly supports the answer.
+Only include links that appear in provided context, citation metadata, or tool results.
+Always use https://cinnect.vercel.app as the Cinnect host. If a provided Cinnect link is relative or uses another Cinnect host, convert it to https://cinnect.vercel.app.`;
+
+export const ASSISTANT_CHAIN_PROMPT = `{system_prompt}
+
+{routing_instructions}
+
+{citation_instructions}
+
+## STRUCTURED CONTEXT
+{context_data}
+
+## CINNECT VECTOR CONTEXT
+{context}`;
+
+export const AGENT_SYSTEM_PROMPT = `{system_prompt}
+
+{routing_instructions}
+
+{citation_instructions}
+
+## STRUCTURED CONTEXT
+{context_data}
+
+## CINNECT CITATION CONTEXT
+{citation_context}
+
+Use tools for catalog facts, live Cinnect data, and authenticated user actions. Do not reveal internal reasoning. Summarize tool results naturally and cite provided Cinnect sources when they support the answer.`;
+
+export const INTENT_CLASSIFIER_TEMPLATE = `You classify messages for C.A.S.T, a movie/TV and Cinnect platform assistant.
+
+Use semantic reasoning only. Do not classify by keyword matching.
+
+Routing rules:
+- Movie/show/person facts, exact title searches, details, casts, summaries, trending, popular, similar movies/shows, and recommendations from the global entertainment catalog should use TMDB tools.
+- Cinnect community, post, discussion, fan opinion, user review, platform activity, and "what are people saying" questions should use vector search over Cinnect data.
+- A query can use both TMDB tools and Cinnect vector search when the user asks for both official facts and community/review opinions.
+- Out-of-domain means unrelated to movies, TV, entertainment, or Cinnect.
+
+Return JSON only. The object must include:
+- intent: one of discovery, personalization, information, summary, community, action, guidance, trending, explanation, greeting, out_of_domain
+- confidence: number from 0 to 1
+- entities: mediaTitle, mediaType, rating, year, seasonNumber, episodeNumber, topic
+- actionType: add_watchlist, remove_watchlist, add_favorite, remove_favorite, mark_watched, rate, write_review, join_community, follow_user, or null
+- requiresSpoilerCare: boolean
+- requiresUserContext: boolean
+- shouldUseVectorSearch: boolean
+- vectorNamespaces: array containing communities, posts, and/or reviews
+- shouldUseTmdbTools: boolean
+
+Recent conversation:
+{recent_history}
+
+User message:
+{message}`;
+
+export function buildAssistantSystemPrompt(classification, spoilerMode, userContext) {
+  let systemMessage = SYSTEM_PROMPT;
+
+  if (userContext) {
+    systemMessage += `\n\n## CURRENT USER
+Username: ${userContext.username || 'Guest'}
+Level: ${userContext.level || 1}
+${userContext.favoriteGenres?.length ? `Favorite Genres: ${userContext.favoriteGenres.join(', ')}` : ''}
+Use this to personalize responses when relevant.`;
+  }
+
+  switch (classification.intent) {
+    case 'personalization':
+      systemMessage += '\n\n## ACTIVE MODE: PERSONALIZATION\nPrioritize recommendations based on the user context provided. Reference their preferences and history.';
+      break;
+    case 'action':
+      systemMessage += '\n\n## ACTIVE MODE: ACTION\nThe user wants to perform an action. Use the appropriate tool and confirm the result clearly.';
+      break;
+    case 'guidance':
+      systemMessage += '\n\n## ACTIVE MODE: PLATFORM GUIDANCE\nProvide clear step-by-step instructions. Be specific about navigation and feature usage.';
+      break;
+    case 'explanation':
+      if (spoilerMode.mode === 'ask_consent') {
+        systemMessage += '\n\n## ACTIVE MODE: EXPLANATION (SPOILER CARE)\nUser is asking about plot/story. Offer both spoiler-free and detailed options before revealing anything.';
+      } else if (spoilerMode.mode === 'spoiler_allowed') {
+        systemMessage += '\n\n## ACTIVE MODE: EXPLANATION (SPOILERS OK)\nUser has consented to spoilers. Still prefix with [SPOILER WARNING] before revealing major plot points.';
+      }
+      break;
+    case 'summary':
+      systemMessage += '\n\n## ACTIVE MODE: SUMMARY\nProvide a concise, spoiler-safe summary by default. If the user asked for a specific season/episode, summarize that exact scope. Ask before revealing major spoilers.';
+      break;
+    case 'community':
+      systemMessage += '\n\n## ACTIVE MODE: COMMUNITY INSIGHTS\nFocus on what the community thinks. Cite reviews and discussions when available.';
+      break;
+    case 'trending':
+      systemMessage += '\n\n## ACTIVE MODE: TRENDING\nShow what is popular right now. Include engagement metrics if available.';
+      break;
+  }
+
+  return systemMessage;
+}
+
 export const INTENT_CLASSIFICATION_PROMPT = `Analyze the user's message and classify their primary intent.
 
 Return a JSON object with:

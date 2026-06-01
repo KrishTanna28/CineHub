@@ -10,6 +10,7 @@ import Community from '@/lib/models/Community';
 import Post from '@/lib/models/Post';
 import * as tmdbService from '@/lib/services/tmdb.service';
 import { searchCommunitiesByTopic, getTrendingPosts, searchPostsByTopic } from '@/lib/services/chatTools.service';
+import { DynamicStructuredTool } from '@langchain/core/tools';
 
 // Tool declarations for Gemini function calling
 export const toolDeclarations = [
@@ -368,6 +369,16 @@ export const toolDeclarations = [
 
 // Export tools in Gemini format
 export const tools = [{ functionDeclarations: toolDeclarations }];
+
+// Export tools as LangChain structured tools for tool-calling agents
+export function getLangChainTools(userId = null) {
+  return toolDeclarations.map(declaration => new DynamicStructuredTool({
+    name: declaration.name,
+    description: declaration.description,
+    schema: declaration.parameters || { type: 'object', properties: {} },
+    func: async (args) => executeTool(declaration.name, args || {}, userId)
+  }));
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TOOL EXECUTION HANDLERS
