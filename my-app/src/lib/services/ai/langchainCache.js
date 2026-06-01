@@ -1,10 +1,10 @@
 import { InMemoryCache } from "@langchain/core/caches";
-import { setGlobalCache } from "@langchain/core/globals";
+import { set_llm_cache } from "@langchain/core/globals";
 
 let cacheInitialized = false;
 
 export function initLangChainCache() {
   if (cacheInitialized) return;
-  setGlobalCache(new InMemoryCache());
+  set_llm_cache(new InMemoryCache());
   cacheInitialized = true;
 }
