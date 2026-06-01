@@ -13,20 +13,19 @@ import {
   ROUTING_INSTRUCTIONS
 } from './systemPrompt';
 import { runRerankerCitationChain } from './rerankerChain';
-import { initLangChainCache } from './langchainCache';
+import { langchainCache  } from './langchainCache';
 
 let combineDocsChainPromise = null;
 
 function getCombineDocsChain() {
   if (combineDocsChainPromise) return combineDocsChainPromise;
 
-  initLangChainCache();
-
   const llm = new ChatGoogleGenerativeAI({
     model: 'gemini-2.5-flash',
     apiKey: process.env.GEMINI_API_KEY,
     temperature: 0.7,
-    maxOutputTokens: 1024
+    maxOutputTokens: 1024,
+    cache: langchainCache,
   });
 
   const prompt = ChatPromptTemplate.fromMessages([
@@ -77,8 +76,6 @@ export async function runAssistantChain({
   shouldUseVectorSearch,
   vectorNamespaces
 }) {
-  initLangChainCache();
-
   const retrieval = await runRerankerCitationChain({
     query: message,
     namespaces: vectorNamespaces,

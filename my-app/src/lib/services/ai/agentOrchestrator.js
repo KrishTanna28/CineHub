@@ -9,7 +9,7 @@ import {
   ROUTING_INSTRUCTIONS
 } from './systemPrompt';
 import { citationsToContext, runRerankerCitationChain } from './rerankerChain';
-import { initLangChainCache } from './langchainCache';
+import { langchainCache } from './langchainCache';
 
 let agentPrompt = null;
 
@@ -31,7 +31,8 @@ function getAgentModel() {
     model: 'gemini-2.5-flash',
     apiKey: process.env.GEMINI_API_KEY,
     temperature: 0.7,
-    maxOutputTokens: 1024
+    maxOutputTokens: 1024,
+    cache: langchainCache,
   });
 }
 
@@ -54,7 +55,6 @@ export async function runAssistantAgent({
   classification,
   chatHistoryMessages = []
 }) {
-  initLangChainCache();
 
   const citationRetrieval = await runRerankerCitationChain({
     query: message,

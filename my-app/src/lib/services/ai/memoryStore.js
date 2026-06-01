@@ -2,7 +2,7 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { ChatMessageHistory, ConversationSummaryMemory } from 'langchain/memory';
 import { getRedisClient } from '@/lib/config/redis';
-import { initLangChainCache } from './langchainCache';
+import { langchainCache } from './langchainCache';
 
 const MEMORY_TTL_SECONDS = 60 * 60 * 24 * 30;
 const MAX_STORED_MESSAGES = 20;
@@ -73,12 +73,12 @@ async function writeMemoryPayload(key, payload) {
 }
 
 function getMemoryModel() {
-  initLangChainCache();
   return new ChatGoogleGenerativeAI({
     model: process.env.MEMORY_MODEL || 'gemini-2.5-flash',
     apiKey: process.env.GEMINI_API_KEY,
     temperature: 0,
-    maxOutputTokens: 512
+    maxOutputTokens: 512,
+    cache : langchainCache 
   });
 }
 

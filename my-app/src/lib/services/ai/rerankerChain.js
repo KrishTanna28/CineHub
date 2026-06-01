@@ -3,7 +3,7 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { LLMChain } from 'langchain/chains';
 import { Document } from '@langchain/core/documents';
 import { retrieveCinnectRawDocuments, canonicalizeAppLink } from './retrieval.service.js';
-import { initLangChainCache } from './langchainCache';
+import { langchainCache } from './langchainCache';
 
 const DEFAULT_RERANK_TOP_K = 5;
 const RERANK_FETCH_MULTIPLIER = 3;
@@ -30,14 +30,13 @@ let rerankChainPromise = null;
 function getRerankChain() {
   if (rerankChainPromise) return rerankChainPromise;
 
-  initLangChainCache();
-
   const llm = new ChatGoogleGenerativeAI({
     model: process.env.RERANK_MODEL || 'gemini-2.5-flash',
     apiKey: process.env.GEMINI_API_KEY,
     temperature: 0,
     maxOutputTokens: 768,
-    json: true
+    json: true,
+    cache : langchainCache
   });
 
   rerankChainPromise = Promise.resolve(new LLMChain({

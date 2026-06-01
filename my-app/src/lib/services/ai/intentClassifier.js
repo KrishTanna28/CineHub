@@ -2,7 +2,7 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { LLMChain } from 'langchain/chains';
 import { INTENT_CLASSIFIER_TEMPLATE } from './systemPrompt';
-import { initLangChainCache } from './langchainCache';
+import { langchainCache } from './langchainCache';
 
 export const INTENTS = {
   DISCOVERY: 'discovery',
@@ -41,14 +41,13 @@ let classifierChainPromise = null;
 function getClassifierChain() {
   if (classifierChainPromise) return classifierChainPromise;
 
-  initLangChainCache();
-
   const llm = new ChatGoogleGenerativeAI({
     model: 'gemini-2.5-flash',
     apiKey: process.env.GEMINI_API_KEY,
     temperature: 0,
     maxOutputTokens: 512,
-    json: true
+    json: true,
+    cache: langchainCache,
   });
 
   classifierChainPromise = Promise.resolve(new LLMChain({
