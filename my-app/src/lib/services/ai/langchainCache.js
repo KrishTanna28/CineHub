@@ -1,4 +1,5 @@
-import { InMemoryCache, setGlobalCache } from '@langchain/core/caches';
+import { InMemoryCache } from "@langchain/core/caches";
+import { setGlobalCache } from "@langchain/core/globals";
 
 let cacheInitialized = false;
 
