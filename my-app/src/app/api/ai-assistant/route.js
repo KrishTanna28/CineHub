@@ -1,5 +1,5 @@
 /**
- * Cinnect AI Assistant API Route
+ * C.A.S.T API Route
  * LangChain-based assistant orchestration with retrieval, citations, tools, and memory.
  */
 

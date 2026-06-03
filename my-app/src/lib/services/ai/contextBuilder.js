@@ -11,59 +11,54 @@ import UserActivity from '@/lib/models/UserActivity';
 import { INTENTS } from './intentClassifier';
 import * as tmdbService from '@/lib/services/tmdb.service';
 import { buildCacheKey, remember } from '@/lib/utils/cache.js';
-import { RunnableLambda, RunnableParallel } from '@langchain/core/runnables';
 
 const CONTEXT_CACHE_TTL = 5 * 60;
-
-const contextAssemblyChain = new RunnableParallel({
-  platform: new RunnableLambda(({ classification }) =>
-    classification.intent === INTENTS.GUIDANCE
-      ? getDetailedPlatformContext()
-      : getPlatformContext()
-  ),
-  user: new RunnableLambda(async ({ classification, userId }) => {
-    if (userId && classification.requiresUserContext) {
-      return fetchUserContext(userId);
-    } 
-    return null;
-  }),
-  content: new RunnableLambda(async ({ classification, userId }) => {
-    switch (classification.intent) {
-      case INTENTS.DISCOVERY:
-      case INTENTS.PERSONALIZATION:
-        return fetchDiscoveryContext(classification, userId);
-      case INTENTS.INFORMATION:
-      case INTENTS.SUMMARY:
-        if (classification.entities.mediaTitle) {
-          return fetchMediaContext(classification.entities);
-        }
-        return null;
-      default:
-        return null;
-    }
-  }),
-  community: new RunnableLambda(async ({ classification, message }) => {
-    if (classification.intent === INTENTS.COMMUNITY) {
-      return fetchCommunityContext(message);
-    }
-    if (classification.intent === INTENTS.EXPLANATION) {
-      return fetchExplanationContext(message);
-    }
-    return null;
-  }),
-  trending: new RunnableLambda(async ({ classification }) => {
-    if (classification.intent === INTENTS.TRENDING) {
-      return fetchTrendingContext();
-    }
-    return null;
-  })
-});
 
 /**
  * Build context based on classification and available user data
  */
 export async function buildContext(classification, userId = null, message = '') {
-  return contextAssemblyChain.invoke({ classification, userId, message });
+  const [platform, user, content, community, trending] = await Promise.all([
+    classification.intent === INTENTS.GUIDANCE
+      ? getDetailedPlatformContext()
+      : getPlatformContext(),
+    userId && classification.requiresUserContext
+      ? fetchUserContext(userId)
+      : null,
+    fetchContentContext(classification, userId),
+    fetchIntentCommunityContext(classification, message),
+    classification.intent === INTENTS.TRENDING
+      ? fetchTrendingContext()
+      : null
+  ]);
+
+  return { platform, user, content, community, trending };
+}
+
+async function fetchContentContext(classification, userId) {
+  switch (classification.intent) {
+    case INTENTS.DISCOVERY:
+    case INTENTS.PERSONALIZATION:
+      return fetchDiscoveryContext(classification, userId);
+    case INTENTS.INFORMATION:
+    case INTENTS.SUMMARY:
+      if (classification.entities.mediaTitle) {
+        return fetchMediaContext(classification.entities);
+      }
+      return null;
+    default:
+      return null;
+  }
+}
+
+async function fetchIntentCommunityContext(classification, message) {
+  if (classification.intent === INTENTS.COMMUNITY) {
+    return fetchCommunityContext(message);
+  }
+  if (classification.intent === INTENTS.EXPLANATION) {
+    return fetchExplanationContext(message);
+  }
+  return null;
 }
 
 /**
