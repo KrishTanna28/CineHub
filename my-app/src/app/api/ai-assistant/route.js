@@ -43,6 +43,13 @@ function shouldUseAgent(classification) {
   return classification.intent === INTENTS.ACTION || classification.shouldUseTmdbTools;
 }
 
+function appendMemorySummary(systemPrompt, memorySummary) {
+  const summary = memorySummary?.trim();
+  if (!summary) return systemPrompt;
+
+  return `${systemPrompt}\n\n## CONVERSATION MEMORY\n${summary}`;
+}
+
 async function handler(request, context) {
   const rateLimitResult = checkRateLimit(request, 'ai-assistant', RATE_LIMITS.AI);
   if (!rateLimitResult.allowed) {
@@ -102,7 +109,10 @@ async function handler(request, context) {
       buildContext(classification, userId, message),
       createAssistantMemory({ userId, conversationId, conversationHistory })
     ]);
-    const systemPrompt = `${buildAssistantSystemPrompt(classification, spoilerMode, getUserContext(user))}\n\n${SPOILER_INSTRUCTIONS}`;
+    const systemPrompt = appendMemorySummary(
+      `${buildAssistantSystemPrompt(classification, spoilerMode, getUserContext(user))}\n\n${SPOILER_INSTRUCTIONS}`,
+      memoryState.summary
+    );
 
     let assistantResult;
 

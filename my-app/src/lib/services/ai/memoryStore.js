@@ -1,5 +1,5 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { ChatMessageHistory, ConversationSummaryMemory } from 'langchain/memory';
 import { getRedisClient } from '@/lib/config/redis';
 import { langchainCache } from './langchainCache';
@@ -109,12 +109,7 @@ export async function createAssistantMemory({
 
   memory.buffer = typeof persisted?.summary === 'string' ? persisted.summary : '';
 
-  const promptMessages = [
-    ...(memory.buffer.trim()
-      ? [new SystemMessage(`Conversation memory summary: ${memory.buffer.trim()}`)]
-      : []),
-    ...chatMessages.slice(-MAX_PROMPT_MESSAGES)
-  ];
+  const promptMessages = chatMessages.slice(-MAX_PROMPT_MESSAGES);
 
   return {
     key,
