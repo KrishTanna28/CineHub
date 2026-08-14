@@ -1,11 +1,7 @@
 /**
  * Cinnect AI Assistant - Spoiler Awareness Module
  * Handles spoiler detection, warnings, and safe content generation
- * Uses ML model (facebook/bart-large-mnli) for accurate spoiler detection
  */
-
-// Re-export ML detection from contentSafety for convenience
-export { detectSpoilersML } from './contentSafety';
 
 // Keywords that might indicate spoiler content in responses
 const SPOILER_INDICATORS = [

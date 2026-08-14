@@ -15,7 +15,7 @@ import { runAssistantChain } from '@/lib/services/ai/assistantChain';
 import { runAssistantAgent } from '@/lib/services/ai/agentOrchestrator';
 import { createAssistantMemory, saveAssistantTurn } from '@/lib/services/ai/memoryStore';
 import { getSpoilerResponseMode, generateSpoilerWarning, SPOILER_INSTRUCTIONS } from '@/lib/services/ai/spoilerHandler';
-import { checkContentSafety, getUnsafeContentResponse, checkResponseSafety } from '@/lib/services/ai/contentSafety';
+import { checkContentSafety, getUnsafeContentResponse } from '@/lib/services/ai/contentSafety';
 
 function getOutOfDomainResponse() {
   return "I'm C.A.S.T, your cinematic assistant! I specialize in movies, TV shows, and everything entertainment-related on Cinnect. Is there something about films, shows, or our platform I can help you with?";
@@ -143,17 +143,6 @@ async function handler(request, context) {
       classification.intent === INTENTS.EXPLANATION &&
       !responseText.toLowerCase().includes('spoiler')) {
       responseText = generateSpoilerWarning(classification.entities.mediaTitle);
-    }
-
-    const hasConsent = spoilerMode.mode === 'spoiler_allowed';
-    const responseSafety = await checkResponseSafety(responseText, hasConsent);
-
-    if (responseSafety.spoilerDetected && !hasConsent) {
-      responseText = generateSpoilerWarning(classification.entities.mediaTitle);
-    }
-
-    if (!responseSafety.safe && !responseSafety.spoilerDetected) {
-      responseText = "I apologize, but I couldn't generate an appropriate response. Could you rephrase your question?";
     }
 
     await saveAssistantTurn(memoryState, message, responseText);

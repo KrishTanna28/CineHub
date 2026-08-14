@@ -1,9 +1,6 @@
 # Cinnect
 
-## 1. Project Title
-Cinnect
-
-## 2. Overview
+## 1. Overview
 Cinnect is a movie and TV community platform built with Next.js App Router and MongoDB. It combines TMDB-backed content discovery, user-generated reviews, community discussions, social features, direct messaging, real-time notifications, a recommendation engine, and an LLM-powered assistant named C.A.S.T.
 
 ### What the project does
@@ -26,7 +23,7 @@ Cinnect is a movie and TV community platform built with Next.js App Router and M
 - Optional AI-assisted endpoints (Gemini-powered intent routing, tool calling, spoiler handling, moderation, and suggestions).
 - Optional retrieval-augmented Cinnect context over communities, posts, and reviews using Pinecone embeddings.
 
-## 3. Features
+## 2. Features
 Based on implemented routes/models/services:
 
 - Authentication and session management
@@ -64,11 +61,9 @@ Based on implemented routes/models/services:
   - Leaderboard endpoints and gamification/xp utilities.
 - Moderation and safety
   - Adult-content moderation for text, images, and video.
-  - Spoiler detection and safety checks for assistant responses.
-- Load testing
-  - k6 suite with load/stress/spike/soak scenarios in `load-tests/`.
+  - Spoiler detection/handling and content-safety checks for the assistant.
 
-## 4. Tech Stack
+## 3. Tech Stack
 Derived from package/config files.
 
 ### Languages
@@ -102,15 +97,14 @@ Derived from package/config files.
 - Nodemailer (email OTP/password reset/welcome)
 - Gemini (`@google/generative-ai`, `@google/genai`)
 - Pinecone vector search
-- Hugging Face inference endpoints (moderation/spoiler-related services)
+- Hugging Face inference endpoints (moderation and spoiler detection services)
 - Vercel analytics
 
 ### Tooling
 - ESLint (flat config + `eslint-config-next`)
 - PostCSS + Autoprefixer
-- k6 for load testing
 
-## 5. Architecture / System Design
+## 4. Architecture / System Design
 ### High-level design
 - `my-app` hosts a Next.js app with App Router pages and API route handlers.
 - A custom Node server (`server.js`) initializes Next and attaches Socket.IO at `/api/socketio`.
@@ -146,9 +140,9 @@ Derived from package/config files.
 2. Gemini classifies intent and decides whether to use TMDB tools, Cinnect vector search, or both.
 3. Context builder gathers relevant platform, media, and retrieval context.
 4. Gemini executes tools when needed and generates the final response.
-5. Safety checks apply spoiler handling and adult-content moderation before the response is returned.
+5. The user's message is checked for content safety up front, and spoiler-sensitive requests are gated by a consent warning before the response is returned.
 
-## 6. Project Structure
+## 5. Project Structure
 
 ```text
 Cinnect/
@@ -168,12 +162,9 @@ Cinnect/
     package.json           # App dependencies and scripts
     vercel.json            # Cron schedule config
     socket-server/         # Optional standalone Socket.IO server project
-  load-tests/
-    k6-load-test.js        # k6 scenario definitions and flows
-    scenarios/*.json       # Scenario-only k6 configs
 ```
 
-## 7. Setup & Installation
+## 6. Setup & Installation
 ### Prerequisites
 - Node.js: Not specified in codebase
 - npm (package-lock is present)
@@ -200,7 +191,7 @@ Cinnect/
    ```
 
 ### Environment variables
-Environment keys found in code and/or `.env`.
+Environment keys found in code.
 
 #### Core app variables
 - `MONGODB_URL` (database connection)
@@ -237,6 +228,7 @@ Environment keys found in code and/or `.env`.
 - `EMBEDDING_DIMENSIONS` (defaults to `3072`)
 - `GEMINI_EMBEDDING_BATCH_SIZE` (defaults to `50`)
 - `RAG_TOP_K` (defaults to `4`)
+- `RAG_RERANK_TOP_K` (optional; falls back to `RAG_TOP_K`)
 - `RAG_MIN_SCORE` (defaults to `0.45`)
 - `NEXT_PUBLIC_FRONTEND_URL` (used for canonical links in retrieval context)
 
@@ -266,18 +258,7 @@ Environment keys found in code and/or `.env`.
 - `JWT_SECRET`
 - `INTERNAL_API_KEY`
 
-#### Variables present in `.env` but not clearly consumed in main runtime paths
-- `JWT_EXPIRE` (Not specified in codebase)
-- `REDIS_URL` (Not specified in codebase)
-- `API_KEY` (Not specified in codebase)
-- `NEXT_PUBLIC_SUPABASE_URL` (Not specified in codebase)
-- `SUPABASE_SERVICE_ROLE_KEY` (Not specified in codebase)
-- `SUPABASE_DB_PASSWORD` (Not specified in codebase)
-- `AUTH_ENABLED` (Not specified in codebase)
-- `TEST_USER_EMAIL` (used by load tests)
-- `TEST_USER_PASSWORD` (used by load tests)
-
-## 8. Running the Project
+## 7. Running the Project
 ### Development mode
 From `my-app`:
 ```bash
@@ -294,7 +275,7 @@ npm run start
 
 Note: `npm run start` uses `NODE_ENV=production node server.js` in script form. Cross-platform behavior for this inline env assignment is not specified in codebase.
 
-## 9. API Documentation
+## 8. API Documentation
 API routes are implemented under `my-app/src/app/api`.
 
 ### Response format
@@ -367,7 +348,7 @@ or on failure:
 
 Request/response schemas are endpoint-specific. A formal OpenAPI/Swagger specification is Not specified in codebase.
 
-## 10. Usage Examples
+## 9. Usage Examples
 ### Register and verify flow
 ```bash
 # 1) Start registration (sends OTP email)
@@ -412,13 +393,7 @@ curl -X POST http://localhost:3000/api/reviews \
   }'
 ```
 
-### Run load tests
-```bash
-cd load-tests
-k6 run k6-load-test.js
-```
-
-## 11. Scripts / Commands
+## 10. Scripts / Commands
 ### `my-app/package.json`
 - `npm run dev` - Start custom server in development (`node server.js`)
 - `npm run build` - Next.js production build
@@ -429,21 +404,12 @@ k6 run k6-load-test.js
 - `npm run dev` - Run socket server with watch mode
 - `npm run start` - Start socket server
 
-### `load-tests`
-- Primary command:
-  - `k6 run k6-load-test.js`
-- Scenario-specific commands:
-  - `k6 run --config scenarios/load-only.json k6-load-test.js`
-  - `k6 run --config scenarios/stress-only.json k6-load-test.js`
-  - `k6 run --config scenarios/spike-only.json k6-load-test.js`
-  - `k6 run --config scenarios/soak-only.json k6-load-test.js`
-
-## 12. Configuration
+## 11. Configuration
 - `my-app/next.config.mjs`
   - `typescript.ignoreBuildErrors: true`
   - `images.unoptimized: true`
 - `my-app/vercel.json`
-  - Cron job configured for `/api/cron/points` at `0 0 * * *`
+  - Cron jobs for `/api/cron/points` and `/api/cron/ingest`, both scheduled at `0 0 * * *`
 - `my-app/components.json`
   - UI alias and styling config for shadcn-style component setup
 - `my-app/eslint.config.mjs`
@@ -451,18 +417,17 @@ k6 run k6-load-test.js
 - `my-app/postcss.config.mjs`
   - Tailwind + autoprefixer plugins
 
-## 13. Limitations / Known Issues
+## 12. Limitations / Known Issues
 Observed from current code:
 
 - In-memory rate limiter (`src/lib/utils/rateLimit.js`) is process-local and not distributed.
 - Pending registrations are stored in memory (`src/lib/pendingRegistrations.js`); restart clears uncompleted signups.
 - TypeScript build errors are ignored (`next.config.mjs`), reducing type-safety at build time.
 - The AI retrieval layer is scoped to Cinnect community/post/review context and is not a full hybrid-search RAG stack.
-- k6 script currently targets `/api/auth/login` and `/api/auth/refresh`, while implemented login route is `/api/users/login`; this can cause invalid test calls without script adjustments.
 - Script portability for `npm run start` env assignment is not guaranteed across shells/OS without adaptation.
 - Formal API schema (OpenAPI/Swagger) and explicit Node engine version are Not specified in codebase.
 
-## 14. Contributing Guidelines
+## 13. Contributing Guidelines
 Recommended workflow:
 
 1. Create a feature branch from `main`.
@@ -481,5 +446,5 @@ Recommended workflow:
 
 Additional repository-specific contribution policy is Not specified in codebase.
 
-## 15. License
+## 14. License
 `my-app/package.json` declares license: `ISC`.
