@@ -3,7 +3,7 @@ import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { Pinecone } from '@pinecone-database/pinecone';
 import { PineconeStore } from '@langchain/pinecone';
 
-const INDEX_NAME = process.env.PINECONE_INDEX || 'cinnect-rag';
+const INDEX_NAME = process.env.PINECONE_INDEX;
 const EMBEDDING_MODEL = 'gemini-embedding-001';
 const DEFAULT_TOP_K = 4;
 const DEFAULT_MIN_SCORE = 0.45;

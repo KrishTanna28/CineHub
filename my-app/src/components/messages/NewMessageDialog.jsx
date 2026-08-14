@@ -58,8 +58,9 @@ export default function NewMessageDialog({ open, onClose, onConversationCreated 
       });
 
       const data = await res.json();
-      if (data.success) {
-        onConversationCreated(data.conversation);
+      const conversation = data.data?.conversation || data.conversation;
+      if (data.success && conversation) {
+        onConversationCreated(conversation);
       }
     } catch (error) {
       console.error('Error creating conversation:', error);

@@ -113,11 +113,26 @@ export default function MessagesPage() {
       }
 
       // Check pending conversation from profile page
+      const pendingConvRaw = sessionStorage.getItem('cinnect_pending_chat');
       const pendingConvId = localStorage.getItem('cinnect_pending_chat_conv');
       let targetConv = null;
-      if (pendingConvId) {
+
+      if (pendingConvRaw && pendingConvRaw !== 'undefined') {
+        sessionStorage.removeItem('cinnect_pending_chat');
+        try {
+          targetConv = JSON.parse(pendingConvRaw);
+          if (!targetConv?._id) targetConv = null;
+        } catch (err) {
+          console.error('Failed to parse pending conversation', err);
+          targetConv = null;
+        }
+      }
+
+      if (pendingConvId && pendingConvId !== 'undefined') {
         localStorage.removeItem('cinnect_pending_chat_conv');
-        targetConv = messagesData.data?.conversations?.find(c => c._id === pendingConvId) || requestsData.data?.conversations?.find(c => c._id === pendingConvId);
+        if (!targetConv) {
+          targetConv = messagesData.data?.conversations?.find(c => c._id === pendingConvId) || requestsData.data?.conversations?.find(c => c._id === pendingConvId);
+        }
 
         if (!targetConv) {
           try {
@@ -125,26 +140,23 @@ export default function MessagesPage() {
               headers: {}
             });
             const singleData = await singleRes.json();
-            if (singleData.success) {
-              targetConv = singleData.conversation;
-              setConversations(prev => {
-                if (!prev.find(c => c._id === pendingConvId)) {
-                  return [targetConv, ...prev];
-                }
-                return prev;
-              });
+            const singleConv = singleData.data?.conversation || singleData.conversation;
+            if (singleData.success && singleConv) {
+              targetConv = singleConv;
             }
           } catch (err) {
             console.error('Failed to fetch pending conversation', err);
           }
         }
-
-        if (targetConv) {
-          setSelectedConversation(targetConv);
-        }
       }
 
-      if (!targetConv) {
+      if (targetConv) {
+        setConversations(prev => {
+          if (prev.find(c => c._id === targetConv._id)) return prev;
+          return [targetConv, ...prev];
+        });
+        setSelectedConversation(targetConv);
+      } else {
         // Update selected conversation if it exists
         setSelectedConversation(prev => {
           if (!prev) return prev;

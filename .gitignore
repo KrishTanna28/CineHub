@@ -279,3 +279,4 @@ id_rsa.pub
 # - Source code files (.js, .jsx, .ts, .tsx)
 # - Configuration files (next.config.js, etc.)
 # ==========================================
+.env*

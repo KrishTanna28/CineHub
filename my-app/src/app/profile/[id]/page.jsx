@@ -453,8 +453,12 @@ export default function PublicProfilePage({ params }) {
         body: JSON.stringify({ recipientId: profile._id })
       });
       const data = await res.json();
+      const conversation = data.data?.conversation || data.conversation;
       if (data.success) {
-        localStorage.setItem('cinnect_pending_chat_conv', data.conversation._id);
+        if (conversation) {
+          sessionStorage.setItem('cinnect_pending_chat', JSON.stringify(conversation));
+          localStorage.setItem('cinnect_pending_chat_conv', conversation._id);
+        }
         router.push('/messages');
       } else {
         console.error(data.message || 'Failed to create conversation');

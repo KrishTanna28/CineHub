@@ -8,7 +8,7 @@ import Review from '@/lib/models/Review';
 import Post from '@/lib/models/Post';
 import Community from '@/lib/models/Community';
 
-const INDEX_NAME = process.env.PINECONE_INDEX || 'cinnect-rag';
+const INDEX_NAME = process.env.PINECONE_INDEX;
 const EMBEDDING_MODEL = 'gemini-embedding-001';
 const DEFAULT_LOOKBACK_HOURS = 24;
 const DEFAULT_BATCH_SIZE = 50;

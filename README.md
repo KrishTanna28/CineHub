@@ -97,7 +97,7 @@ Derived from package/config files.
 - Nodemailer (email OTP/password reset/welcome)
 - Gemini (`@google/generative-ai`, `@google/genai`)
 - Pinecone vector search
-- Hugging Face inference endpoints (moderation and spoiler detection services)
+- Hugging Face inference endpoints (moderation services)
 - Vercel analytics
 
 ### Tooling
@@ -118,7 +118,7 @@ Derived from package/config files.
 - Services: Integrations and domain logic under `src/lib/services`.
 - Auth/session: JWT generation/verification + cookie helpers.
 - Realtime: Socket context on client, emit helpers on server, optional external socket relay.
-- AI assistant: system prompt, intent classifier, context builder, tool definitions, retrieval service, spoiler handling, and content safety checks.
+- AI assistant: system prompt, intent classifier, context builder, tool definitions, retrieval service, and spoiler handling.
 
 ### Data flow (typical authenticated request)
 1. Client sends request with auth cookies.
@@ -140,7 +140,7 @@ Derived from package/config files.
 2. Gemini classifies intent and decides whether to use TMDB tools, Cinnect vector search, or both.
 3. Context builder gathers relevant platform, media, and retrieval context.
 4. Gemini executes tools when needed and generates the final response.
-5. The user's message is checked for content safety up front, and spoiler-sensitive requests are gated by a consent warning before the response is returned.
+5. Spoiler-sensitive requests are gated by a consent warning before the response is returned.
 
 ## 5. Project Structure
 

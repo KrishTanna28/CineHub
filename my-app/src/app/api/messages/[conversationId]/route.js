@@ -23,7 +23,7 @@ export const GET = withAuth(async (request, { params, user }) => {
     const conversation = await Conversation.findOne({
       _id: conversationId,
       participants: user._id
-    }).populate('participants', 'blockedUsers isPrivate followers');
+    }).populate('participants', 'username fullName avatar blockedUsers isPrivate followers');
 
     if (!conversation) {
       return NextResponse.json(
@@ -32,7 +32,7 @@ export const GET = withAuth(async (request, { params, user }) => {
       );
     }
 
-    const currentUserDoc = await User.findById(user._id).select('blockedUsers');
+    const currentUserDoc = await User.findById(user._id).select('blockedUsers isPrivate');
     const myBlockedUsers = currentUserDoc?.blockedUsers || [];
     const otherParticipantDoc = conversation.participants.find(
       p => p._id.toString() !== user._id.toString()
@@ -122,6 +122,30 @@ export const GET = withAuth(async (request, { params, user }) => {
       deletedFor: { $ne: user._id }
     });
 
+    // Build formatted conversation so the frontend can open this thread directly
+    let convParticipant = null;
+    if (otherParticipantDoc) {
+      const anonymize = hasBlockedMe;
+      convParticipant = {
+        _id: otherParticipantDoc._id,
+        username: anonymize ? 'User' : otherParticipantDoc.username,
+        fullName: anonymize ? 'User' : otherParticipantDoc.fullName,
+        avatar: anonymize ? null : otherParticipantDoc.avatar,
+        isBlockedByThem: hasBlockedMe,
+        didIBlockThem
+      };
+    }
+    const formattedConversation = {
+      _id: conversation._id,
+      participant: convParticipant,
+      lastMessage: conversation.lastMessage,
+      lastMessageAt: conversation.lastMessageAt,
+      isRequest: currentUserDoc?.isPrivate ? (conversation.isRequest && conversation.requestFor?.toString() === user._id.toString()) : false,
+      unreadCount: 0,
+      mutedBy: conversation.mutedBy || [],
+      createdAt: conversation.createdAt
+    };
+
     return NextResponse.json({
       success: true,
       messages: processedMessages.reverse(), // Return in chronological order
@@ -130,7 +154,8 @@ export const GET = withAuth(async (request, { params, user }) => {
         limit,
         total,
         pages: Math.ceil(total / limit)
-      }
+      },
+      conversation: formattedConversation
     });
   } catch (error) {
     console.error('Error fetching messages:', error);

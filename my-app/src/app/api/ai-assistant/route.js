@@ -15,7 +15,6 @@ import { runAssistantChain } from '@/lib/services/ai/assistantChain';
 import { runAssistantAgent } from '@/lib/services/ai/agentOrchestrator';
 import { createAssistantMemory, saveAssistantTurn } from '@/lib/services/ai/memoryStore';
 import { getSpoilerResponseMode, generateSpoilerWarning, SPOILER_INSTRUCTIONS } from '@/lib/services/ai/spoilerHandler';
-import { checkContentSafety, getUnsafeContentResponse } from '@/lib/services/ai/contentSafety';
 
 function getOutOfDomainResponse() {
   return "I'm C.A.S.T, your cinematic assistant! I specialize in movies, TV shows, and everything entertainment-related on Cinnect. Is there something about films, shows, or our platform I can help you with?";
@@ -73,17 +72,6 @@ async function handler(request, context) {
 
     if (message.length > 2000) {
       return error('Message is too long. Please keep it under 2000 characters.', 400);
-    }
-
-    const safetyCheck = await checkContentSafety(message);
-
-    if (!safetyCheck.isSafe) {
-      return success({
-        message: getUnsafeContentResponse(safetyCheck),
-        blocked: true,
-        intent: 'safety_violation',
-        citations: []
-      });
     }
 
     const classification = await classifyIntent(message, conversationHistory);
